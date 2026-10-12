@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp"
+    app:cardBackgroundColor="#FFFFFF">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="20dp">
+
+        <!-- Dải màu đánh dấu mức độ ưu tiên bên trái (Màu Xanh ngọc) -->
+        <View
+            android:id="@+id/viewPriorityColor"
+            android:layout_width="6dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="#14B8A6"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Biểu tượng Đồng hồ -->
+        <ImageView
+            android:id="@+id/icClock"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:src="@android:drawable/ic_menu_recent_history"
+            app:tint="#888888"
+            app:layout_constraintStart_toEndOf="@id/viewPriorityColor"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Thời gian (Đã chuyển sang Tiếng Việt) -->
+        <TextView
+            android:id="@+id/tvTaskTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="11:30 SA - 12:30 CH"
+            android:textColor="#666666"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@id/icClock"
+            app:layout_constraintStart_toEndOf="@id/icClock"
+            app:layout_constraintTop_toTopOf="@id/icClock" />
+
+        <!-- Nút 3 chấm (Menu) -->
+        <ImageView
+            android:id="@+id/btnTaskMenu"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="16dp"
+            android:src="@android:drawable/ic_menu_more"
+            app:tint="#888888"
+            app:layout_constraintBottom_toBottomOf="@id/icClock"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/icClock" />
+
+        <!-- Tiêu đề công việc -->
+        <TextView
+            android:id="@+id/tvTaskTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:text="Thuyết trình Bán hàng"
+            android:textColor="#222222"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/viewPriorityColor"
+            app:layout_constraintTop_toBottomOf="@id/tvTaskTime" />
+
+        <!-- Mô tả công việc (Cắt ngắn nếu quá 2 dòng) -->
+        <TextView
+            android:id="@+id/tvTaskDesc"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="16dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="Đánh giá mục tiêu doanh thu quý 1, lưu lượng giao dịch và tốc độ đường ống với ban lãnh đạo..."
+            android:textColor="#777777"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/tvTaskTitle"
+            app:layout_constraintTop_toBottomOf="@id/tvTaskTitle" />
+
+        <!-- Biểu tượng Vị trí -->
+        <ImageView
+            android:id="@+id/icLocation"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginTop="12dp"
+            android:src="@android:drawable/ic_menu_mylocation"
+            app:tint="#888888"
+            app:layout_constraintStart_toStartOf="@id/tvTaskTitle"
+            app:layout_constraintTop_toBottomOf="@id/tvTaskDesc" />
+
+        <!-- Chữ Vị trí -->
+        <TextView
+            android:id="@+id/tvTaskLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="London, UK • Phòng 4B"
+            android:textColor="#888888"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/icLocation"
+            app:layout_constraintStart_toEndOf="@id/icLocation"
+            app:layout_constraintTop_toTopOf="@id/icLocation" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

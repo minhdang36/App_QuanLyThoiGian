@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    android:background="@drawable/bg_rounded_24dp"
+    android:backgroundTint="#F8F9FA"
+    android:padding="20dp"
+    android:elevation="2dp">
+
+    <!-- Icon Dự án -->
+    <ImageView
+        android:id="@+id/imgProjectIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_circle_brown"
+        android:backgroundTint="#004D40"
+        android:padding="12dp"
+        android:src="@android:drawable/ic_menu_agenda"
+        app:tint="#FFFFFF"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Tên Dự án -->
+    <TextView
+        android:id="@+id/tvProjectName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Công việc ●"
+        android:textColor="#222222"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toEndOf="@id/imgProjectIcon"
+        app:layout_constraintTop_toTopOf="@id/imgProjectIcon" />
+
+    <!-- Mô tả Dự án -->
+    <TextView
+        android:id="@+id/tvProjectDesc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Kế hoạch bán hàng &amp; lộ trình"
+        android:textColor="#888888"
+        android:textSize="12sp"
+        app:layout_constraintStart_toEndOf="@id/imgProjectIcon"
+        app:layout_constraintTop_toBottomOf="@id/tvProjectName" />
+
+    <!-- Số lượng Task -->
+    <TextView
+        android:id="@+id/tvTaskCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_rounded_24dp"
+        android:backgroundTint="#EFEBE9"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="4dp"
+        android:text="12 Công việc"
+        android:textColor="#4E342E"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Chữ Tiến độ & Phần trăm -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Tiến độ"
+        android:textColor="#555555"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/imgProjectIcon" />
+
+    <TextView
+        android:id="@+id/tvProgressPercent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="75%"
+        android:textColor="#222222"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/imgProjectIcon"
+        app:layout_constraintBottom_toBottomOf="@id/imgProjectIcon"
+        app:layout_constraintVertical_bias="1.45" />
+
+    <!-- Thanh Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginTop="8dp"
+        android:progress="75"
+        android:progressTint="#004D40"
+        android:progressBackgroundTint="#E0E0E0"
+        app:layout_constraintTop_toBottomOf="@+id/tvProgressPercent" />
+
+    <!-- Đã hoàn thành / Còn lại -->
+    <TextView
+        android:id="@+id/tvFinished"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="9 đã xong"
+        android:textColor="#222222"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar" />
+
+    <TextView
+        android:id="@+id/tvRemaining"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="3 còn lại"
+        android:textColor="#888888"
+        android:textSize="11sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

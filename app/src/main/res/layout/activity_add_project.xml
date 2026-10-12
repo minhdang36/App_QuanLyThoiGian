@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F4F5F8"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvHeaderTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Thêm Danh Mục Mới"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#111111"
+        android:layout_marginBottom="24dp"/>
+
+    <EditText
+        android:id="@+id/etProjectName"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_rounded_24dp"
+        android:backgroundTint="#FFFFFF"
+        android:paddingHorizontal="20dp"
+        android:hint="Tên danh mục (VD: Giải trí, Du lịch...)"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/etProjectDesc"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_rounded_24dp"
+        android:backgroundTint="#FFFFFF"
+        android:paddingHorizontal="20dp"
+        android:hint="Mô tả ngắn gọn..."
+        android:layout_marginBottom="32dp"/>
+
+    <TextView
+        android:id="@+id/btnSaveProject"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_rounded_24dp"
+        android:backgroundTint="#004D40"
+        android:gravity="center"
+        android:text="LƯU DANH MỤC"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="16sp"/>
+</LinearLayout>
