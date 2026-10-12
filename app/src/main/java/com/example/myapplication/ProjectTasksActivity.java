@@ -59,19 +59,30 @@ public class ProjectTasksActivity extends AppCompatActivity {
     }
 
     private void loadTasksForProject() {
+        // 1. Lấy ID người dùng đang đăng nhập
+        android.content.SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        int currentUserId = sharedPref.getInt("USER_ID", -1);
+
+        if (currentUserId == -1) {
+            Toast.makeText(this, "Lỗi: Chưa đăng nhập", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://10.0.2.2:8080/api/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         ApiService apiService = retrofit.create(ApiService.class);
-        apiService.getAllTasks().enqueue(new Callback<List<Task>>() {
+
+        // 2. Đổi getAllTasks() thành getTasksByUser(currentUserId)
+        apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
             @Override
             public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     projectTaskList.clear();
 
-                    // Lọc: Chỉ lấy những Task có projectId khớp với dự án đang xem
+                    // Lọc: Chỉ lấy những Task của RIÊNG BẠN và có projectId khớp với dự án đang xem
                     for (Task task : response.body()) {
                         if (task.getProjectId() == projectId) {
                             projectTaskList.add(task);
