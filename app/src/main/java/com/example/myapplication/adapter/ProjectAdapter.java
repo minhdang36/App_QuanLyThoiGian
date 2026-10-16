@@ -13,10 +13,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.myapplication.ApiService;
-import com.example.myapplication.ProjectTasksActivity;
 import com.example.myapplication.R;
 import com.example.myapplication.model.Project;
+import com.example.myapplication.network.ApiService;
+import com.example.myapplication.ui.project.AddProjectActivity;
+import com.example.myapplication.ui.task.ProjectTasksActivity;
 
 import java.util.List;
 
@@ -67,7 +68,7 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
             builder.setItems(options, (dialog, which) -> {
                 if (which == 0) {
                     // CHỌN SỬA -> Mở AddProjectActivity ở chế độ Sửa
-                    Intent intent = new Intent(v.getContext(), com.example.myapplication.AddProjectActivity.class);
+                    Intent intent = new Intent(v.getContext(), AddProjectActivity.class);
                     intent.putExtra("PROJECT_ID", project.getId());
                     intent.putExtra("PROJECT_NAME", project.getName());
                     intent.putExtra("PROJECT_DESC", project.getDescription());

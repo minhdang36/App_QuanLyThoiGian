@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="tvTasksToday" type="id" />
+    <item name="tvCompletionPercent" type="id" />
+    <item name="tvPendingCount" type="id" />
+    <item name="tvInProgressCount" type="id" />
+    <item name="tvDoneCount" type="id" />
+    <item name="edtSearch" type="id" />
+    <item name="tabAll" type="id" />
+    <item name="tabPending" type="id" />
+    <item name="tabInProgress" type="id" />
+    <item name="layoutAppTitle" type="id" />
+    <item name="btnFilterTop" type="id" />
+</resources>
