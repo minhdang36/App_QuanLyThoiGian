@@ -55,5 +55,9 @@ public interface ApiService {
     // 2. API Lấy danh sách Công việc CHỈ CỦA RIÊNG USER ĐÓ (Nếu có)
     @GET("tasks/user/{userId}")
     Call<List<Task>> getTasksByUser(@Path("userId") int userId);
-
+    @GET("tasks/project/{projectId}/user/{userId}")
+    Call<List<Task>> getTasksByProjectAndUser(
+            @Path("projectId") int projectId,
+            @Path("userId") int userId
+    );
 }

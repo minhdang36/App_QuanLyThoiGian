@@ -43,6 +43,7 @@ public class AddProjectActivity extends AppCompatActivity {
         }
 
         btnSave.setOnClickListener(v -> {
+            // Lấy dữ liệu từ giao diện (sửa lại đúng tên biến etName, etDesc)
             String name = etName.getText().toString().trim();
             String desc = etDesc.getText().toString().trim();
 
@@ -51,34 +52,36 @@ public class AddProjectActivity extends AppCompatActivity {
                 return;
             }
 
-            // 1. Lấy USER_ID đang đăng nhập từ bộ nhớ máy
+            // 1. "MÓC TÚI" LẤY ID NGƯỜI DÙNG ĐANG ĐĂNG NHẬP
             SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
             int currentUserId = sharedPref.getInt("USER_ID", -1);
 
             if (currentUserId == -1) {
-                Toast.makeText(this, "Lỗi: Chưa đăng nhập!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Lỗi: Bạn chưa đăng nhập!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // 2. Tạo đối tượng Project và gán dữ liệu
+            // 2. KHỞI TẠO DỰ ÁN VÀ GÁN DỮ LIỆU
             Project projectData = new Project();
             projectData.setName(name);
             projectData.setDescription(desc);
             projectData.setColorHex("#FF9800");
 
-            // 3. Gắn chủ sở hữu cho dự án này
+            // DÒNG QUAN TRỌNG NHẤT: Gắn chủ sở hữu cho dự án này
             projectData.setUserId(currentUserId);
 
+            // Khởi tạo apiService
             ApiService apiService = getRetrofitClient().create(ApiService.class);
 
-            // NẾU LÀ SỬA (Cập nhật)
+            // 3. XỬ LÝ PHÂN NHÁNH: SỬA HOẶC THÊM MỚI
             if (projectId != -1) {
+                // NẾU LÀ SỬA (Cập nhật)
                 apiService.updateProject(projectId, projectData).enqueue(new Callback<Project>() {
                     @Override
                     public void onResponse(Call<Project> call, Response<Project> response) {
                         if (response.isSuccessful()) {
                             Toast.makeText(AddProjectActivity.this, "Đã cập nhật!", Toast.LENGTH_SHORT).show();
-                            finish();
+                            finish(); // Đóng trang này
                         }
                     }
                     @Override
@@ -86,15 +89,14 @@ public class AddProjectActivity extends AppCompatActivity {
                         Toast.makeText(AddProjectActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
                     }
                 });
-            }
-            // NẾU LÀ THÊM MỚI
-            else {
+            } else {
+                // NẾU LÀ THÊM MỚI
                 apiService.addProject(projectData).enqueue(new Callback<Project>() {
                     @Override
                     public void onResponse(Call<Project> call, Response<Project> response) {
                         if (response.isSuccessful()) {
                             Toast.makeText(AddProjectActivity.this, "Đã thêm mới!", Toast.LENGTH_SHORT).show();
-                            finish();
+                            finish(); // Đóng trang này
                         }
                     }
                     @Override
@@ -106,7 +108,6 @@ public class AddProjectActivity extends AppCompatActivity {
         });
     }
 
-    // Đã đổi tên hàm thành getRetrofitClient để tuân thủ chuẩn đặt tên Java
     private Retrofit getRetrofitClient() {
         return new Retrofit.Builder()
                 .baseUrl("http://10.0.2.2:8080/api/")

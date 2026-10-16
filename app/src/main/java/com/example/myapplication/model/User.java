@@ -29,4 +29,5 @@ public class User {
     public void setFocusHours(double focusHours) { this.focusHours = focusHours; }
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
+
 }
