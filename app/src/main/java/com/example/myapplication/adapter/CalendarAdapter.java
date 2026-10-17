@@ -1,11 +1,13 @@
 package com.example.myapplication.adapter;
 
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -16,11 +18,29 @@ import java.util.List;
 
 public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHolder> {
 
+    public interface OnDateClickListener {
+        void onDateClick(int dayNumber);
+    }
+
     private List<CalendarDate> dateList;
-    private int selectedPosition = 0; // Mặc định chọn ngày đầu tiên
+    private int selectedPosition = 0;
+    private OnDateClickListener listener;
+
+    public CalendarAdapter(List<CalendarDate> dateList, int selectedPosition, OnDateClickListener listener) {
+        this.dateList = dateList;
+        this.selectedPosition = selectedPosition;
+        this.listener = listener;
+    }
 
     public CalendarAdapter(List<CalendarDate> dateList) {
-        this.dateList = dateList;
+        this(dateList, 0, null);
+    }
+
+    public void setSelectedPosition(int position) {
+        int oldPos = selectedPosition;
+        selectedPosition = position;
+        if (oldPos >= 0 && oldPos < dateList.size()) notifyItemChanged(oldPos);
+        if (selectedPosition >= 0 && selectedPosition < dateList.size()) notifyItemChanged(selectedPosition);
     }
 
     @NonNull
@@ -36,33 +56,39 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         holder.tvDayOfWeek.setText(date.getDayOfWeek());
         holder.tvDateNumber.setText(date.getDateNumber());
 
-        // Đổi màu sắc nếu ngày đó được chọn
         if (selectedPosition == position) {
-            holder.tvDateNumber.setTextColor(Color.parseColor("#000000")); // Đen đậm
-            holder.tvDayOfWeek.setTextColor(Color.parseColor("#000000"));
+            holder.tvDateNumber.setTextColor(Color.parseColor("#362C2A"));
+            holder.tvDayOfWeek.setTextColor(Color.parseColor("#362C2A"));
+            holder.tvDateNumber.setTypeface(null, Typeface.BOLD);
+            holder.tvDayOfWeek.setTypeface(null, Typeface.BOLD);
         } else {
-            holder.tvDateNumber.setTextColor(Color.parseColor("#888888")); // Xám
+            holder.tvDateNumber.setTextColor(Color.parseColor("#888888"));
             holder.tvDayOfWeek.setTextColor(Color.parseColor("#888888"));
+            holder.tvDateNumber.setTypeface(null, Typeface.NORMAL);
+            holder.tvDayOfWeek.setTypeface(null, Typeface.NORMAL);
         }
 
-        // Bắt sự kiện click chọn ngày
         holder.itemView.setOnClickListener(v -> {
-            // Khắc phục lỗi: Lấy vị trí thực tế tại thời điểm click
             int currentPosition = holder.getAdapterPosition();
-
-            // Tránh lỗi crash nếu item bị click trong lúc đang bị xóa khỏi danh sách
             if (currentPosition == RecyclerView.NO_POSITION) return;
 
             int previousPosition = selectedPosition;
             selectedPosition = currentPosition;
-            notifyItemChanged(previousPosition); // Cập nhật lại giao diện ô cũ
-            notifyItemChanged(selectedPosition); // Cập nhật giao diện ô mới được chọn
+            notifyItemChanged(previousPosition);
+            notifyItemChanged(selectedPosition);
+
+            if (listener != null) {
+                try {
+                    int dayNum = Integer.parseInt(dateList.get(currentPosition).getDateNumber());
+                    listener.onDateClick(dayNum);
+                } catch (NumberFormatException ignored) {}
+            }
         });
     }
 
     @Override
     public int getItemCount() {
-        return dateList.size();
+        return dateList != null ? dateList.size() : 0;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

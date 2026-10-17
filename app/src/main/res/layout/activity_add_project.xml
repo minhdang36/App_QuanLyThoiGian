@@ -24,6 +24,7 @@
         android:backgroundTint="#FFFFFF"
         android:paddingHorizontal="20dp"
         android:hint="Tên danh mục (VD: Giải trí, Du lịch...)"
+        android:inputType="text|textNoSuggestions"
         android:layout_marginBottom="16dp"/>
 
     <EditText
@@ -34,6 +35,7 @@
         android:backgroundTint="#FFFFFF"
         android:paddingHorizontal="20dp"
         android:hint="Mô tả ngắn gọn..."
+        android:inputType="text|textNoSuggestions"
         android:layout_marginBottom="32dp"/>
 
     <TextView
