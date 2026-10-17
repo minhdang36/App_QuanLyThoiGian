@@ -1,6 +1,7 @@
 package com.example.myapplication.adapter;
 
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,17 +16,34 @@ import java.util.List;
 
 public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapter.CalendarViewHolder> {
 
+    public interface OnDayClickListener {
+        void onDayClick(int dayNumber);
+    }
+
     private List<String> daysOfMonth;
-    private int selectedPosition = 1; // Mặc định chọn ngày mùng 2 (vị trí index 1)
+    private int selectedPosition = -1;
+    private OnDayClickListener listener;
+
+    public FullCalendarAdapter(List<String> daysOfMonth, int selectedPosition, OnDayClickListener listener) {
+        this.daysOfMonth = daysOfMonth;
+        this.selectedPosition = selectedPosition;
+        this.listener = listener;
+    }
 
     public FullCalendarAdapter(List<String> daysOfMonth) {
-        this.daysOfMonth = daysOfMonth;
+        this(daysOfMonth, -1, null);
+    }
+
+    public void setSelectedPosition(int position) {
+        int oldPos = selectedPosition;
+        selectedPosition = position;
+        if (oldPos >= 0 && oldPos < daysOfMonth.size()) notifyItemChanged(oldPos);
+        if (selectedPosition >= 0 && selectedPosition < daysOfMonth.size()) notifyItemChanged(selectedPosition);
     }
 
     @NonNull
     @Override
     public CalendarViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Sử dụng lại layout 1 ô ngày bạn đã tạo ở bước trước
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_full_calendar_day, parent, false);
         return new CalendarViewHolder(view);
     }
@@ -35,29 +53,40 @@ public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapte
         String dayText = daysOfMonth.get(position);
         holder.tvDateNumber.setText(dayText);
 
-        // Đổi màu nền nếu là ngày được chọn
         if (position == selectedPosition && !dayText.isEmpty()) {
             holder.tvDateNumber.setBackgroundResource(R.drawable.bg_circle_brown);
             holder.tvDateNumber.setTextColor(Color.WHITE);
+            holder.tvDateNumber.setTypeface(null, Typeface.BOLD);
         } else {
             holder.tvDateNumber.setBackgroundResource(android.R.color.transparent);
             holder.tvDateNumber.setTextColor(Color.parseColor("#333333"));
+            holder.tvDateNumber.setTypeface(null, Typeface.NORMAL);
         }
 
-        // Bắt sự kiện click để đổi ngày
         holder.itemView.setOnClickListener(v -> {
-            if (!dayText.isEmpty()) {
+            int curPos = holder.getAdapterPosition();
+            if (curPos == RecyclerView.NO_POSITION) return;
+
+            String text = daysOfMonth.get(curPos);
+            if (!text.isEmpty()) {
                 int previousItem = selectedPosition;
-                selectedPosition = position;
+                selectedPosition = curPos;
                 notifyItemChanged(previousItem);
                 notifyItemChanged(selectedPosition);
+
+                if (listener != null) {
+                    try {
+                        int dayNum = Integer.parseInt(text);
+                        listener.onDayClick(dayNum);
+                    } catch (NumberFormatException ignored) {}
+                }
             }
         });
     }
 
     @Override
     public int getItemCount() {
-        return daysOfMonth.size();
+        return daysOfMonth != null ? daysOfMonth.size() : 0;
     }
 
     public static class CalendarViewHolder extends RecyclerView.ViewHolder {
@@ -65,7 +94,6 @@ public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapte
 
         public CalendarViewHolder(@NonNull View itemView) {
             super(itemView);
-            // Ánh xạ ID từ file item_full_calendar_day.xml
             tvDateNumber = itemView.findViewById(R.id.tvDateNumber);
         }
     }
