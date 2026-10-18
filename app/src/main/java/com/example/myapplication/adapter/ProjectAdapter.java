@@ -134,12 +134,27 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
         holder.imgProjectIcon.setBackgroundTintList(ColorStateList.valueOf(projectColor));
         holder.progressBar.setProgressTintList(ColorStateList.valueOf(projectColor));
 
+        // Kiểm tra dự án mặc định ("Công việc", "Học tập", "Cá nhân", "Sức khỏe và thể thao")
+        String pName = project.getName() != null ? project.getName().trim() : "";
+        boolean isDefaultCategory = pName.contains("Công việc") ||
+                                   pName.contains("Học tập") || pName.contains("Học Tập") ||
+                                   pName.contains("Cá nhân") || pName.contains("Cá Nhân") ||
+                                   pName.contains("Sức khỏe") || pName.contains("Thể thao") ||
+                                   project.getId() <= 4;
+
         if (holder.btnAiBreakdownItem != null) {
-            holder.btnAiBreakdownItem.setOnClickListener(v -> {
-                Intent aiIntent = new Intent(v.getContext(), com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
-                aiIntent.putExtra("MAIN_TASK_TITLE", project.getName());
-                v.getContext().startActivity(aiIntent);
-            });
+            if (isDefaultCategory) {
+                // Dự án mặc định -> ẨN nút Phân rã AI
+                holder.btnAiBreakdownItem.setVisibility(View.GONE);
+            } else {
+                // Dự án lớn do người dùng tạo -> HIỆN nút Phân rã AI
+                holder.btnAiBreakdownItem.setVisibility(View.VISIBLE);
+                holder.btnAiBreakdownItem.setOnClickListener(v -> {
+                    Intent aiIntent = new Intent(v.getContext(), com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
+                    aiIntent.putExtra("MAIN_TASK_TITLE", project.getName());
+                    v.getContext().startActivity(aiIntent);
+                });
+            }
         }
     }
 
