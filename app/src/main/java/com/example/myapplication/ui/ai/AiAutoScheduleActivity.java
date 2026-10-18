@@ -20,9 +20,11 @@ import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
 import com.example.myapplication.ui.main.ProfileSettingsActivity;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -47,7 +49,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
     private final List<Task> allUserTasks = new ArrayList<>();
     private final List<Task> displayedScheduleTasks = new ArrayList<>();
 
-    private int selectedDayNumber = 17; // Mặc định hôm nay là 17
+    private int selectedDayNumber = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +73,6 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             rvTimeline.setAdapter(timelineAdapter);
         }
 
-        // 1. Nhấn Avatar -> Mở thông tin cá nhân (ProfileSettingsActivity)
         if (imgAvatar != null) {
             imgAvatar.setOnClickListener(v -> {
                 Intent intent = new Intent(AiAutoScheduleActivity.this, ProfileSettingsActivity.class);
@@ -83,10 +84,9 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> finish());
         }
 
-        // 2. Thiết lập thanh chọn ngày tương tác (T2 14 -> T7 19)
+        // Tính toán và gắn dữ liệu thực tế cho thanh chọn ngày
         setupDaysStrip();
 
-        // 3. Nút Tối ưu lại
         if (btnReOptimize != null) {
             btnReOptimize.setOnClickListener(v -> {
                 filterAndOptimizeForDay(selectedDayNumber);
@@ -117,21 +117,48 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         tvDay19Label = findViewById(R.id.tvDay19Label);
         tvDay19Num = findViewById(R.id.tvDay19Num);
 
-        Calendar todayCal = Calendar.getInstance();
-        selectedDayNumber = todayCal.get(Calendar.DAY_OF_MONTH);
+        // Tính toán ngày thực tế từ Calendar hệ thống
+        Calendar realCal = Calendar.getInstance();
+        int realTodayDayNum = realCal.get(Calendar.DAY_OF_MONTH);
+        selectedDayNumber = realTodayDayNum;
 
-        if (day14 != null) day14.setOnClickListener(v -> selectDayCapsule(14, day14, tvDay14Label, tvDay14Num));
-        if (day15 != null) day15.setOnClickListener(v -> selectDayCapsule(15, day15, tvDay15Label, tvDay15Num));
-        if (day16 != null) day16.setOnClickListener(v -> selectDayCapsule(16, day16, tvDay16Label, tvDay16Num));
-        if (day17 != null) day17.setOnClickListener(v -> selectDayCapsule(17, day17, tvDay17Label, tvDay17Num));
-        if (day18 != null) day18.setOnClickListener(v -> selectDayCapsule(18, day18, tvDay18Label, tvDay18Num));
-        if (day19 != null) day19.setOnClickListener(v -> selectDayCapsule(19, day19, tvDay19Label, tvDay19Num));
+        // Bắt đầu từ 2 ngày trước hôm nay
+        Calendar weekCal = (Calendar) realCal.clone();
+        weekCal.add(Calendar.DAY_OF_MONTH, -2);
+
+        SimpleDateFormat labelFormat = new SimpleDateFormat("EEE", new Locale("vi", "VN"));
+
+        LinearLayout[] layouts = new LinearLayout[]{day14, day15, day16, day17, day18, day19};
+        TextView[] labels = new TextView[]{tvDay14Label, tvDay15Label, tvDay16Label, tvDay17Label, tvDay18Label, tvDay19Label};
+        TextView[] nums = new TextView[]{tvDay14Num, tvDay15Num, tvDay16Num, tvDay17Num, tvDay18Num, tvDay19Num};
+
+        for (int i = 0; i < 6; i++) {
+            int dNum = weekCal.get(Calendar.DAY_OF_MONTH);
+            String dLabel = (dNum == realTodayDayNum) ? "H.NAY" : labelFormat.format(weekCal.getTime()).toUpperCase();
+
+            if (labels[i] != null) labels[i].setText(dLabel);
+            if (nums[i] != null) nums[i].setText(String.valueOf(dNum));
+
+            final int clickDay = dNum;
+            final LinearLayout curLayout = layouts[i];
+            final TextView curLabel = labels[i];
+            final TextView curNum = nums[i];
+
+            if (curLayout != null) {
+                curLayout.setOnClickListener(v -> selectDayCapsule(clickDay, curLayout, curLabel, curNum));
+            }
+
+            if (dNum == realTodayDayNum) {
+                selectDayCapsule(dNum, curLayout, curLabel, curNum);
+            }
+
+            weekCal.add(Calendar.DAY_OF_MONTH, 1);
+        }
     }
 
     private void selectDayCapsule(int dayNumber, LinearLayout selectedLayout, TextView tvLabel, TextView tvNum) {
         selectedDayNumber = dayNumber;
 
-        // Bỏ chọn tất cả các capsule
         resetCapsuleStyle(day14, tvDay14Label, tvDay14Num);
         resetCapsuleStyle(day15, tvDay15Label, tvDay15Num);
         resetCapsuleStyle(day16, tvDay16Label, tvDay16Num);
@@ -139,14 +166,12 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         resetCapsuleStyle(day18, tvDay18Label, tvDay18Num);
         resetCapsuleStyle(day19, tvDay19Label, tvDay19Num);
 
-        // Highlight capsule được bấm
         if (selectedLayout != null) {
             selectedLayout.setBackgroundResource(R.drawable.bg_pill_brown);
         }
         if (tvLabel != null) tvLabel.setTextColor(0xFFCCCCCC);
         if (tvNum != null) tvNum.setTextColor(0xFFFFFFFF);
 
-        // Lọc và xem trước bản tối ưu cho ngày được chọn
         filterAndOptimizeForDay(dayNumber);
     }
 
