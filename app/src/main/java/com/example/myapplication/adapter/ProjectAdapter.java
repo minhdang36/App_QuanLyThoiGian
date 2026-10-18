@@ -133,6 +133,14 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
 
         holder.imgProjectIcon.setBackgroundTintList(ColorStateList.valueOf(projectColor));
         holder.progressBar.setProgressTintList(ColorStateList.valueOf(projectColor));
+
+        if (holder.btnAiBreakdownItem != null) {
+            holder.btnAiBreakdownItem.setOnClickListener(v -> {
+                Intent aiIntent = new Intent(v.getContext(), com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
+                aiIntent.putExtra("MAIN_TASK_TITLE", project.getName());
+                v.getContext().startActivity(aiIntent);
+            });
+        }
     }
 
     @Override
@@ -176,7 +184,7 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
     // ==========================================
     public static class ProjectViewHolder extends RecyclerView.ViewHolder {
         ImageView imgProjectIcon;
-        TextView tvProjectName, tvProjectDesc, tvTaskCount, tvProgressPercent, tvFinished, tvRemaining;
+        TextView tvProjectName, tvProjectDesc, tvTaskCount, tvProgressPercent, tvFinished, tvRemaining, btnAiBreakdownItem;
         ProgressBar progressBar;
 
         public ProjectViewHolder(@NonNull View itemView) {
@@ -189,6 +197,7 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
             progressBar = itemView.findViewById(R.id.progressBar);
             tvFinished = itemView.findViewById(R.id.tvFinished);
             tvRemaining = itemView.findViewById(R.id.tvRemaining);
+            btnAiBreakdownItem = itemView.findViewById(R.id.btnAiBreakdownItem);
         }
     }
 }

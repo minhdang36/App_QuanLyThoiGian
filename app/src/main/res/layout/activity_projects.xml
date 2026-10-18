@@ -129,6 +129,27 @@
                 android:textColor="#888888"
                 android:textSize="13sp" />
 
+            <!-- BANNER NÚT PHÂN RÃ DỰ ÁN LỚN BẰNG FLOWAI -->
+            <LinearLayout
+                android:id="@+id/btnAiBreakdownMain"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_pill_brown"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingVertical="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ Phân rã Dự án Lớn bằng FlowAI"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <!-- 2 Thẻ Thống kê Tóm tắt -->
             <LinearLayout
                 android:layout_width="match_parent"

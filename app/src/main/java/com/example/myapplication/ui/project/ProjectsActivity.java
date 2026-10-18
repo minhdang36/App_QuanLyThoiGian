@@ -58,6 +58,15 @@ public class ProjectsActivity extends AppCompatActivity {
             });
         }
 
+        android.widget.LinearLayout btnAiBreakdownMain = findViewById(R.id.btnAiBreakdownMain);
+        if (btnAiBreakdownMain != null) {
+            btnAiBreakdownMain.setOnClickListener(v -> {
+                Intent aiIntent = new Intent(ProjectsActivity.this, com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
+                aiIntent.putExtra("MAIN_TASK_TITLE", "Dự án lớn của tôi");
+                startActivity(aiIntent);
+            });
+        }
+
         TextView tvCancelProjects = findViewById(R.id.tvCancelProjects);
         if (tvCancelProjects != null) {
             tvCancelProjects.setOnClickListener(v -> finish());
