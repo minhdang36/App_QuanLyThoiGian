@@ -76,20 +76,22 @@ public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimeli
         }
 
         // 3. Thời gian hiển thị bên trái & Mức độ ưu tiên
-        String timeStr = task.getTime();
+        String timeStr = task.getTime() != null ? task.getTime() : "";
         String priorityTag = "";
-        String combined = (task.getPriority() != null ? task.getPriority() : "") + " " + (timeStr != null ? timeStr : "");
+        String combined = (task.getPriority() != null ? task.getPriority() : "") + " " + timeStr;
         String pUpper = combined.toUpperCase();
 
-        if (pUpper.contains("ƯU 1") || pUpper.contains("CAO") || pUpper.contains("HIGH")) {
-            priorityTag = "\n🚩 Ưu 1";
-        } else if (pUpper.contains("ƯU 2") || pUpper.contains("TRUNG BÌNH") || pUpper.contains("MEDIUM")) {
-            priorityTag = "\n🚩 Ưu 2";
-        } else if (pUpper.contains("ƯU 3") || pUpper.contains("THẤP") || pUpper.contains("LOW")) {
-            priorityTag = "\n🚩 Ưu 3";
+        if (!timeStr.contains("🚩")) {
+            if (pUpper.contains("ƯU 1") || pUpper.contains("CAO") || pUpper.contains("HIGH")) {
+                priorityTag = "\n🚩 Ưu 1";
+            } else if (pUpper.contains("ƯU 2") || pUpper.contains("TRUNG BÌNH") || pUpper.contains("MEDIUM")) {
+                priorityTag = "\n🚩 Ưu 2";
+            } else if (pUpper.contains("ƯU 3") || pUpper.contains("THẤP") || pUpper.contains("LOW")) {
+                priorityTag = "\n🚩 Ưu 3";
+            }
         }
 
-        if (timeStr != null && timeStr.contains("🕒")) {
+        if (timeStr.contains("🕒")) {
             String[] parts = timeStr.split("🕒");
             if (parts.length >= 2) {
                 String clockStr = parts[1].trim().replace(" - ", "\n");
@@ -97,7 +99,7 @@ public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimeli
             } else {
                 holder.tvTimelineTime.setText(timeStr + priorityTag);
             }
-        } else if (timeStr != null && !timeStr.trim().isEmpty()) {
+        } else if (!timeStr.trim().isEmpty()) {
             holder.tvTimelineTime.setText(timeStr.replace(" | ", "\n") + priorityTag);
         } else {
             holder.tvTimelineTime.setText("08:00\n10:00" + priorityTag);
@@ -120,7 +122,7 @@ public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimeli
         if (task.getLocation() != null && !task.getLocation().trim().isEmpty()) {
             holder.tvTimelineSubInfo.setText("📍 " + task.getLocation());
         } else {
-            holder.tvTimelineSubInfo.setText("📍 Khung giờ tối ưu");
+            holder.tvTimelineSubInfo.setText("📍 Hoàn thành công việc");
         }
 
         boolean isDone = "DONE".equalsIgnoreCase(task.getStatus()) || "COMPLETED".equalsIgnoreCase(task.getStatus());

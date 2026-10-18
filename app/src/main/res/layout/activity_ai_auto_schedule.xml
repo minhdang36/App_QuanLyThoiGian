@@ -251,7 +251,7 @@
                             android:layout_height="wrap_content"
                             android:text="92% Hiệu suất"
                             android:textColor="#10B981"
-                            android:textSize="16sp"
+                            android:textSize="13sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
