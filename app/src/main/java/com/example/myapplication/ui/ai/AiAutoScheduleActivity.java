@@ -10,7 +10,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,6 +25,7 @@ import com.example.myapplication.ui.main.ProfileSettingsActivity;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -70,7 +73,30 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         if (rvTimeline != null) {
             rvTimeline.setLayoutManager(new LinearLayoutManager(this));
             timelineAdapter = new ScheduleTimelineAdapter(displayedScheduleTasks);
+            timelineAdapter.setOnTaskStatusChangeListener(this::recalculateEfficiencyOnly);
             rvTimeline.setAdapter(timelineAdapter);
+
+            // Tích hợp Kéo & Thả (Drag & Drop) để xếp lại vị trí các task thoải mái
+            ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(
+                    ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                    int fromPosition = viewHolder.getBindingAdapterPosition();
+                    int toPosition = target.getBindingAdapterPosition();
+
+                    if (fromPosition != RecyclerView.NO_POSITION && toPosition != RecyclerView.NO_POSITION) {
+                        timelineAdapter.onItemMove(fromPosition, toPosition);
+                        return true;
+                    }
+                    return false;
+                }
+
+                @Override
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {}
+            };
+
+            ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
+            itemTouchHelper.attachToRecyclerView(rvTimeline);
         }
 
         if (imgAvatar != null) {
@@ -84,13 +110,12 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> finish());
         }
 
-        // Tính toán và gắn dữ liệu thực tế cho thanh chọn ngày
         setupDaysStrip();
 
         if (btnReOptimize != null) {
             btnReOptimize.setOnClickListener(v -> {
                 filterAndOptimizeForDay(selectedDayNumber);
-                Toast.makeText(this, "⚡ FlowAI đã xếp lại toàn bộ lịch trình tối ưu cho ngày " + selectedDayNumber + "!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "⚡ AI đã sắp xếp Ưu tiên 1 ➔ Ưu tiên 2 ➔ Ưu tiên 3 cho ngày " + selectedDayNumber + "!", Toast.LENGTH_SHORT).show();
             });
         }
     }
@@ -117,12 +142,10 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         tvDay19Label = findViewById(R.id.tvDay19Label);
         tvDay19Num = findViewById(R.id.tvDay19Num);
 
-        // Tính toán ngày thực tế từ Calendar hệ thống
         Calendar realCal = Calendar.getInstance();
         int realTodayDayNum = realCal.get(Calendar.DAY_OF_MONTH);
         selectedDayNumber = realTodayDayNum;
 
-        // Bắt đầu từ 2 ngày trước hôm nay
         Calendar weekCal = (Calendar) realCal.clone();
         weekCal.add(Calendar.DAY_OF_MONTH, -2);
 
@@ -258,18 +281,21 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             }
         }
 
+        // AI SẮP XẾP ƯU TIÊN 1 ➔ ƯU TIÊN 2 ➔ ƯU TIÊN 3
+        Collections.sort(displayedScheduleTasks, (t1, t2) -> {
+            int p1 = getPriorityLevel(t1);
+            int p2 = getPriorityLevel(t2);
+            return Integer.compare(p1, p2);
+        });
+
         if (timelineAdapter != null) {
             timelineAdapter.updateData(displayedScheduleTasks);
         }
 
-        int totalEvents = displayedScheduleTasks.size();
-        int efficiency = totalEvents > 0 ? Math.min(85 + totalEvents * 4, 98) : 80;
-
-        if (tvEfficiencyPercent != null) {
-            tvEfficiencyPercent.setText(efficiency + "% Hiệu suất");
-        }
+        recalculateEfficiencyOnly();
 
         if (tvOptimizedCount != null) {
+            int totalEvents = displayedScheduleTasks.size();
             if (totalEvents > 0) {
                 tvOptimizedCount.setText("Bản tối ưu ngày " + dayNumber + ": " + totalEvents + " sự kiện");
             } else {
@@ -282,11 +308,38 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         }
 
         if (tvEventCount != null) {
-            tvEventCount.setText("● " + totalEvents + " Sự kiện");
+            tvEventCount.setText("● " + displayedScheduleTasks.size() + " Sự kiện");
         }
 
         if (tvPeakFocus != null) {
             tvPeakFocus.setText("● Đỉnh năng lượng: 09:30 - 11:30");
+        }
+    }
+
+    private int getPriorityLevel(Task t) {
+        String combined = (t.getPriority() != null ? t.getPriority() : "") + " " + (t.getTime() != null ? t.getTime() : "");
+        String p = combined.toUpperCase();
+        if (p.contains("ƯU 1") || p.contains("CAO") || p.contains("HIGH")) return 1;
+        if (p.contains("ƯU 2") || p.contains("TRUNG BÌNH") || p.contains("MEDIUM")) return 2;
+        if (p.contains("ƯU 3") || p.contains("THẤP") || p.contains("LOW")) return 3;
+        return 2;
+    }
+
+    private void recalculateEfficiencyOnly() {
+        int totalEvents = displayedScheduleTasks.size();
+        int doneCount = 0;
+
+        for (Task t : displayedScheduleTasks) {
+            String s = t.getStatus();
+            if ("DONE".equalsIgnoreCase(s) || "COMPLETED".equalsIgnoreCase(s) || "HOÀN THÀNH".equalsIgnoreCase(s)) {
+                doneCount++;
+            }
+        }
+
+        int efficiency = totalEvents > 0 ? (int) Math.round(((double) doneCount / totalEvents) * 100) : 100;
+
+        if (tvEfficiencyPercent != null) {
+            tvEfficiencyPercent.setText(efficiency + "% Hiệu suất (" + doneCount + "/" + totalEvents + " Hoàn thành)");
         }
     }
 }

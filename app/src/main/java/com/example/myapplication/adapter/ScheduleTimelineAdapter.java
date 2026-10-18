@@ -12,19 +12,42 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.myapplication.R;
 import com.example.myapplication.model.Task;
 
+import java.util.Collections;
 import java.util.List;
 
 public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimelineAdapter.TimelineViewHolder> {
 
+    public interface OnTaskStatusChangeListener {
+        void onStatusChanged();
+    }
+
     private List<Task> taskList;
+    private OnTaskStatusChangeListener statusChangeListener;
 
     public ScheduleTimelineAdapter(List<Task> taskList) {
         this.taskList = taskList;
     }
 
+    public void setOnTaskStatusChangeListener(OnTaskStatusChangeListener listener) {
+        this.statusChangeListener = listener;
+    }
+
     public void updateData(List<Task> newList) {
         this.taskList = newList;
         notifyDataSetChanged();
+    }
+
+    public void onItemMove(int fromPosition, int toPosition) {
+        if (fromPosition < toPosition) {
+            for (int i = fromPosition; i < toPosition; i++) {
+                Collections.swap(taskList, i, i + 1);
+            }
+        } else {
+            for (int i = fromPosition; i > toPosition; i--) {
+                Collections.swap(taskList, i, i - 1);
+            }
+        }
+        notifyItemMoved(fromPosition, toPosition);
     }
 
     @NonNull
@@ -52,20 +75,32 @@ public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimeli
             holder.tvTimelineDesc.setText("Không có ghi chú thêm");
         }
 
-        // 3. Thời gian hiển thị bên trái
+        // 3. Thời gian hiển thị bên trái & Mức độ ưu tiên
         String timeStr = task.getTime();
+        String priorityTag = "";
+        String combined = (task.getPriority() != null ? task.getPriority() : "") + " " + (timeStr != null ? timeStr : "");
+        String pUpper = combined.toUpperCase();
+
+        if (pUpper.contains("ƯU 1") || pUpper.contains("CAO") || pUpper.contains("HIGH")) {
+            priorityTag = "\n🚩 Ưu 1";
+        } else if (pUpper.contains("ƯU 2") || pUpper.contains("TRUNG BÌNH") || pUpper.contains("MEDIUM")) {
+            priorityTag = "\n🚩 Ưu 2";
+        } else if (pUpper.contains("ƯU 3") || pUpper.contains("THẤP") || pUpper.contains("LOW")) {
+            priorityTag = "\n🚩 Ưu 3";
+        }
+
         if (timeStr != null && timeStr.contains("🕒")) {
             String[] parts = timeStr.split("🕒");
             if (parts.length >= 2) {
                 String clockStr = parts[1].trim().replace(" - ", "\n");
-                holder.tvTimelineTime.setText(clockStr);
+                holder.tvTimelineTime.setText(clockStr + priorityTag);
             } else {
-                holder.tvTimelineTime.setText(timeStr);
+                holder.tvTimelineTime.setText(timeStr + priorityTag);
             }
         } else if (timeStr != null && !timeStr.trim().isEmpty()) {
-            holder.tvTimelineTime.setText(timeStr.replace(" | ", "\n"));
+            holder.tvTimelineTime.setText(timeStr.replace(" | ", "\n") + priorityTag);
         } else {
-            holder.tvTimelineTime.setText("08:00\n10:00");
+            holder.tvTimelineTime.setText("08:00\n10:00" + priorityTag);
         }
 
         // 4. Phân loại Tag: Lịch học cố định vs AI xếp lịch
@@ -88,7 +123,16 @@ public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimeli
             holder.tvTimelineSubInfo.setText("📍 Khung giờ tối ưu");
         }
 
-        holder.cbTimelineStatus.setChecked("DONE".equalsIgnoreCase(task.getStatus()));
+        boolean isDone = "DONE".equalsIgnoreCase(task.getStatus()) || "COMPLETED".equalsIgnoreCase(task.getStatus());
+        holder.cbTimelineStatus.setOnCheckedChangeListener(null);
+        holder.cbTimelineStatus.setChecked(isDone);
+
+        holder.cbTimelineStatus.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            task.setStatus(isChecked ? "DONE" : "PENDING");
+            if (statusChangeListener != null) {
+                statusChangeListener.onStatusChanged();
+            }
+        });
     }
 
     @Override
