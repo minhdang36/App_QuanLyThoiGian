@@ -225,8 +225,12 @@
 
             <!-- Item: Chỉnh sửa hồ sơ -->
             <LinearLayout
+                android:id="@+id/btnEditProfile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="12dp">
@@ -275,8 +279,12 @@
 
             <!-- Item: Đổi mật khẩu -->
             <LinearLayout
+                android:id="@+id/btnChangePassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="12dp">

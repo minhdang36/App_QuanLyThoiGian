@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FAFAFC"
-    tools:context=".AiTaskBreakdownActivity">
+    tools:context=".ui.ai.AiTaskBreakdownActivity">
 
     <!-- 1. HEADER BAR -->
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -129,23 +129,29 @@
                             android:textSize="11sp" />
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/tvMainTaskTitle"
+                    <EditText
+                        android:id="@+id/edtMainTaskTitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_search_bar"
+                        android:hint="Nhập tên công việc bạn muốn AI lên lịch..."
+                        android:inputType="textMultiLine"
+                        android:padding="12dp"
                         android:text="Hoàn thiện đề án ra mắt sản phẩm mới"
                         android:textColor="#222222"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvTaskEstimate"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="📅 Hạn chót: Thứ Sáu, 17:00  •  ⏱ Ước tính: 4 giờ"
-                        android:textColor="#777777"
-                        android:textSize="12sp" />
+                        android:layout_marginTop="8dp"
+                        android:text="📅 Hạn chót gợi ý: Hôm nay, 17:00  •  ⏱ Ước tính: 3 giờ"
+                        android:textColor="#10B981"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -267,6 +273,7 @@
                                 android:buttonTint="#10B981" />
 
                             <TextView
+                                android:id="@+id/tvStep1Title"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
@@ -285,6 +292,7 @@
                         </LinearLayout>
 
                         <TextView
+                            android:id="@+id/tvStep1Time"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="32dp"
@@ -316,6 +324,7 @@
                                 android:buttonTint="#362C2A" />
 
                             <TextView
+                                android:id="@+id/tvStep2Title"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
@@ -334,6 +343,7 @@
                         </LinearLayout>
 
                         <TextView
+                            android:id="@+id/tvStep2Time"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="32dp"
@@ -365,6 +375,7 @@
                                 android:buttonTint="#362C2A" />
 
                             <TextView
+                                android:id="@+id/tvStep3Title"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
@@ -383,6 +394,7 @@
                         </LinearLayout>
 
                         <TextView
+                            android:id="@+id/tvStep3Time"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="32dp"
@@ -414,6 +426,7 @@
                                 android:buttonTint="#362C2A" />
 
                             <TextView
+                                android:id="@+id/tvStep4Title"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
@@ -432,6 +445,7 @@
                         </LinearLayout>
 
                         <TextView
+                            android:id="@+id/tvStep4Time"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="32dp"
@@ -442,11 +456,12 @@
                     </LinearLayout>
 
                     <TextView
+                        android:id="@+id/tvTotalAiEstimate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="16dp"
-                        android:text="⏱ Dự kiến: 3 giờ 00 phút  •  Chạm để chỉnh sửa"
+                        android:text="⏱ Dự kiến tổng: 3 giờ 00 phút  •  FlowAI đề xuất"
                         android:textColor="#888888"
                         android:textSize="12sp" />
                 </LinearLayout>

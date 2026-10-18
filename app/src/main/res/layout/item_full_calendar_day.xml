@@ -3,8 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center"
-    android:paddingTop="12dp"
-    android:paddingBottom="12dp">
+    android:orientation="vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
 
     <!-- Số ngày trong lịch 35 ô -->
     <TextView
@@ -16,5 +17,15 @@
         android:textColor="#333333"
         android:textSize="16sp"
         android:textStyle="bold" />
+
+    <!-- Chấm đỏ báo hiệu có lịch trong ngày -->
+    <View
+        android:id="@+id/viewEventDot"
+        android:layout_width="6dp"
+        android:layout_height="6dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_circle_teal"
+        android:backgroundTint="#E53935"
+        android:visibility="invisible" />
 
 </LinearLayout>

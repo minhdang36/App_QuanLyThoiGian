@@ -11,4 +11,5 @@
     <item name="tabInProgress" type="id" />
     <item name="layoutAppTitle" type="id" />
     <item name="btnFilterTop" type="id" />
+    <item name="tvTotalAiEstimate" type="id" />
 </resources>

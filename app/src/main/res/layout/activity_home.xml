@@ -56,6 +56,20 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
+            <!-- Camera Scan Lịch học/Làm việc -->
+            <ImageView
+                android:id="@+id/btnScanSchedule"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/bg_pill_light"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_menu_camera"
+                app:tint="#10B981"
+                app:layout_constraintBottom_toBottomOf="@id/layoutTimeZone"
+                app:layout_constraintEnd_toStartOf="@id/imgAvatar"
+                app:layout_constraintTop_toTopOf="@id/layoutTimeZone" />
+
             <!-- Avatar Người dùng -->
             <ImageView
                 android:id="@+id/imgAvatar"

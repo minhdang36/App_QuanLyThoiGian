@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="#FAFAFC"
     android:orientation="vertical"
-    tools:context=".ProjectTasksActivity">
+    tools:context=".ui.task.ProjectTasksActivity">
 
     <!-- 1. TOP BAR -->
     <androidx.constraintlayout.widget.ConstraintLayout

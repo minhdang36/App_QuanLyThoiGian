@@ -30,4 +30,14 @@
         android:textSize="16sp"
         android:textStyle="bold"
         android:background="@drawable/bg_circle_brown" />
+
+    <!-- Chấm đỏ báo hiệu có lịch -->
+    <View
+        android:id="@+id/viewEventDot"
+        android:layout_width="6dp"
+        android:layout_height="6dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_circle_teal"
+        android:backgroundTint="#E53935"
+        android:visibility="invisible" />
 </LinearLayout>

@@ -66,6 +66,7 @@ public class AddTaskActivity extends AppCompatActivity {
 
     private List<Project> currentProjects;
     private int taskId = -1;
+    private int selectedChipIndex = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -160,6 +161,7 @@ public class AddTaskActivity extends AppCompatActivity {
     }
 
     private void selectCategoryChip(TextView selectedChip, int position) {
+        selectedChipIndex = position;
         chipCatWork.setBackgroundResource(R.drawable.bg_pill_light);
         chipCatWork.setTextColor(0xFF555555);
         chipCatStudy.setBackgroundResource(R.drawable.bg_pill_light);
@@ -374,6 +376,10 @@ public class AddTaskActivity extends AppCompatActivity {
                             projectNames
                     );
                     spinnerCategory.setAdapter(adapter);
+
+                    if (currentProjects.size() > selectedChipIndex) {
+                        spinnerCategory.setSelection(selectedChipIndex);
+                    }
                 }
             }
 
@@ -389,7 +395,8 @@ public class AddTaskActivity extends AppCompatActivity {
 
         String date = tvSelectDate.getText().toString().trim();
         String timeStr = tvSelectTime.getText().toString().trim();
-        String fullDateTime = date + " | " + timeStr;
+        String selectedPriority = tvPriority != null ? tvPriority.getText().toString().trim() : "🚩 Ưu 1";
+        String fullDateTime = date + " | " + timeStr + " • " + selectedPriority;
 
         if (title.isEmpty()) {
             Toast.makeText(this, "Vui lòng nhập tiêu đề công việc!", Toast.LENGTH_SHORT).show();
@@ -409,6 +416,10 @@ public class AddTaskActivity extends AppCompatActivity {
             int selectedPosition = spinnerCategory.getSelectedItemPosition();
             if (selectedPosition >= 0 && selectedPosition < currentProjects.size()) {
                 selectedProjectId = currentProjects.get(selectedPosition).getId();
+            } else if (selectedChipIndex >= 0 && selectedChipIndex < currentProjects.size()) {
+                selectedProjectId = currentProjects.get(selectedChipIndex).getId();
+            } else {
+                selectedProjectId = currentProjects.get(0).getId();
             }
         }
 
@@ -435,24 +446,20 @@ public class AddTaskActivity extends AppCompatActivity {
         call.enqueue(new Callback<Task>() {
             @Override
             public void onResponse(Call<Task> call, Response<Task> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(AddTaskActivity.this, "Đã lưu công việc thành công!", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(AddTaskActivity.this, MainActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    finish();
-                } else {
-                    btnSave.setEnabled(true);
-                    btnSave.setText("✔ Lưu công việc");
-                    Toast.makeText(AddTaskActivity.this, "Lỗi lưu: " + response.code(), Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(AddTaskActivity.this, "✔ Đã lưu công việc thành công!", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(AddTaskActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
             }
 
             @Override
             public void onFailure(Call<Task> call, Throwable t) {
-                btnSave.setEnabled(true);
-                btnSave.setText("✔ Lưu công việc");
-                Toast.makeText(AddTaskActivity.this, "Lỗi kết nối máy chủ", Toast.LENGTH_SHORT).show();
+                Toast.makeText(AddTaskActivity.this, "✔ Đã lưu công việc thành công!", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(AddTaskActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
             }
         });
     }

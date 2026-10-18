@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FAFAFC"
-    tools:context=".PomodoroActivity">
+    tools:context=".ui.pomodoro.PomodoroActivity">
 
     <!-- 1. HEADER BAR -->
     <androidx.constraintlayout.widget.ConstraintLayout

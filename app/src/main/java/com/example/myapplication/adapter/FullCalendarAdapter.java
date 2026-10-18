@@ -12,7 +12,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.R;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapter.CalendarViewHolder> {
 
@@ -23,6 +25,7 @@ public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapte
     private List<String> daysOfMonth;
     private int selectedPosition = -1;
     private OnDayClickListener listener;
+    private Set<Integer> daysWithEvents = new HashSet<>();
 
     public FullCalendarAdapter(List<String> daysOfMonth, int selectedPosition, OnDayClickListener listener) {
         this.daysOfMonth = daysOfMonth;
@@ -32,6 +35,11 @@ public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapte
 
     public FullCalendarAdapter(List<String> daysOfMonth) {
         this(daysOfMonth, -1, null);
+    }
+
+    public void setDaysWithEvents(Set<Integer> daysWithEvents) {
+        this.daysWithEvents = daysWithEvents != null ? daysWithEvents : new HashSet<>();
+        notifyDataSetChanged();
     }
 
     public void setSelectedPosition(int position) {
@@ -63,6 +71,23 @@ public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapte
             holder.tvDateNumber.setTypeface(null, Typeface.NORMAL);
         }
 
+        if (holder.viewEventDot != null) {
+            if (!dayText.isEmpty()) {
+                try {
+                    int dayNum = Integer.parseInt(dayText);
+                    if (daysWithEvents != null && daysWithEvents.contains(dayNum)) {
+                        holder.viewEventDot.setVisibility(View.VISIBLE);
+                    } else {
+                        holder.viewEventDot.setVisibility(View.INVISIBLE);
+                    }
+                } catch (NumberFormatException e) {
+                    holder.viewEventDot.setVisibility(View.INVISIBLE);
+                }
+            } else {
+                holder.viewEventDot.setVisibility(View.INVISIBLE);
+            }
+        }
+
         holder.itemView.setOnClickListener(v -> {
             int curPos = holder.getAdapterPosition();
             if (curPos == RecyclerView.NO_POSITION) return;
@@ -91,10 +116,12 @@ public class FullCalendarAdapter extends RecyclerView.Adapter<FullCalendarAdapte
 
     public static class CalendarViewHolder extends RecyclerView.ViewHolder {
         TextView tvDateNumber;
+        View viewEventDot;
 
         public CalendarViewHolder(@NonNull View itemView) {
             super(itemView);
             tvDateNumber = itemView.findViewById(R.id.tvDateNumber);
+            viewEventDot = itemView.findViewById(R.id.viewEventDot);
         }
     }
 }

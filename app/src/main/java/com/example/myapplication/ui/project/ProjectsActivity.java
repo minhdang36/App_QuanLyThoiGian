@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.myapplication.R;
 import com.example.myapplication.adapter.ProjectAdapter;
 import com.example.myapplication.model.Project;
+import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
 import com.example.myapplication.ui.main.ProfileSettingsActivity;
 
@@ -98,9 +99,39 @@ public class ProjectsActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     projectList.clear();
                     projectList.addAll(response.body());
-                    projectAdapter.notifyDataSetChanged();
 
-                    updateSummaryData(projectList);
+                    // Tải danh sách công việc của user để tự động tính tổng số task và số task đã hoàn thành cho từng dự án
+                    apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
+                        @Override
+                        public void onResponse(Call<List<Task>> taskCall, Response<List<Task>> taskResponse) {
+                            if (taskResponse.isSuccessful() && taskResponse.body() != null) {
+                                List<Task> userTasks = taskResponse.body();
+                                for (Project p : projectList) {
+                                    int total = 0;
+                                    int finished = 0;
+                                    for (Task t : userTasks) {
+                                        if (t.getProjectId() == p.getId()) {
+                                            total++;
+                                            String status = t.getStatus() != null ? t.getStatus().toUpperCase() : "";
+                                            if ("DONE".equals(status) || "COMPLETED".equals(status)) {
+                                                finished++;
+                                            }
+                                        }
+                                    }
+                                    p.setTotalTasks(total);
+                                    p.setFinishedTasks(finished);
+                                }
+                            }
+                            projectAdapter.notifyDataSetChanged();
+                            updateSummaryData(projectList);
+                        }
+
+                        @Override
+                        public void onFailure(Call<List<Task>> taskCall, Throwable t) {
+                            projectAdapter.notifyDataSetChanged();
+                            updateSummaryData(projectList);
+                        }
+                    });
                 }
             }
 

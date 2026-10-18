@@ -9,6 +9,7 @@ public class Task {
     private String description;
     private String location;
     private int userId;
+    private transient String priority;
 
     // 1. Constructor rỗng (Bắt buộc cho Retrofit/Gson)
     public Task() {
@@ -33,6 +34,7 @@ public class Task {
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public String getLocation() { return location; }
+    public String getPriority() { return priority; }
 
     // 4. Setters
     public void setId(int id) { this.id = id; }
@@ -44,5 +46,6 @@ public class Task {
     public void setLocation(String location) { this.location = location; }
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
+    public void setPriority(String priority) { this.priority = priority; }
 
 }
