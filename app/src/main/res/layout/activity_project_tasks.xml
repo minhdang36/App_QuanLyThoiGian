@@ -105,6 +105,27 @@
                     app:tint="#888888" />
             </LinearLayout>
 
+            <!-- BANNER DỰ ÁN LỚN: PHÂN RÃ CÔNG VIỆC AI -->
+            <LinearLayout
+                android:id="@+id/btnAiBreakdownProject"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_pill_brown"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingVertical="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ Phân rã Dự án lớn này bằng FlowAI"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <!-- 3. STATUS OVERVIEW CARD -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"

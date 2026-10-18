@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -140,11 +141,19 @@ public class ProjectDetailActivity extends AppCompatActivity {
             });
         }
 
+        boolean isLargeProject = (intent != null) && intent.getBooleanExtra("IS_LARGE_PROJECT", false);
         if (btnAddSubtask != null) {
-            btnAddSubtask.setOnClickListener(v -> {
-                Intent aiIntent = new Intent(ProjectDetailActivity.this, AiTaskBreakdownActivity.class);
-                startActivity(aiIntent);
-            });
+            if (isLargeProject) {
+                btnAddSubtask.setVisibility(View.VISIBLE);
+                btnAddSubtask.setOnClickListener(v -> {
+                    Intent aiIntent = new Intent(ProjectDetailActivity.this, AiTaskBreakdownActivity.class);
+                    if (tvTitle != null) aiIntent.putExtra("MAIN_TASK_TITLE", tvTitle.getText().toString());
+                    startActivity(aiIntent);
+                });
+            } else {
+                // Task công việc nhỏ thì KHÔNG có chức năng Phân rã AI
+                btnAddSubtask.setVisibility(View.GONE);
+            }
         }
     }
 

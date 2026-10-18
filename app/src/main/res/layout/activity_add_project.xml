@@ -3,17 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F4F5F8"
+    android:background="#FAFAFC"
     android:padding="24dp">
 
     <TextView
         android:id="@+id/tvHeaderTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Thêm Danh Mục Mới"
+        android:text="Tạo Dự Án Lớn Mới"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:textColor="#111111"
+        android:textColor="#222222"
         android:layout_marginBottom="24dp"/>
 
     <EditText
@@ -23,7 +23,7 @@
         android:background="@drawable/bg_rounded_24dp"
         android:backgroundTint="#FFFFFF"
         android:paddingHorizontal="20dp"
-        android:hint="Tên danh mục (VD: Giải trí, Du lịch...)"
+        android:hint="Tên dự án lớn (VD: Đồ án tốt nghiệp, Ra mắt sản phẩm...)"
         android:inputType="text|textNoSuggestions"
         android:layout_marginBottom="16dp"/>
 
@@ -34,18 +34,58 @@
         android:background="@drawable/bg_rounded_24dp"
         android:backgroundTint="#FFFFFF"
         android:paddingHorizontal="20dp"
-        android:hint="Mô tả ngắn gọn..."
+        android:hint="Mô tả mục tiêu chính của dự án..."
         android:inputType="text|textNoSuggestions"
-        android:layout_marginBottom="32dp"/>
+        android:layout_marginBottom="20dp"/>
+
+    <!-- CHỨC NĂNG DỰ ÁN LỚN: PHÂN RÃ CÔNG VIỆC AI -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_voice_card"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="32dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⚡ Dự án lớn (Kích hoạt AI Phân Rã)"
+                android:textColor="#362C2A"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Switch
+                android:id="@+id/switchLargeProject"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="FlowAI sẽ tự động giúp bạn chia nhỏ dự án lớn thành các bước công việc thực thi cụ thể."
+            android:textColor="#777777"
+            android:textSize="12sp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/btnSaveProject"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:background="@drawable/bg_rounded_24dp"
-        android:backgroundTint="#004D40"
+        android:backgroundTint="#362C2A"
         android:gravity="center"
-        android:text="LƯU DANH MỤC"
+        android:text="✔ TẠO DỰ ÁN LỚN"
         android:textColor="#FFFFFF"
         android:textStyle="bold"
         android:textSize="16sp"/>

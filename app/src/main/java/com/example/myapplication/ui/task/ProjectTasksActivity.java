@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.task;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -67,6 +68,15 @@ public class ProjectTasksActivity extends AppCompatActivity {
         String projectName = getIntent().getStringExtra("PROJECT_NAME");
         if (projectName != null && !projectName.isEmpty() && tvProjectNameTitle != null) {
             tvProjectNameTitle.setText(projectName);
+        }
+
+        android.widget.LinearLayout btnAiBreakdownProject = findViewById(R.id.btnAiBreakdownProject);
+        if (btnAiBreakdownProject != null) {
+            btnAiBreakdownProject.setOnClickListener(v -> {
+                Intent aiIntent = new Intent(ProjectTasksActivity.this, com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
+                aiIntent.putExtra("MAIN_TASK_TITLE", projectName != null ? projectName : "Dự án lớn");
+                startActivity(aiIntent);
+            });
         }
 
         taskAdapter = new TaskAdapter(displayedTaskList);
