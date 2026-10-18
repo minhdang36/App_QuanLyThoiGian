@@ -57,6 +57,8 @@ public class AddTaskActivity extends AppCompatActivity {
     private Spinner spinnerCategory;
 
     private TextView chipCatWork, chipCatStudy, chipCatPersonal, chipCatAdd;
+    private TextView chipTypeSmallTask, chipTypeLargeProject, tvTypeHint;
+    private boolean isLargeProject = false;
 
     private SpeechRecognizer speechRecognizer;
     private boolean isListening = false;
@@ -78,6 +80,15 @@ public class AddTaskActivity extends AppCompatActivity {
         edtDescription = findViewById(R.id.edtDescription);
         edtLocation = findViewById(R.id.edtLocation);
         btnQuickMic = findViewById(R.id.btnQuickMic);
+
+        chipTypeSmallTask = findViewById(R.id.chipTypeSmallTask);
+        chipTypeLargeProject = findViewById(R.id.chipTypeLargeProject);
+        tvTypeHint = findViewById(R.id.tvTypeHint);
+
+        if (chipTypeSmallTask != null && chipTypeLargeProject != null) {
+            chipTypeSmallTask.setOnClickListener(v -> selectType(false));
+            chipTypeLargeProject.setOnClickListener(v -> selectType(true));
+        }
 
         chipCatWork = findViewById(R.id.chipCatWork);
         chipCatStudy = findViewById(R.id.chipCatStudy);
@@ -423,6 +434,15 @@ public class AddTaskActivity extends AppCompatActivity {
             }
         }
 
+        if (isLargeProject) {
+            Toast.makeText(AddTaskActivity.this, "⚡ Đã tạo Dự án lớn! Đang chuyển sang Phân rã AI...", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(AddTaskActivity.this, AiTaskBreakdownActivity.class);
+            intent.putExtra("MAIN_TASK_TITLE", title);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         Task taskData = new Task();
         taskData.setTitle(title);
         taskData.setDescription(description);
@@ -462,6 +482,41 @@ public class AddTaskActivity extends AppCompatActivity {
                 finish();
             }
         });
+    }
+
+    private void selectType(boolean isLarge) {
+        isLargeProject = isLarge;
+        if (isLarge) {
+            if (chipTypeLargeProject != null) {
+                chipTypeLargeProject.setBackgroundResource(R.drawable.bg_pill_brown);
+                chipTypeLargeProject.setTextColor(0xFFFFFFFF);
+            }
+            if (chipTypeSmallTask != null) {
+                chipTypeSmallTask.setBackgroundResource(R.drawable.bg_pill_light);
+                chipTypeSmallTask.setTextColor(0xFF555555);
+            }
+            if (tvTypeHint != null) {
+                tvTypeHint.setText("⚡ Dự án lớn sẽ tự động kích hoạt FlowAI để phân rã thành các bước cụ thể.");
+            }
+            if (btnSave != null) {
+                btnSave.setText("🚀 Tạo Dự Án & Phân Rã AI");
+            }
+        } else {
+            if (chipTypeSmallTask != null) {
+                chipTypeSmallTask.setBackgroundResource(R.drawable.bg_pill_brown);
+                chipTypeSmallTask.setTextColor(0xFFFFFFFF);
+            }
+            if (chipTypeLargeProject != null) {
+                chipTypeLargeProject.setBackgroundResource(R.drawable.bg_pill_light);
+                chipTypeLargeProject.setTextColor(0xFF555555);
+            }
+            if (tvTypeHint != null) {
+                tvTypeHint.setText("💡 Task công việc nhỏ thông thường (Không có chức năng phân rã AI).");
+            }
+            if (btnSave != null) {
+                btnSave.setText("✔ Lưu công việc");
+            }
+        }
     }
 
     @Override
