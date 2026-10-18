@@ -72,11 +72,25 @@ public class ProjectTasksActivity extends AppCompatActivity {
 
         android.widget.LinearLayout btnAiBreakdownProject = findViewById(R.id.btnAiBreakdownProject);
         if (btnAiBreakdownProject != null) {
-            btnAiBreakdownProject.setOnClickListener(v -> {
-                Intent aiIntent = new Intent(ProjectTasksActivity.this, com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
-                aiIntent.putExtra("MAIN_TASK_TITLE", projectName != null ? projectName : "Dự án lớn");
-                startActivity(aiIntent);
-            });
+            String pName = projectName != null ? projectName.trim() : "";
+            boolean isDefaultProject = pName.contains("Công việc") ||
+                                      pName.contains("Học tập") || pName.contains("Học Tập") ||
+                                      pName.contains("Cá nhân") || pName.contains("Cá Nhân") ||
+                                      pName.contains("Sức khỏe") || pName.contains("Thể thao") ||
+                                      projectId <= 4;
+
+            if (isDefaultProject) {
+                // Các dự án mặc định -> ẨN nút Phân rã AI
+                btnAiBreakdownProject.setVisibility(android.view.View.GONE);
+            } else {
+                // Các Dự án lớn do người dùng tạo -> HIỆN nút Phân rã AI
+                btnAiBreakdownProject.setVisibility(android.view.View.VISIBLE);
+                btnAiBreakdownProject.setOnClickListener(v -> {
+                    Intent aiIntent = new Intent(ProjectTasksActivity.this, com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
+                    aiIntent.putExtra("MAIN_TASK_TITLE", projectName != null ? projectName : "Dự án lớn");
+                    startActivity(aiIntent);
+                });
+            }
         }
 
         taskAdapter = new TaskAdapter(displayedTaskList);
