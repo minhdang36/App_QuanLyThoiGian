@@ -69,7 +69,7 @@ public class PomodoroActivity extends AppCompatActivity {
     private int selectedSoundIndex = 0;
 
     private String activeTaskTitle = "Lập trình & Phát triển ứng dụng";
-    private double goalHours = 2.0; // Mục tiêu tính riêng cho TỪNG TASK NHỎ
+    private double goalHours = 2.0; // Mặc định thời gian của task nhỏ (2.0h)
     private int totalFocusMinutesAcc = 0;
 
     private final List<Task> userTaskList = new ArrayList<>();
@@ -152,12 +152,10 @@ public class PomodoroActivity extends AppCompatActivity {
             tvActiveTaskTitle.setText(activeTaskTitle);
         }
 
-        // 1. Nhấn vào 3 thanh gạch ngang -> Hiển thị chi tiết tên đầy đủ và danh sách chuyển task
         if (btnSwapTask != null) {
             btnSwapTask.setOnClickListener(v -> showTaskDetailAndSwitchDialog());
         }
 
-        // Tải tổng thời gian đã tích lũy cho task nhỏ này
         loadAccFocusMinutesForCurrentTask();
 
         setupTabs();
@@ -196,9 +194,9 @@ public class PomodoroActivity extends AppCompatActivity {
                     userTaskList.clear();
                     userTaskList.addAll(response.body());
 
-                    // Tìm thời gian mục tiêu ĐÚNG VỚI TASK NHỎ ĐANG CHỌN (KHÔNG CỘNG DỒN)
+                    // Cập nhật số giờ mục tiêu ĐÚNG VỚI TASK NHỎ ĐANG CHỌN (Ví dụ: 2.0h)
                     for (Task t : userTaskList) {
-                        if (t.getTitle() != null && t.getTitle().contains(activeTaskTitle)) {
+                        if (t.getTitle() != null && t.getTitle().trim().equalsIgnoreCase(activeTaskTitle.trim())) {
                             double parsedGoal = parseHoursFromTimeStr(t.getTime());
                             if (parsedGoal > 0) {
                                 goalHours = parsedGoal;
@@ -220,14 +218,9 @@ public class PomodoroActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("📋 Chi Tiết Công Việc Đang Tập Trung");
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("📌 Tên đầy đủ công việc:\n");
-        sb.append(activeTaskTitle);
-        sb.append("\n\n⏱ Thời gian mục tiêu task này: ").append(String.format(Locale.getDefault(), "%.1f", goalHours)).append(" giờ");
+        String msg = "📌 Tên đầy đủ công việc:\n" + activeTaskTitle + "\n\n⏱ Mục tiêu thời gian task này: " + String.format(Locale.getDefault(), "%.1f", goalHours) + " giờ";
+        builder.setMessage(msg);
 
-        builder.setMessage(sb.toString());
-
-        // Cho phép chọn chuyển đổi sang task khác nếu có danh sách
         if (!userTaskList.isEmpty()) {
             String[] taskTitles = new String[userTaskList.size()];
             for (int i = 0; i < userTaskList.size(); i++) {
@@ -259,7 +252,25 @@ public class PomodoroActivity extends AppCompatActivity {
         if (timeStr == null || timeStr.trim().isEmpty()) return 2.0;
 
         try {
-            String clean = timeStr.replaceAll("[^0-9.]", " ").trim();
+            // Nếu chuỗi chứa biểu tượng đồng hồ 🕒
+            if (timeStr.contains("🕒")) {
+                String clockPart = timeStr.substring(timeStr.indexOf("🕒") + 1);
+                String clean = clockPart.replaceAll("[^0-9.]", " ").trim();
+                String[] parts = clean.split("\\s+");
+                for (String p : parts) {
+                    if (!p.isEmpty()) {
+                        double val = Double.parseDouble(p);
+                        if (val > 0 && val <= 24) {
+                            return val;
+                        }
+                    }
+                }
+            }
+
+            // Loại bỏ phần ngày YYYY-MM-DD hoặc DD/MM/YYYY
+            String cleanDate = timeStr.replaceAll("\\d{4}[-/]\\d{1,2}[-/]\\d{1,2}", " ")
+                                      .replaceAll("\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4}", " ");
+            String clean = cleanDate.replaceAll("[^0-9.]", " ").trim();
             String[] parts = clean.split("\\s+");
             for (String p : parts) {
                 if (!p.isEmpty()) {
