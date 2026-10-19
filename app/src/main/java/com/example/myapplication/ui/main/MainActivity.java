@@ -220,6 +220,60 @@ public class MainActivity extends AppCompatActivity {
         refreshAllCalendarViews();
     }
 
+    private List<int[]> parseDatesFromTimeStr(String timeStr, int realTodayYear) {
+        List<int[]> dates = new ArrayList<>();
+        if (timeStr == null || timeStr.trim().isEmpty()) return dates;
+
+        try {
+            String cleanTime = timeStr.replaceAll("[^0-9/-]", " ");
+            String[] parts = cleanTime.trim().split("\\s+");
+
+            for (String part : parts) {
+                if (part.contains("/")) {
+                    String[] dateParts = part.split("/");
+                    if (dateParts.length >= 2) {
+                        int p1 = Integer.parseInt(dateParts[0].trim());
+                        int p2 = Integer.parseInt(dateParts[1].trim());
+                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
+
+                        int day, month, year;
+                        if (p1 > 1000) {
+                            year = p1;
+                            month = p2;
+                            day = p3;
+                        } else {
+                            day = p1;
+                            month = p2;
+                            year = p3;
+                        }
+                        dates.add(new int[]{day, month, year});
+                    }
+                } else if (part.contains("-")) {
+                    String[] dateParts = part.split("-");
+                    if (dateParts.length >= 2) {
+                        int p1 = Integer.parseInt(dateParts[0].trim());
+                        int p2 = Integer.parseInt(dateParts[1].trim());
+                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
+
+                        int day, month, year;
+                        if (p1 > 1000) {
+                            year = p1;
+                            month = p2;
+                            day = p3;
+                        } else {
+                            day = p1;
+                            month = p2;
+                            year = p3;
+                        }
+                        dates.add(new int[]{day, month, year});
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        return dates;
+    }
+
     private void updateDaysWithEventsForCurrentCalendar() {
         currentDaysWithEvents.clear();
 
@@ -246,24 +300,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            try {
-                String cleanTime = timeStr.replaceAll("[^0-9/]", " ");
-                String[] parts = cleanTime.trim().split("\\s+");
-                for (String part : parts) {
-                    if (part.contains("/")) {
-                        String[] dateParts = part.split("/");
-                        if (dateParts.length >= 2) {
-                            int day = Integer.parseInt(dateParts[0].trim());
-                            int month = Integer.parseInt(dateParts[1].trim());
-                            int year = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
+            List<int[]> dates = parseDatesFromTimeStr(timeStr, realTodayYear);
+            for (int[] d : dates) {
+                int day = d[0];
+                int month = d[1];
+                int year = d[2];
 
-                            if (month == viewedMonth && year == viewedYear) {
-                                currentDaysWithEvents.add(day);
-                            }
-                        }
-                    }
+                if (month == viewedMonth && year == viewedYear) {
+                    currentDaysWithEvents.add(day);
                 }
-            } catch (Exception ignored) {}
+            }
         }
     }
 
@@ -367,6 +413,7 @@ public class MainActivity extends AppCompatActivity {
 
         int selectedDay = currentCalendar.get(Calendar.DAY_OF_MONTH);
         int selectedMonth = currentCalendar.get(Calendar.MONTH) + 1;
+        int selectedYear = currentCalendar.get(Calendar.YEAR);
 
         Calendar todayCal = Calendar.getInstance();
         boolean isSelectedDayToday = (selectedDay == todayCal.get(Calendar.DAY_OF_MONTH) &&
@@ -389,23 +436,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            try {
-                String cleanTime = timeStr.replaceAll("[^0-9/]", " ");
-                String[] parts = cleanTime.trim().split("\\s+");
-                for (String part : parts) {
-                    if (part.contains("/")) {
-                        String[] dateParts = part.split("/");
-                        if (dateParts.length >= 2) {
-                            int day = Integer.parseInt(dateParts[0].trim());
-                            int month = Integer.parseInt(dateParts[1].trim());
-                            if (day == selectedDay && month == selectedMonth) {
-                                isMatch = true;
-                                break;
-                            }
-                        }
-                    }
+            List<int[]> dates = parseDatesFromTimeStr(timeStr, todayCal.get(Calendar.YEAR));
+            for (int[] d : dates) {
+                int day = d[0];
+                int month = d[1];
+                int year = d[2];
+                if (day == selectedDay && month == selectedMonth && (year == selectedYear || year == 0)) {
+                    isMatch = true;
+                    break;
                 }
-            } catch (Exception ignored) {}
+            }
 
             if (isMatch) {
                 displayedTaskList.add(t);
