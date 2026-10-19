@@ -1,5 +1,6 @@
 package com.example.myapplication.adapter;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.R;
 import com.example.myapplication.model.PhaseGroup;
+import com.example.myapplication.ui.phase.PhaseDetailActivity;
+import com.google.gson.Gson;
 
 import java.util.List;
 
@@ -57,9 +60,20 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
         TaskAdapter subAdapter = new TaskAdapter(phase.getSubTaskList());
         holder.rvPhaseSubTasks.setAdapter(subAdapter);
 
-        holder.layoutPhaseHeader.setOnClickListener(v -> {
+        // Bấm nút Mở rộng / Thu gọn để ẩn hiện trực tiếp
+        holder.tvExpandArrow.setOnClickListener(v -> {
             phase.setExpanded(!phase.isExpanded());
             notifyItemChanged(position);
+        });
+
+        // Bấm trực tiếp vào Tiêu đề Giai đoạn -> Chuyển sang Trang Chi Tiết Giai Đoạn Mới (Có AI phân tách các task nhỏ thành các đầu việc)
+        holder.layoutPhaseHeader.setOnClickListener(v -> {
+            Intent intent = new Intent(v.getContext(), PhaseDetailActivity.class);
+            intent.putExtra("PHASE_NAME", phase.getPhaseName());
+
+            Gson gson = new Gson();
+            intent.putExtra("SUB_TASKS_JSON", gson.toJson(phase.getSubTaskList()));
+            v.getContext().startActivity(intent);
         });
     }
 

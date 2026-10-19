@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FAFAFC"
+    tools:context=".ui.phase.PhaseDetailActivity">
+
+    <!-- 1. HEADER BAR -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/headerLayout"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:paddingHorizontal="16dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_pill_light"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="#333333"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvPhaseDetailTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="📂 Giai đoạn 1: Lập kế hoạch &amp; Khảo sát"
+            android:textColor="#222222"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/imgAvatar"
+            app:layout_constraintStart_toEndOf="@id/btnBack"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/imgAvatar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_circle_teal"
+            android:padding="2dp"
+            android:src="@android:drawable/ic_menu_myplaces"
+            app:tint="#FFFFFF"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- CONTENT SCROLLVIEW -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="40dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerLayout">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- BANNER AI PHÂN TÁCH ĐẦU VIỆC CẦN LÀM -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardBackgroundColor="#004D40"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✨ TRỢ LÝ AI TỰ ĐỘNG PHÂN TÁCH ĐẦU VIỆC"
+                        android:textColor="#80CBC4"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvPhaseSubtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Chia nhỏ từng task trong giai đoạn này thành danh sách kiểm tra (Checklist) chi tiết từng bước."
+                        android:textColor="#E0F2F1"
+                        android:textSize="13sp" />
+
+                    <!-- NÚT GỌI AI PHÂN TÁCH CÁC TASK NHỎ -->
+                    <Button
+                        android:id="@+id/btnAiDecomposeTasks"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="14dp"
+                        android:backgroundTint="#64FFDA"
+                        android:text="⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm"
+                        android:textColor="#004D40"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="24dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- SECTION HEADER: DANH SÁCH TASK TRONG GIAI ĐOẠN -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Danh Sách Công Việc &amp; Đầu Việc"
+                    android:textColor="#222222"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvPhaseTaskCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="24dp"
+                    android:background="@drawable/bg_pill_light"
+                    android:gravity="center"
+                    android:paddingHorizontal="10dp"
+                    android:text="● 3 Công việc"
+                    android:textColor="#10B981"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- CONTAINER CONTAINER HIỂN THỊ CÁC THẺ TASK NHỎ VÀ CHECKLIST SUB-TASKS -->
+            <LinearLayout
+                android:id="@+id/layoutTasksContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
