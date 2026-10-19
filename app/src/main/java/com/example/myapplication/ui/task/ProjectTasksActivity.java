@@ -4,8 +4,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,12 +16,15 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.R;
-import com.example.myapplication.adapter.TaskAdapter;
+import com.example.myapplication.adapter.PhaseGroupAdapter;
+import com.example.myapplication.model.PhaseGroup;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -30,9 +35,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ProjectTasksActivity extends AppCompatActivity {
 
     private RecyclerView rvProjectTasks;
-    private TaskAdapter taskAdapter;
+    private PhaseGroupAdapter phaseAdapter;
+
     private List<Task> fullTaskList = new ArrayList<>();
-    private List<Task> displayedTaskList = new ArrayList<>();
+    private List<PhaseGroup> phaseGroupList = new ArrayList<>();
 
     private TextView tvTasksCount, tvCompletionPercent, tvPendingCount, tvInProgressCount, tvDoneCount;
     private TextView tabAll, tabPending, tabInProgress;
@@ -70,7 +76,7 @@ public class ProjectTasksActivity extends AppCompatActivity {
             tvProjectNameTitle.setText(projectName);
         }
 
-        android.widget.LinearLayout btnAiBreakdownProject = findViewById(R.id.btnAiBreakdownProject);
+        LinearLayout btnAiBreakdownProject = findViewById(R.id.btnAiBreakdownProject);
         if (btnAiBreakdownProject != null) {
             String pName = projectName != null ? projectName.trim() : "";
             boolean isDefaultProject = pName.contains("Công việc") ||
@@ -80,11 +86,9 @@ public class ProjectTasksActivity extends AppCompatActivity {
                                       projectId <= 4;
 
             if (isDefaultProject) {
-                // Các dự án mặc định -> ẨN nút Phân rã AI
-                btnAiBreakdownProject.setVisibility(android.view.View.GONE);
+                btnAiBreakdownProject.setVisibility(View.GONE);
             } else {
-                // Các Dự án lớn do người dùng tạo -> HIỆN nút Phân rã AI
-                btnAiBreakdownProject.setVisibility(android.view.View.VISIBLE);
+                btnAiBreakdownProject.setVisibility(View.VISIBLE);
                 btnAiBreakdownProject.setOnClickListener(v -> {
                     Intent aiIntent = new Intent(ProjectTasksActivity.this, com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
                     aiIntent.putExtra("MAIN_TASK_TITLE", projectName != null ? projectName : "Dự án lớn");
@@ -93,12 +97,16 @@ public class ProjectTasksActivity extends AppCompatActivity {
             }
         }
 
-        taskAdapter = new TaskAdapter(displayedTaskList);
-        rvProjectTasks.setAdapter(taskAdapter);
+        phaseAdapter = new PhaseGroupAdapter(phaseGroupList);
+        rvProjectTasks.setAdapter(phaseAdapter);
 
         setupSearch();
         setupFilterTabs();
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
         loadTasksForProject();
     }
 
@@ -143,7 +151,10 @@ public class ProjectTasksActivity extends AppCompatActivity {
 
     private void applyFilterAndSearch() {
         String searchQuery = edtSearch != null ? edtSearch.getText().toString().toLowerCase().trim() : "";
-        displayedTaskList.clear();
+        phaseGroupList.clear();
+
+        // Sử dụng LinkedHashMap để nhóm các công việc theo Tên Giai Đoạn (Phase)
+        Map<String, PhaseGroup> mapPhases = new LinkedHashMap<>();
 
         for (Task task : fullTaskList) {
             boolean matchesSearch = searchQuery.isEmpty() ||
@@ -162,11 +173,42 @@ public class ProjectTasksActivity extends AppCompatActivity {
             }
 
             if (matchesSearch && matchesFilter) {
-                displayedTaskList.add(task);
+                // Tách tên Giai đoạn WBS từ tiêu đề công việc [Giai đoạn ...]
+                String rawTitle = task.getTitle() != null ? task.getTitle() : "Công việc";
+                String phaseName = "📂 Các công việc chung";
+                String cleanTitle = rawTitle;
+
+                if (rawTitle.startsWith("[") && rawTitle.contains("]")) {
+                    int endBracket = rawTitle.indexOf("]");
+                    phaseName = "📂 " + rawTitle.substring(1, endBracket).trim();
+                    cleanTitle = rawTitle.substring(endBracket + 1).trim();
+                }
+
+                // Tạo copy của Task với tiêu đề sạch sẽ
+                Task displayTask = new Task();
+                displayTask.setId(task.getId());
+                displayTask.setProjectId(task.getProjectId());
+                displayTask.setStatus(task.getStatus());
+                displayTask.setTime(task.getTime());
+                displayTask.setTitle(cleanTitle);
+                displayTask.setDescription(task.getDescription());
+                displayTask.setLocation(task.getLocation());
+                displayTask.setUserId(task.getUserId());
+                displayTask.setPriority(task.getPriority());
+
+                PhaseGroup group = mapPhases.get(phaseName);
+                if (group == null) {
+                    group = new PhaseGroup(phaseName);
+                    mapPhases.put(phaseName, group);
+                }
+                group.getSubTaskList().add(displayTask);
             }
         }
 
-        taskAdapter.notifyDataSetChanged();
+        phaseGroupList.addAll(mapPhases.values());
+        if (phaseAdapter != null) {
+            phaseAdapter.updateData(phaseGroupList);
+        }
     }
 
     private void updateOverviewStats() {
