@@ -100,6 +100,18 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         endCal.add(Calendar.DAY_OF_MONTH, 14);
         edtEndDate.setText(dateFormat.format(endCal.getTime()));
 
+        if (edtStartDate != null) {
+            edtStartDate.setFocusable(false);
+            edtStartDate.setClickable(true);
+            edtStartDate.setOnClickListener(v -> showDatePickerDialog(edtStartDate));
+        }
+
+        if (edtEndDate != null) {
+            edtEndDate.setFocusable(false);
+            edtEndDate.setClickable(true);
+            edtEndDate.setOnClickListener(v -> showDatePickerDialog(edtEndDate));
+        }
+
         if (btnGenerateWbs != null) {
             btnGenerateWbs.setOnClickListener(v -> generateWbsWithGeminiApi());
         }
@@ -107,6 +119,37 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         if (btnApplyBreakdown != null) {
             btnApplyBreakdown.setOnClickListener(v -> syncAndSaveToDatabase());
         }
+    }
+
+    private void showDatePickerDialog(EditText targetEditText) {
+        Calendar cal = Calendar.getInstance();
+
+        String currentText = targetEditText.getText().toString().trim();
+        if (currentText.contains("-")) {
+            try {
+                String[] parts = currentText.split("-");
+                if (parts.length == 3) {
+                    int year = Integer.parseInt(parts[0]);
+                    int month = Integer.parseInt(parts[1]) - 1;
+                    int day = Integer.parseInt(parts[2]);
+                    cal.set(year, month, day);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+
+        android.app.DatePickerDialog datePickerDialog = new android.app.DatePickerDialog(
+                AiTaskBreakdownActivity.this,
+                (view, selectedYear, selectedMonth, selectedDay) -> {
+                    String selectedDateStr = String.format(Locale.getDefault(), "%04d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay);
+                    targetEditText.setText(selectedDateStr);
+                },
+                year, month, day
+        );
+        datePickerDialog.show();
     }
 
     private void generateWbsWithGeminiApi() {
