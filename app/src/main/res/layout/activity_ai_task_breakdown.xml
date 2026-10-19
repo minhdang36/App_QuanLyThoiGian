@@ -31,7 +31,7 @@
             android:id="@+id/tvHeaderTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Phân Rã Dự Án WBS AI"
+            android:text="Phân Rã Dự Án AI"
             android:textColor="#222222"
             android:textSize="17sp"
             android:textStyle="bold"
@@ -67,7 +67,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- INPUT CARD: DỰ ÁN LỚN & THÔNG TIN WBS -->
+            <!-- INPUT CARD: DỰ ÁN LỚN & THÔNG TIN DỰ ÁN -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -153,14 +153,14 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- NÚT GỌI GEMINI AI PHÂN RÃ WBS -->
+                    <!-- NÚT GỌI GEMINI AI PHÂN RÃ DỰ ÁN -->
                     <Button
                         android:id="@+id/btnGenerateWbs"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
                         android:layout_marginTop="14dp"
                         android:backgroundTint="#10B981"
-                        android:text="⚡ Phân Rã WBS Bằng Gemini AI"
+                        android:text="⚡ Phân Rã Bằng Gemini AI"
                         android:textColor="#FFFFFF"
                         android:textSize="13sp"
                         android:textStyle="bold"
@@ -168,7 +168,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- WBS RESULT SECTION -->
+            <!-- RESULT SECTION -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -180,7 +180,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Các Giai Đoạn &amp; Task WBS"
+                    android:text="Các Giai Đoạn &amp; Công Việc"
                     android:textColor="#222222"
                     android:textSize="17sp"
                     android:textStyle="bold" />
@@ -192,13 +192,13 @@
                     android:background="@drawable/bg_pill_light"
                     android:gravity="center"
                     android:paddingHorizontal="10dp"
-                    android:text="● 0 Task WBS"
+                    android:text="● 0 Công việc"
                     android:textColor="#10B981"
                     android:textSize="11sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- RECYCLERVIEW HIỂN THỊ DANH SÁCH WBS -->
+            <!-- RECYCLERVIEW HIỂN THỊ DANH SÁCH CÔNG VIỆC PHÂN RÃ -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvWbsTasks"
                 android:layout_width="match_parent"

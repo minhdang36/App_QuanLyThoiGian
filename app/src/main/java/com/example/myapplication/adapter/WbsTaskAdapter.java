@@ -38,7 +38,7 @@ public class WbsTaskAdapter extends RecyclerView.Adapter<WbsTaskAdapter.WbsViewH
     public void onBindViewHolder(@NonNull WbsViewHolder holder, int position) {
         WbsTask task = wbsTaskList.get(position);
 
-        holder.tvWbsPhase.setText(task.getPhaseName() != null ? task.getPhaseName() : "Giai đoạn WBS");
+        holder.tvWbsPhase.setText(task.getPhaseName() != null ? task.getPhaseName() : "Giai đoạn");
         holder.tvWbsTitle.setText(task.getTaskTitle() != null ? task.getTaskTitle() : "Công việc");
         holder.tvWbsDesc.setText(task.getDescription() != null ? task.getDescription() : "Definition of Done: Hoàn thành đúng hạn");
 

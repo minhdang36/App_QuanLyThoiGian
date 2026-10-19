@@ -36,7 +36,7 @@
                     android:id="@+id/tvPhaseTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📂 Giai đoạn 1: Lập kế hoạch &amp; Khảo sát WBS"
+                    android:text="📂 Giai đoạn 1: Lập kế hoạch &amp; Khảo sát"
                     android:textColor="#222222"
                     android:textSize="16sp"
                     android:textStyle="bold" />

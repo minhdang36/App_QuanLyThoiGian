@@ -164,7 +164,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         }
 
         btnGenerateWbs.setEnabled(false);
-        btnGenerateWbs.setText("⚡ Gemini AI Đang Phân Rã WBS...");
+        btnGenerateWbs.setText("⚡ Gemini AI Đang Phân Rã...");
 
         new Thread(() -> {
             try {
@@ -175,14 +175,14 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                 JSONObject sysInstruction = new JSONObject();
                 JSONArray sysParts = new JSONArray();
                 JSONObject sysPart = new JSONObject();
-                sysPart.put("text", "Bạn là một Project Manager chuyên nghiệp. Nhiệm vụ của bạn là phân rã dự án lớn do người dùng cung cấp (tên dự án, mục tiêu, ngày bắt đầu, ngày kết thúc) theo mô hình WBS (Work Breakdown Structure).\n" +
+                sysPart.put("text", "Bạn là một Project Manager chuyên nghiệp. Nhiệm vụ của bạn là phân rã dự án lớn do người dùng cung cấp (tên dự án, mục tiêu, ngày bắt đầu, ngày kết thúc) thành các giai đoạn (Phase) và các task nhỏ cụ thể cho từng ngày (Daily Tasks).\n" +
                         "QUY TRÌNH PHÂN RÃ BẮT BUỘC:\n" +
                         "1. Chia dự án thành CHÍNH XÁC 4 GIAI ĐOẠN chính (Giai đoạn 1: Lập kế hoạch & Khảo sát, Giai đoạn 2: Thiết kế & Chuẩn bị, Giai đoạn 3: Triển khai & Thực thi, Giai đoạn 4: Kiểm thử & Nghiệm thu).\n" +
                         "2. Trong MỖI GIAI ĐOẠN, tiếp tục phân rã thành 3-4 TASK NHỎ CỤ THỂ theo ngày, trải dài liên tục và đều đặn từ ngày bắt đầu (" + pStart + ") đến ngày kết thúc (" + pEnd + ").\n" +
                         "3. Mỗi task nhỏ phải chứa ngày thực hiện (scheduledDate) tăng dần liên tục trong khoảng thời gian đã chọn.\n" +
                         "Yêu cầu về định dạng kết quả:\n" +
                         "Trả về DUY NHẤT một JSON Array chứa tất cả các task nhỏ (tổng cộng từ 12 đến 16 task). Mỗi item chứa:\n" +
-                        "- \"phaseName\": Tên giai đoạn WBS (VD: \"Giai đoạn 1: Lập kế hoạch & Khảo sát\")\n" +
+                        "- \"phaseName\": Tên giai đoạn (VD: \"Giai đoạn 1: Lập kế hoạch & Khảo sát\")\n" +
                         "- \"taskTitle\": Tên công việc nhỏ cụ thể\n" +
                         "- \"description\": Mô tả chi tiết & Definition of Done để kiểm tra chất lượng\n" +
                         "- \"scheduledDate\": Ngày thực hiện định dạng YYYY-MM-DD (trải dài trong khoảng từ " + pStart + " đến " + pEnd + ")\n" +
@@ -247,7 +247,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                                 for (int i = 0; i < array.length(); i++) {
                                     JSONObject item = array.getJSONObject(i);
                                     WbsTask task = new WbsTask();
-                                    task.setPhaseName(item.optString("phaseName", "Giai đoạn WBS"));
+                                    task.setPhaseName(item.optString("phaseName", "Giai đoạn"));
                                     task.setTaskTitle(item.optString("taskTitle", "Công việc"));
                                     task.setDescription(item.optString("description", "Definition of Done: Hoàn thành theo chuẩn"));
                                     task.setScheduledDate(item.optString("scheduledDate", pStart));
@@ -261,7 +261,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                     }
                 }
 
-                // Fallback mô phỏng WBS 4 Giai đoạn chia nhỏ 12 tasks trải dài thời gian
+                // Fallback mô phỏng 4 Giai đoạn chia nhỏ 12 tasks trải dài thời gian
                 if (parsedList.isEmpty()) {
                     String d1_1 = pStart;
                     String d1_2 = addDaysToDate(pStart, 2);
@@ -280,29 +280,29 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                     String d4_3 = pEnd;
 
                     // GIAI ĐOẠN 1: Lập kế hoạch & Khảo sát
-                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát WBS", "Xác định mục tiêu & Phạm vi dự án " + pName, "Mô tả: Liệt kê chi tiết 5 đầu việc chính. Definition of Done: Được xác nhận bởi PM", d1_1, 2.0, "High", 4));
-                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát WBS", "Phân tích tài liệu & Khảo sát yêu cầu", "Mô tả: Thu thập 10 tài liệu tham khảo chính. Definition of Done: Hoàn thành bản tóm tắt khảo sát", d1_2, 3.0, "High", 6));
-                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát WBS", "Thống nhất kiến trúc & Phân bổ nguồn lực", "Mô tả: Phác thảo sơ đồ thực thi hệ thống. Definition of Done: Thống nhất các mốc công việc", d1_3, 2.5, "Medium", 5));
+                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát", "Xác định mục tiêu & Phạm vi dự án " + pName, "Mô tả: Liệt kê chi tiết 5 đầu việc chính. Definition of Done: Được xác nhận bởi PM", d1_1, 2.0, "High", 4));
+                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát", "Phân tích tài liệu & Khảo sát yêu cầu", "Mô tả: Thu thập 10 tài liệu tham khảo chính. Definition of Done: Hoàn thành bản tóm tắt khảo sát", d1_2, 3.0, "High", 6));
+                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát", "Thống nhất kiến trúc & Phân bổ nguồn lực", "Mô tả: Phác thảo sơ đồ thực thi hệ thống. Definition of Done: Thống nhất các mốc công việc", d1_3, 2.5, "Medium", 5));
 
                     // GIAI ĐOẠN 2: Thiết kế & Chuẩn bị
-                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị WBS", "Thiết kế chi tiết khung mẫu & Giao diện", "Mô tả: Vẽ 8 màn hình/khung mẫu chính. Definition of Done: Hoàn thiện bản phác thảo đạt chuẩn", d2_1, 3.0, "High", 6));
-                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị WBS", "Chuẩn bị cơ sở dữ liệu & Cấu trúc lưu trữ", "Mô tả: Tạo bảng và trường dữ liệu cần thiết. Definition of Done: Kiểm tra truy vấn thành công", d2_2, 2.0, "Medium", 4));
-                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị WBS", "Soạn thảo tài liệu hướng dẫn & Kịch bản", "Mô tả: Lập danh sách các kịch bản kiểm thử. Definition of Done: Sẵn sàng cho giai đoạn triển khai", d2_3, 2.5, "Medium", 5));
+                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị", "Thiết kế chi tiết khung mẫu & Giao diện", "Mô tả: Vẽ 8 màn hình/khung mẫu chính. Definition of Done: Hoàn thiện bản phác thảo đạt chuẩn", d2_1, 3.0, "High", 6));
+                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị", "Chuẩn bị cơ sở dữ liệu & Cấu trúc lưu trữ", "Mô tả: Tạo bảng và trường dữ liệu cần thiết. Definition of Done: Kiểm tra truy vấn thành công", d2_2, 2.0, "Medium", 4));
+                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị", "Soạn thảo tài liệu hướng dẫn & Kịch bản", "Mô tả: Lập danh sách các kịch bản kiểm thử. Definition of Done: Sẵn sàng cho giai đoạn triển khai", d2_3, 2.5, "Medium", 5));
 
                     // GIAI ĐOẠN 3: Triển khai & Thực thi
-                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi WBS", "Phát triển các module tính năng cốt lõi", "Mô tả: Lập trình 100% chức năng quan trọng. Definition of Done: Tính năng chạy mượt mà", d3_1, 4.0, "High", 8));
-                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi WBS", "Tích hợp giao diện & Xử lý luồng dữ liệu", "Mô tả: Kết nối dữ liệu vào giao diện hiển thị. Definition of Done: Không bị treo hay đơ ứng dụng", d3_2, 3.5, "High", 7));
-                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi WBS", "Tối ưu hóa hiệu năng & Sửa lỗi phát sinh", "Mô tả: Rà soát và sửa các lỗi giao diện/dữ liệu. Definition of Done: Đạt chỉ số mượt 60fps", d3_3, 3.0, "Medium", 6));
+                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi", "Phát triển các module tính năng cốt lõi", "Mô tả: Lập trình 100% chức năng quan trọng. Definition of Done: Tính năng chạy mượt mà", d3_1, 4.0, "High", 8));
+                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi", "Tích hợp giao diện & Xử lý luồng dữ liệu", "Mô tả: Kết nối dữ liệu vào giao diện hiển thị. Definition of Done: Không bị treo hay đơ ứng dụng", d3_2, 3.5, "High", 7));
+                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi", "Tối ưu hóa hiệu năng & Sửa lỗi phát sinh", "Mô tả: Rà soát và sửa các lỗi giao diện/dữ liệu. Definition of Done: Đạt chỉ số mượt 60fps", d3_3, 3.0, "Medium", 6));
 
                     // GIAI ĐOẠN 4: Kiểm thử & Nghiệm thu
-                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu WBS", "Chạy thử nghiệm toàn bộ hệ thống (End-to-End)", "Mô tả: Thử nghiệm mọi kịch bản người dùng. Definition of Done: Đạt 100% kịch bản không lỗi", d4_1, 2.5, "Medium", 5));
-                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu WBS", "Đánh giá theo tiêu chuẩn Definition of Done", "Mô tả: Kiểm tra chất lượng sản phẩm cuối cùng. Definition of Done: Đáp ứng đủ tiêu chí ban đầu", d4_2, 2.0, "Medium", 4));
-                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu WBS", "Soạn báo cáo tổng kết & Bàn giao dự án", "Mô tả: Hoàn tất slide & Báo cáo tổng kết dự án. Definition of Done: Bàn giao thành công", d4_3, 2.0, "Low", 4));
+                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu", "Chạy thử nghiệm toàn bộ hệ thống (End-to-End)", "Mô tả: Thử nghiệm mọi kịch bản người dùng. Definition of Done: Đạt 100% kịch bản không lỗi", d4_1, 2.5, "Medium", 5));
+                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu", "Đánh giá theo tiêu chuẩn Definition of Done", "Mô tả: Kiểm tra chất lượng sản phẩm cuối cùng. Definition of Done: Đáp ứng đủ tiêu chí ban đầu", d4_2, 2.0, "Medium", 4));
+                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu", "Soạn báo cáo tổng kết & Bàn giao dự án", "Mô tả: Hoàn tất slide & Báo cáo tổng kết dự án. Definition of Done: Bàn giao thành công", d4_3, 2.0, "Low", 4));
                 }
 
                 new Handler(Looper.getMainLooper()).post(() -> {
                     btnGenerateWbs.setEnabled(true);
-                    btnGenerateWbs.setText("⚡ Phân Rã WBS Bằng Gemini AI");
+                    btnGenerateWbs.setText("⚡ Phân Rã Dự Án Bằng Gemini AI");
 
                     wbsTaskList.clear();
                     wbsTaskList.addAll(parsedList);
@@ -311,15 +311,15 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                     }
 
                     if (tvWbsCount != null) {
-                        tvWbsCount.setText("● " + wbsTaskList.size() + " Task WBS");
+                        tvWbsCount.setText("● " + wbsTaskList.size() + " Công việc");
                     }
-                    Toast.makeText(AiTaskBreakdownActivity.this, "⚡ Gemini AI đã phân rã thành công " + wbsTaskList.size() + " task WBS!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(AiTaskBreakdownActivity.this, "⚡ Gemini AI đã phân rã thành công " + wbsTaskList.size() + " công việc!", Toast.LENGTH_SHORT).show();
                 });
 
             } catch (Exception e) {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     btnGenerateWbs.setEnabled(true);
-                    btnGenerateWbs.setText("⚡ Phân Rã WBS Bằng Gemini AI");
+                    btnGenerateWbs.setText("⚡ Phân Rã Dự Án Bằng Gemini AI");
                     Toast.makeText(AiTaskBreakdownActivity.this, "Lỗi phân rã AI: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
             }
@@ -328,7 +328,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
 
     private void syncAndSaveToDatabase() {
         if (wbsTaskList.isEmpty()) {
-            Toast.makeText(this, "Chưa có danh sách WBS để đồng bộ! Bấm nút Phân Rã AI trước.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Chưa có danh sách công việc để đồng bộ! Bấm nút Phân Rã AI trước.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -339,8 +339,8 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
             return;
         }
 
-        String pName = edtProjectName != null ? edtProjectName.getText().toString().trim() : "Dự án lớn WBS";
-        String pGoal = edtProjectGoal != null ? edtProjectGoal.getText().toString().trim() : "Dự án WBS";
+        String pName = edtProjectName != null ? edtProjectName.getText().toString().trim() : "Dự án lớn";
+        String pGoal = edtProjectGoal != null ? edtProjectGoal.getText().toString().trim() : "Dự án lớn";
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://10.0.2.2:8080/api/")
@@ -356,7 +356,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         projectObj.setUserId(currentUserId);
 
         btnApplyBreakdown.setEnabled(false);
-        btnApplyBreakdown.setText("Đang đồng bộ WBS vào cơ sở dữ liệu...");
+        btnApplyBreakdown.setText("Đang đồng bộ vào cơ sở dữ liệu...");
 
         apiService.addProject(projectObj).enqueue(new Callback<Project>() {
             @Override
@@ -384,7 +384,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                 t.setTitle("[" + wTask.getPhaseName() + "] " + wTask.getTaskTitle());
                 t.setDescription(wTask.getDescription() + " • 🍅 " + wTask.getPomodoroCount() + " Pomodoro");
                 t.setTime("📅 " + wTask.getScheduledDate() + " | 🕒 " + wTask.getEstimatedHours() + "h • 🚩 " + wTask.getPriority());
-                t.setLocation("Dự án lớn WBS");
+                t.setLocation("Dự án lớn");
                 t.setProjectId(projectId);
                 t.setStatus("PENDING");
                 t.setUserId(userId);
@@ -397,7 +397,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
             }
         }
 
-        Toast.makeText(AiTaskBreakdownActivity.this, "✔ Đã đồng bộ thành công Dự án lớn và " + countSaved + " công việc WBS!", Toast.LENGTH_LONG).show();
+        Toast.makeText(AiTaskBreakdownActivity.this, "✔ Đã đồng bộ thành công Dự án lớn và " + countSaved + " công việc!", Toast.LENGTH_LONG).show();
 
         Intent intent = new Intent(AiTaskBreakdownActivity.this, ProjectsActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
