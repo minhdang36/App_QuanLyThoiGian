@@ -149,6 +149,9 @@ public class ProjectDetailActivity extends AppCompatActivity {
                 if (tvTitle != null) {
                     pomodoroIntent.putExtra("ACTIVE_TASK_TITLE", tvTitle.getText().toString());
                 }
+                if (tvTime != null) {
+                    pomodoroIntent.putExtra("TASK_TIME", tvTime.getText().toString());
+                }
                 startActivity(pomodoroIntent);
             });
         }

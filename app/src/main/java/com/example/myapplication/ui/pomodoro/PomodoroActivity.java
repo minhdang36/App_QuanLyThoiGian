@@ -2,6 +2,7 @@ package com.example.myapplication.ui.pomodoro;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -11,6 +12,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,6 +37,9 @@ public class PomodoroActivity extends AppCompatActivity {
     private TextView tvSoundTitle, tvSoundSubtitle;
     private ImageView btnPlayPauseSound;
 
+    private TextView tvActiveTaskTitle, tvTotalFocusHours, tvGoalProgress;
+    private ProgressBar progressTask;
+
     private TextView chipSound1, chipSound2, chipSound3, chipSound4, chipSound5, chipSound6;
 
     private LinearLayout navAgenda, navProjects, navTimeline;
@@ -52,6 +57,10 @@ public class PomodoroActivity extends AppCompatActivity {
     private AudioTrack audioTrack;
     private Thread audioThread;
     private int selectedSoundIndex = 0;
+
+    private String activeTaskTitle = "Lập trình & Phát triển ứng dụng";
+    private double goalHours = 2.0; // Mặc định mục tiêu 2.0h
+    private int totalFocusMinutesAcc = 0;
 
     private final String[] soundTitles = {
             "Rừng thông & Gió nhẹ",
@@ -88,6 +97,11 @@ public class PomodoroActivity extends AppCompatActivity {
         btnResetTimer = findViewById(R.id.btnResetTimer);
         btnSoundToggle = findViewById(R.id.btnSoundToggle);
 
+        tvActiveTaskTitle = findViewById(R.id.tvActiveTaskTitle);
+        tvTotalFocusHours = findViewById(R.id.tvTotalFocusHours);
+        tvGoalProgress = findViewById(R.id.tvGoalProgress);
+        progressTask = findViewById(R.id.progressTask);
+
         chipSound1 = findViewById(R.id.chipSound1);
         chipSound2 = findViewById(R.id.chipSound2);
         chipSound3 = findViewById(R.id.chipSound3);
@@ -105,10 +119,73 @@ public class PomodoroActivity extends AppCompatActivity {
         navTimeline = findViewById(R.id.navTimeline);
         fabAdd = findViewById(R.id.fabAdd);
 
+        // Đọc thông tin công việc và thời gian làm task từ Intent
+        Intent intent = getIntent();
+        if (intent != null) {
+            if (intent.hasExtra("ACTIVE_TASK_TITLE")) {
+                String tTitle = intent.getStringExtra("ACTIVE_TASK_TITLE");
+                if (tTitle != null && !tTitle.trim().isEmpty()) {
+                    activeTaskTitle = tTitle;
+                }
+            }
+
+            if (intent.hasExtra("TASK_TIME")) {
+                String tTime = intent.getStringExtra("TASK_TIME");
+                goalHours = parseHoursFromTimeStr(tTime);
+            }
+        }
+
+        if (tvActiveTaskTitle != null) {
+            tvActiveTaskTitle.setText(activeTaskTitle);
+        }
+
+        // Tải tổng thời gian đã tích lũy từ SharedPreferences
+        SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+        totalFocusMinutesAcc = pref.getInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), 0);
+
+        updateTaskFocusStats();
+
         setupTabs();
         setupTimerControls();
         setupAmbientSoundControls();
         setupBottomNav();
+    }
+
+    private double parseHoursFromTimeStr(String timeStr) {
+        if (timeStr == null || timeStr.trim().isEmpty()) return 2.0;
+
+        try {
+            String clean = timeStr.replaceAll("[^0-9.]", " ").trim();
+            String[] parts = clean.split("\\s+");
+            for (String p : parts) {
+                if (!p.isEmpty()) {
+                    double val = Double.parseDouble(p);
+                    if (val > 0 && val <= 24) {
+                        return val;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        return 2.0;
+    }
+
+    private void updateTaskFocusStats() {
+        double totalHoursAcc = totalFocusMinutesAcc / 60.0;
+        int percent = goalHours > 0 ? (int) Math.round((totalHoursAcc / goalHours) * 100) : 0;
+        percent = Math.min(percent, 100);
+
+        if (tvTotalFocusHours != null) {
+            tvTotalFocusHours.setText(String.format(Locale.getDefault(), "%.1f Giờ", totalHoursAcc));
+        }
+
+        if (tvGoalProgress != null) {
+            tvGoalProgress.setText(String.format(Locale.getDefault(), "%.1fh (%d%%)", goalHours, percent));
+        }
+
+        if (progressTask != null) {
+            progressTask.setProgress(percent);
+        }
     }
 
     private void setupTabs() {
@@ -296,7 +373,15 @@ public class PomodoroActivity extends AppCompatActivity {
             public void onFinish() {
                 isTimerRunning = false;
                 btnStartTimer.setText("▶ Bắt đầu");
-                Toast.makeText(PomodoroActivity.this, "Hoàn thành phiên tập trung!", Toast.LENGTH_LONG).show();
+
+                // Cập nhật tích lũy 25 phút tập trung khi hoàn thành phiên
+                totalFocusMinutesAcc += 25;
+                SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                pref.edit().putInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), totalFocusMinutesAcc).apply();
+
+                updateTaskFocusStats();
+
+                Toast.makeText(PomodoroActivity.this, "🎉 Hoàn thành phiên tập trung cho task!", Toast.LENGTH_LONG).show();
 
                 if (currentSession < totalSessions) {
                     currentSession++;
