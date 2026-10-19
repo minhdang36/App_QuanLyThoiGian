@@ -19,6 +19,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.myapplication.R;
+import com.example.myapplication.model.Task;
+import com.example.myapplication.network.ApiService;
 import com.example.myapplication.ui.ai.AiAutoScheduleActivity;
 import com.example.myapplication.ui.main.MainActivity;
 import com.example.myapplication.ui.project.ProjectsActivity;
@@ -26,7 +28,15 @@ import com.example.myapplication.ui.task.AddTaskActivity;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class PomodoroActivity extends AppCompatActivity {
 
@@ -59,7 +69,7 @@ public class PomodoroActivity extends AppCompatActivity {
     private int selectedSoundIndex = 0;
 
     private String activeTaskTitle = "Lập trình & Phát triển ứng dụng";
-    private double goalHours = 2.0; // Mặc định mục tiêu 2.0h
+    private double goalHours = 2.0; // Mặc định nếu không có task
     private int totalFocusMinutesAcc = 0;
 
     private final String[] soundTitles = {
@@ -149,6 +159,60 @@ public class PomodoroActivity extends AppCompatActivity {
         setupTimerControls();
         setupAmbientSoundControls();
         setupBottomNav();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadTodayTasksAndCalculateGoal();
+    }
+
+    private void loadTodayTasksAndCalculateGoal() {
+        SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        int currentUserId = sharedPref.getInt("USER_ID", -1);
+        if (currentUserId == -1) return;
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://10.0.2.2:8080/api/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+        apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
+            @Override
+            public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Calendar todayCal = Calendar.getInstance();
+                    int todayDay = todayCal.get(Calendar.DAY_OF_MONTH);
+
+                    double dailyGoalSum = 0;
+                    for (Task t : response.body()) {
+                        String timeStr = t.getTime();
+                        boolean isToday = false;
+
+                        if (timeStr == null || timeStr.trim().isEmpty() || timeStr.contains("Hôm nay")) {
+                            isToday = true;
+                        } else if (timeStr.contains(String.valueOf(todayDay))) {
+                            isToday = true;
+                        }
+
+                        if (isToday) {
+                            double taskHours = parseHoursFromTimeStr(timeStr);
+                            dailyGoalSum += taskHours;
+                        }
+                    }
+
+                    if (dailyGoalSum > 0) {
+                        goalHours = dailyGoalSum;
+                    }
+
+                    updateTaskFocusStats();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Task>> call, Throwable t) {}
+        });
     }
 
     private double parseHoursFromTimeStr(String timeStr) {
@@ -374,7 +438,6 @@ public class PomodoroActivity extends AppCompatActivity {
                 isTimerRunning = false;
                 btnStartTimer.setText("▶ Bắt đầu");
 
-                // Cập nhật tích lũy 25 phút tập trung khi hoàn thành phiên
                 totalFocusMinutesAcc += 25;
                 SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
                 pref.edit().putInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), totalFocusMinutesAcc).apply();
