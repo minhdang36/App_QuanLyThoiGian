@@ -141,6 +141,18 @@ public class ProjectDetailActivity extends AppCompatActivity {
             });
         }
 
+        // Bắt đầu bấm giờ làm task bằng Chế độ Tập trung Pomodoro Focus
+        TextView btnStartPomodoro = findViewById(R.id.btnStartPomodoro);
+        if (btnStartPomodoro != null) {
+            btnStartPomodoro.setOnClickListener(v -> {
+                Intent pomodoroIntent = new Intent(ProjectDetailActivity.this, com.example.myapplication.ui.pomodoro.PomodoroActivity.class);
+                if (tvTitle != null) {
+                    pomodoroIntent.putExtra("ACTIVE_TASK_TITLE", tvTitle.getText().toString());
+                }
+                startActivity(pomodoroIntent);
+            });
+        }
+
         boolean isLargeProject = (intent != null) && intent.getBooleanExtra("IS_LARGE_PROJECT", false);
         if (btnAddSubtask != null) {
             if (isLargeProject) {

@@ -194,7 +194,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="SẮP DIỄN RA • Lịch trình"
+                                android:text="⏱ CHẾ ĐỘ TẬP TRUNG • Pomodoro Focus"
                                 android:textColor="#80CBC4"
                                 android:textSize="11sp"
                                 android:textStyle="bold" />
@@ -212,25 +212,28 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Địa điểm -->
+                    <!-- Địa điểm / Mục tiêu -->
                     <TextView
                         android:id="@+id/tvTaskDetailLocation"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:text="📍 Không có địa điểm / Link họp"
+                        android:text="🎯 Mục tiêu: 25 phút/phiên • Giữ tập trung tối đa"
                         android:textColor="#A7FFEB"
                         android:textSize="12sp" />
 
-                    <!-- Nút Tham gia Meeting -->
+                    <!-- Nút Bắt đầu bấm giờ Pomodoro -->
                     <TextView
+                        android:id="@+id/btnStartPomodoro"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
                         android:layout_marginTop="16dp"
                         android:background="@drawable/bg_rounded_24dp"
                         android:backgroundTint="#64FFDA"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center"
-                        android:text="🎥 Tham gia họp trực tuyến"
+                        android:text="▶ Bắt đầu bấm giờ làm task"
                         android:textColor="#004D40"
                         android:textSize="13sp"
                         android:textStyle="bold" />
