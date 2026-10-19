@@ -16,7 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.R;
-import com.example.myapplication.adapter.WbsTaskAdapter;
+import com.example.myapplication.adapter.PhaseGroupAdapter;
+import com.example.myapplication.model.PhaseGroup;
 import com.example.myapplication.model.Project;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.model.WbsTask;
@@ -33,8 +34,10 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Scanner;
 
 import retrofit2.Call;
@@ -51,8 +54,10 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
     private TextView tvWbsCount;
 
     private RecyclerView rvWbsTasks;
-    private WbsTaskAdapter wbsAdapter;
+    private PhaseGroupAdapter phaseAdapter;
+
     private final List<WbsTask> wbsTaskList = new ArrayList<>();
+    private final List<PhaseGroup> phaseGroupList = new ArrayList<>();
 
     // Gemini API Key Placeholder (Hỗ trợ cấu hình tùy chỉnh)
     private static final String GEMINI_API_KEY = "AIzaSyD-PlaceholderKeyForGeminiApiV1";
@@ -75,8 +80,8 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         rvWbsTasks = findViewById(R.id.rvWbsTasks);
         if (rvWbsTasks != null) {
             rvWbsTasks.setLayoutManager(new LinearLayoutManager(this));
-            wbsAdapter = new WbsTaskAdapter(wbsTaskList);
-            rvWbsTasks.setAdapter(wbsAdapter);
+            phaseAdapter = new PhaseGroupAdapter(phaseGroupList);
+            rvWbsTasks.setAdapter(phaseAdapter);
         }
 
         if (btnBack != null) {
@@ -306,14 +311,39 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
 
                     wbsTaskList.clear();
                     wbsTaskList.addAll(parsedList);
-                    if (wbsAdapter != null) {
-                        wbsAdapter.updateData(wbsTaskList);
+
+                    // Nhóm danh sách các WbsTask theo 4 Giai Đoạn để hiển thị bản xem trước
+                    Map<String, PhaseGroup> mapPhases = new LinkedHashMap<>();
+                    for (WbsTask wTask : wbsTaskList) {
+                        String rawPName = wTask.getPhaseName() != null ? wTask.getPhaseName() : "Giai đoạn";
+                        String phaseTitle = rawPName.startsWith("📂") ? rawPName : "📂 " + rawPName;
+
+                        PhaseGroup group = mapPhases.get(phaseTitle);
+                        if (group == null) {
+                            group = new PhaseGroup(phaseTitle);
+                            group.setExpanded(true); // Tự động mở rộng sẵn để người dùng xem trước
+                            mapPhases.put(phaseTitle, group);
+                        }
+
+                        Task t = new Task();
+                        t.setTitle(wTask.getTaskTitle());
+                        t.setDescription(wTask.getDescription() + " • 🍅 " + wTask.getPomodoroCount() + " Pomodoro");
+                        t.setTime("📅 " + wTask.getScheduledDate() + " | 🕒 " + wTask.getEstimatedHours() + "h • 🚩 " + wTask.getPriority());
+                        t.setLocation("Dự án lớn");
+                        group.getSubTaskList().add(t);
+                    }
+
+                    phaseGroupList.clear();
+                    phaseGroupList.addAll(mapPhases.values());
+
+                    if (phaseAdapter != null) {
+                        phaseAdapter.updateData(phaseGroupList);
                     }
 
                     if (tvWbsCount != null) {
-                        tvWbsCount.setText("● " + wbsTaskList.size() + " Công việc");
+                        tvWbsCount.setText("● " + phaseGroupList.size() + " Giai đoạn (" + wbsTaskList.size() + " task)");
                     }
-                    Toast.makeText(AiTaskBreakdownActivity.this, "⚡ Gemini AI đã phân rã thành công " + wbsTaskList.size() + " công việc!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(AiTaskBreakdownActivity.this, "⚡ Gemini AI đã phân rã thành công " + phaseGroupList.size() + " giai đoạn và " + wbsTaskList.size() + " công việc!", Toast.LENGTH_SHORT).show();
                 });
 
             } catch (Exception e) {
