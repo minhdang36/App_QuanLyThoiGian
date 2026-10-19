@@ -157,7 +157,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
             List<String> subTasks = taskSubTasksMap.get(i);
             if (subTasks != null && !subTasks.isEmpty()) {
                 TextView tvHeaderChecklist = new TextView(this);
-                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (AI đã phân tách):");
+                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Gemini AI đã phân tách):");
                 tvHeaderChecklist.setTextColor(0xFF362C2A);
                 tvHeaderChecklist.setTextSize(12);
                 tvHeaderChecklist.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -171,6 +171,13 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     checkBox.setTextSize(13);
                     layoutChecklist.addView(checkBox);
                 }
+            } else {
+                TextView tvHint = new TextView(this);
+                tvHint.setText("💡 Bấm nút 'AI Phân Tách' ở trên để Gemini AI đào sâu phân tách danh sách đầu việc chi tiết.");
+                tvHint.setTextColor(0xFF9E9E9E);
+                tvHint.setTextSize(11);
+                tvHint.setPadding(0, 8, 0, 0);
+                layoutChecklist.addView(tvHint);
             }
 
             cardContent.addView(layoutChecklist);
@@ -186,7 +193,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
         }
 
         btnAiDecomposeTasks.setEnabled(false);
-        btnAiDecomposeTasks.setText("⚡ Gemini AI Đang Phân Tách Chi Tiết...");
+        btnAiDecomposeTasks.setText("⚡ Gemini AI Đang Phân Tách Sâu...");
 
         new Thread(() -> {
             try {
@@ -195,10 +202,11 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 JSONObject sysInstruction = new JSONObject();
                 JSONArray sysParts = new JSONArray();
                 JSONObject sysPart = new JSONObject();
-                sysPart.put("text", "Bạn là một Trợ lý AI Quản Lý Thời Gian chuyên nghiệp. Hãy phân tách từng công việc nhỏ dưới đây thuộc " + phaseName + " thành 3-4 đầu việc cụ thể (Checklist Action Items) để người dùng thực hiện từng bước mượt mà.\n" +
-                        "Trả về DUY NHẤT một JSON Array. Mỗi item chứa:\n" +
+                sysPart.put("text", "Bạn là một Trợ lý AI Quản Lý Dự Án & Thời Gian cao cấp. Nhiệm vụ của bạn là đào sâu phân tách từng công việc thuộc " + phaseName + " thành 3-4 đầu việc cụ thể thực tế (Action Items / Checklists) với nội dung sâu sắc, rõ ràng, giúp người dùng thực hiện từng bước mượt mà nhất.\n" +
+                        "Yêu cầu về kết quả:\n" +
+                        "Trả về DUY NHẤT một JSON Array chứa tất cả các task. Mỗi item bao gồm:\n" +
                         "- \"taskIndex\": Chỉ số vị trí của task (0, 1, 2...)\n" +
-                        "- \"subTasks\": Danh sách 3-4 chuỗi đầu việc cần làm cụ thể");
+                        "- \"subTasks\": Danh sách 3-4 chuỗi đầu việc cụ thể, thực tế, đúng với ngữ cảnh tiêu đề và mô tả của công việc đó.");
                 sysParts.put(sysPart);
                 sysInstruction.put("parts", sysParts);
                 requestBody.put("system_instruction", sysInstruction);
@@ -271,13 +279,13 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     }
                 }
 
-                // Fallback mô phỏng phân tách checklist cho từng task
+                // Fallback nếu API bận
                 if (taskSubTasksMap.isEmpty()) {
                     for (int i = 0; i < taskList.size(); i++) {
                         List<String> fallbackSub = new ArrayList<>();
-                        fallbackSub.add("1. Thu thập dữ liệu & Tài liệu tham khảo ban đầu");
-                        fallbackSub.add("2. Thực thi và soạn thảo thông tin cốt lõi");
-                        fallbackSub.add("3. Kiểm tra chất lượng & Hoàn thiện sản phẩm");
+                        fallbackSub.add("1. Đào sâu thu thập tài liệu & Phân tích yêu cầu thực tế");
+                        fallbackSub.add("2. Thực thi nội dung cốt lõi & Xử lý logic chi tiết");
+                        fallbackSub.add("3. Kiểm thử chất lượng sản phẩm & Đánh giá theo DoD");
                         taskSubTasksMap.put(i, fallbackSub);
                     }
                 }
@@ -286,7 +294,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     btnAiDecomposeTasks.setEnabled(true);
                     btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
                     renderTaskCards();
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách chi tiết các đầu việc thành công!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã đào sâu phân tách chi tiết các đầu việc thành công!", Toast.LENGTH_LONG).show();
                 });
 
             } catch (Exception e) {
@@ -294,11 +302,10 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     btnAiDecomposeTasks.setEnabled(true);
                     btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
 
-                    // Fallback
                     for (int i = 0; i < taskList.size(); i++) {
                         List<String> fallbackSub = new ArrayList<>();
-                        fallbackSub.add("1. Thu thập thông tin & Chuẩn bị công cụ");
-                        fallbackSub.add("2. Triển khai nội dung & Xử lý chi tiết");
+                        fallbackSub.add("1. Đào sâu thu thập tài liệu & Phân tích yêu cầu thực tế");
+                        fallbackSub.add("2. Thực thi nội dung cốt lõi & Xử lý logic chi tiết");
                         fallbackSub.add("3. Rà soát chất lượng & Đánh giá theo DoD");
                         taskSubTasksMap.put(i, fallbackSub);
                     }
