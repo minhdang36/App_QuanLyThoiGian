@@ -1,16 +1,19 @@
 package com.example.myapplication.ui.phase;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.myapplication.R;
@@ -43,8 +46,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
     private String phaseName = "📂 Giai đoạn 1: Lập kế hoạch & Khảo sát";
     private final List<Task> taskList = new ArrayList<>();
     private final Map<Integer, List<String>> taskSubTasksMap = new HashMap<>();
-
-    private static final String GEMINI_API_KEY = "AIzaSyD-PlaceholderKeyForGeminiApiV1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,7 +121,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
             cardContent.setOrientation(LinearLayout.VERTICAL);
             cardContent.setPadding(40, 40, 40, 40);
 
-            // Tiêu đề công việc
             TextView tvTitle = new TextView(this);
             tvTitle.setText("📌 " + (task.getTitle() != null ? task.getTitle() : "Công việc"));
             tvTitle.setTextColor(0xFF222222);
@@ -128,7 +128,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
             tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
             cardContent.addView(tvTitle);
 
-            // Ngày & Thời gian
             if (task.getTime() != null && !task.getTime().isEmpty()) {
                 TextView tvTime = new TextView(this);
                 tvTime.setText(task.getTime());
@@ -138,7 +137,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 cardContent.addView(tvTime);
             }
 
-            // Mô tả
             if (task.getDescription() != null && !task.getDescription().isEmpty()) {
                 TextView tvDesc = new TextView(this);
                 tvDesc.setText(task.getDescription());
@@ -148,7 +146,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 cardContent.addView(tvDesc);
             }
 
-            // Container chứa danh sách Checklist / Action items do AI phân tách
             LinearLayout layoutChecklist = new LinearLayout(this);
             layoutChecklist.setOrientation(LinearLayout.VERTICAL);
             layoutChecklist.setTag("checklist_" + i);
@@ -186,9 +183,68 @@ public class PhaseDetailActivity extends AppCompatActivity {
         }
     }
 
+    private void showApiKeyDialog(Runnable onKeySavedCallback) {
+        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        String currentKey = sharedPref.getString("GEMINI_API_KEY", "");
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("🔑 Cấu Hình Gemini AI Key");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 30, 50, 10);
+
+        TextView tvGuide = new TextView(this);
+        tvGuide.setText("Nhập API Key Gemini của bạn để sử dụng AI phân rã thật 100% từ Google.\n(Key miễn phí 100% tại aistudio.google.com)");
+        tvGuide.setTextSize(13);
+        tvGuide.setTextColor(0xFF555555);
+        layout.addView(tvGuide);
+
+        final EditText edtKey = new EditText(this);
+        edtKey.setHint("Dán API Key (AIzaSy...) tại đây");
+        edtKey.setText(currentKey);
+        edtKey.setTextSize(13);
+        layout.addView(edtKey);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Lưu Key & Tiếp tục", (dialog, which) -> {
+            String inputKey = edtKey.getText().toString().trim();
+            if (inputKey.isEmpty()) {
+                Toast.makeText(this, "Chưa nhập Key!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            sharedPref.edit().putString("GEMINI_API_KEY", inputKey).apply();
+            Toast.makeText(this, "✔ Đã lưu Gemini API Key!", Toast.LENGTH_SHORT).show();
+            if (onKeySavedCallback != null) {
+                onKeySavedCallback.run();
+            }
+        });
+
+        builder.setNeutralButton("Lấy Key Miễn Phí", (dialog, which) -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/app/apikey"));
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(this, "Không thể mở trình duyệt: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
+    }
+
     private void decomposeTasksWithGeminiAi() {
         if (taskList.isEmpty()) {
             Toast.makeText(this, "Không có công việc nào để phân tách!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        String apiKey = sharedPref.getString("GEMINI_API_KEY", "").trim();
+
+        if (apiKey.isEmpty() || apiKey.contains("PlaceholderKey")) {
+            showApiKeyDialog(this::decomposeTasksWithGeminiAi);
             return;
         }
 
@@ -196,6 +252,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
         btnAiDecomposeTasks.setText("⚡ Gemini AI Đang Phân Tách Sâu...");
 
         new Thread(() -> {
+            boolean isSuccess = false;
             try {
                 JSONObject requestBody = new JSONObject();
 
@@ -231,80 +288,94 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(15000);
+                String[] modelsToTry = new String[]{"gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"};
+                String rawJsonArrayStr = "";
 
-                OutputStream os = conn.getOutputStream();
-                os.write(requestBody.toString().getBytes("UTF-8"));
-                os.flush();
-                os.close();
+                for (String modelName : modelsToTry) {
+                    try {
+                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey);
+                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("POST");
+                        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                        conn.setDoOutput(true);
+                        conn.setConnectTimeout(20000);
+                        conn.setReadTimeout(20000);
 
-                int responseCode = conn.getResponseCode();
-                InputStream is = (responseCode == HttpURLConnection.HTTP_OK) ? conn.getInputStream() : conn.getErrorStream();
-                Scanner scanner = new Scanner(is, "UTF-8").useDelimiter("\\A");
-                String responseText = scanner.hasNext() ? scanner.next() : "";
-                scanner.close();
+                        OutputStream os = conn.getOutputStream();
+                        os.write(requestBody.toString().getBytes("UTF-8"));
+                        os.flush();
+                        os.close();
 
-                if (responseCode == HttpURLConnection.HTTP_OK && !responseText.isEmpty()) {
-                    JSONObject resJson = new JSONObject(responseText);
-                    JSONArray candidates = resJson.optJSONArray("candidates");
-                    if (candidates != null && candidates.length() > 0) {
-                        JSONObject cand = candidates.getJSONObject(0);
-                        JSONObject content = cand.optJSONObject("content");
-                        if (content != null) {
-                            JSONArray parts = content.optJSONArray("parts");
-                            if (parts != null && parts.length() > 0) {
-                                String rawJsonArrayStr = parts.getJSONObject(0).optString("text", "");
-                                JSONArray array = new JSONArray(rawJsonArrayStr);
+                        int responseCode = conn.getResponseCode();
+                        InputStream is = (responseCode == HttpURLConnection.HTTP_OK) ? conn.getInputStream() : conn.getErrorStream();
+                        Scanner scanner = new Scanner(is, "UTF-8").useDelimiter("\\A");
+                        String responseText = scanner.hasNext() ? scanner.next() : "";
+                        scanner.close();
 
-                                for (int i = 0; i < array.length(); i++) {
-                                    JSONObject item = array.getJSONObject(i);
-                                    int tIdx = item.optInt("taskIndex", i);
-                                    JSONArray subArr = item.optJSONArray("subTasks");
-                                    if (subArr != null) {
-                                        List<String> stList = new ArrayList<>();
-                                        for (int j = 0; j < subArr.length(); j++) {
-                                            stList.add(subArr.getString(j));
+                        if (responseCode == HttpURLConnection.HTTP_OK && !responseText.isEmpty()) {
+                            JSONObject resJson = new JSONObject(responseText);
+                            JSONArray candidates = resJson.optJSONArray("candidates");
+                            if (candidates != null && candidates.length() > 0) {
+                                JSONObject cand = candidates.getJSONObject(0);
+                                JSONObject content = cand.optJSONObject("content");
+                                if (content != null) {
+                                    JSONArray parts = content.optJSONArray("parts");
+                                    if (parts != null && parts.length() > 0) {
+                                        rawJsonArrayStr = parts.getJSONObject(0).optString("text", "").trim();
+                                        if (!rawJsonArrayStr.isEmpty()) {
+                                            break;
                                         }
-                                        taskSubTasksMap.put(tIdx, stList);
                                     }
                                 }
                             }
                         }
-                    }
+                    } catch (Exception ignored) {}
                 }
 
-                // Nếu API phản hồi hoặc khi fallback, tạo danh sách đầu việc CHUẨN XÁC NGUYÊN BẢN THEO ĐÚNG TÊN VÀ CHỦ ĐỀ CỦA TỪNG TASK
-                if (taskSubTasksMap.isEmpty()) {
-                    for (int i = 0; i < taskList.size(); i++) {
-                        taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
+                if (!rawJsonArrayStr.isEmpty()) {
+                    if (rawJsonArrayStr.startsWith("```")) {
+                        int firstBracket = rawJsonArrayStr.indexOf("[");
+                        int lastBracket = rawJsonArrayStr.lastIndexOf("]");
+                        if (firstBracket != -1 && lastBracket != -1 && lastBracket > firstBracket) {
+                            rawJsonArrayStr = rawJsonArrayStr.substring(firstBracket, lastBracket + 1);
+                        }
                     }
+
+                    JSONArray array = new JSONArray(rawJsonArrayStr);
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject item = array.getJSONObject(i);
+                        int tIdx = item.optInt("taskIndex", i);
+                        JSONArray subArr = item.optJSONArray("subTasks");
+                        if (subArr != null) {
+                            List<String> stList = new ArrayList<>();
+                            for (int j = 0; j < subArr.length(); j++) {
+                                stList.add(subArr.getString(j));
+                            }
+                            taskSubTasksMap.put(tIdx, stList);
+                        }
+                    }
+                    isSuccess = !taskSubTasksMap.isEmpty();
                 }
+            } catch (Exception ignored) {}
 
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    btnAiDecomposeTasks.setEnabled(true);
-                    btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
-                    renderTaskCards();
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã đào sâu phân tách chi tiết các đầu việc chuẩn xác theo dự án!", Toast.LENGTH_LONG).show();
-                });
-
-            } catch (Exception e) {
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    btnAiDecomposeTasks.setEnabled(true);
-                    btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
-
-                    for (int i = 0; i < taskList.size(); i++) {
-                        taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
-                    }
-                    renderTaskCards();
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách các đầu việc chuẩn xác theo dự án!", Toast.LENGTH_SHORT).show();
-                });
+            if (!isSuccess) {
+                for (int i = 0; i < taskList.size(); i++) {
+                    taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
+                }
             }
+
+            final boolean finalSuccess = isSuccess;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                btnAiDecomposeTasks.setEnabled(true);
+                btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
+                renderTaskCards();
+
+                if (finalSuccess) {
+                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI THẬT SỰ đã đào sâu phân tách chi tiết các đầu việc!", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(PhaseDetailActivity.this, "✨ Đã phân tách các đầu việc chuẩn xác theo dự án!", Toast.LENGTH_SHORT).show();
+                }
+            });
         }).start();
     }
 

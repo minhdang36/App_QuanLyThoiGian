@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -51,16 +52,13 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
     private EditText edtProjectName, edtProjectGoal, edtStartDate, edtEndDate;
     private Button btnGenerateWbs, btnApplyBreakdown;
     private ImageButton btnBack;
-    private TextView tvWbsCount;
+    private TextView tvWbsCount, tvConfigureApiKey;
 
     private RecyclerView rvWbsTasks;
     private PhaseGroupAdapter phaseAdapter;
 
     private final List<WbsTask> wbsTaskList = new ArrayList<>();
     private final List<PhaseGroup> phaseGroupList = new ArrayList<>();
-
-    // Gemini API Key Placeholder (Hỗ trợ cấu hình tùy chỉnh)
-    private static final String GEMINI_API_KEY = "AIzaSyD-PlaceholderKeyForGeminiApiV1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +74,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         btnGenerateWbs = findViewById(R.id.btnGenerateWbs);
         btnApplyBreakdown = findViewById(R.id.btnApplyBreakdown);
         tvWbsCount = findViewById(R.id.tvWbsCount);
+        tvConfigureApiKey = findViewById(R.id.tvConfigureApiKey);
 
         rvWbsTasks = findViewById(R.id.rvWbsTasks);
         if (rvWbsTasks != null) {
@@ -86,6 +85,10 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
 
         if (btnBack != null) {
             btnBack.setOnClickListener(v -> finish());
+        }
+
+        if (tvConfigureApiKey != null) {
+            tvConfigureApiKey.setOnClickListener(v -> showApiKeyDialog(null));
         }
 
         // Tự động điền thông tin mặc định từ Intent
@@ -157,7 +160,66 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         datePickerDialog.show();
     }
 
+    private void showApiKeyDialog(Runnable onKeySavedCallback) {
+        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        String currentKey = sharedPref.getString("GEMINI_API_KEY", "");
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("🔑 Cấu Hình Gemini AI Key");
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(50, 30, 50, 10);
+
+        TextView tvGuide = new TextView(this);
+        tvGuide.setText("Nhập API Key Gemini của bạn để sử dụng AI phân rã thật 100% từ Google.\n(Key miễn phí 100% tại aistudio.google.com)");
+        tvGuide.setTextSize(13);
+        tvGuide.setTextColor(0xFF555555);
+        layout.addView(tvGuide);
+
+        final EditText edtKey = new EditText(this);
+        edtKey.setHint("Dán API Key (AIzaSy...) tại đây");
+        edtKey.setText(currentKey);
+        edtKey.setTextSize(13);
+        layout.addView(edtKey);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Lưu Key & Tiếp tục", (dialog, which) -> {
+            String inputKey = edtKey.getText().toString().trim();
+            if (inputKey.isEmpty()) {
+                Toast.makeText(this, "Chưa nhập Key!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            sharedPref.edit().putString("GEMINI_API_KEY", inputKey).apply();
+            Toast.makeText(this, "✔ Đã lưu Gemini API Key!", Toast.LENGTH_SHORT).show();
+            if (onKeySavedCallback != null) {
+                onKeySavedCallback.run();
+            }
+        });
+
+        builder.setNeutralButton("Lấy Key Miễn Phí", (dialog, which) -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/app/apikey"));
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(this, "Không thể mở trình duyệt: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
+    }
+
     private void generateWbsWithGeminiApi() {
+        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        String apiKey = sharedPref.getString("GEMINI_API_KEY", "").trim();
+
+        if (apiKey.isEmpty() || apiKey.contains("PlaceholderKey")) {
+            showApiKeyDialog(() -> generateWbsWithGeminiApi());
+            return;
+        }
+
         String pName = edtProjectName != null ? edtProjectName.getText().toString().trim() : "";
         String pGoal = edtProjectGoal != null ? edtProjectGoal.getText().toString().trim() : "";
         String pStart = edtStartDate != null ? edtStartDate.getText().toString().trim() : "";
@@ -169,36 +231,34 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         }
 
         btnGenerateWbs.setEnabled(false);
-        btnGenerateWbs.setText("⚡ Gemini AI Đang Phân Rã...");
+        btnGenerateWbs.setText("⚡ Gemini AI Đang Phân Rã Thật...");
 
         new Thread(() -> {
+            List<WbsTask> parsedList = new ArrayList<>();
+            String lastErrorMsg = "";
+
             try {
-                // Tạo Payload gửi tới Gemini API (gemini-1.5-flash) với responseMimeType = "application/json"
                 JSONObject requestBody = new JSONObject();
 
-                // System Instruction đóng vai Project Manager chuyên nghiệp
                 JSONObject sysInstruction = new JSONObject();
                 JSONArray sysParts = new JSONArray();
                 JSONObject sysPart = new JSONObject();
-                sysPart.put("text", "Bạn là một Project Manager chuyên nghiệp. Nhiệm vụ của bạn là phân rã dự án lớn do người dùng cung cấp (tên dự án, mục tiêu, ngày bắt đầu, ngày kết thúc) thành các giai đoạn (Phase) và các task nhỏ cụ thể cho từng ngày (Daily Tasks).\n" +
-                        "QUY TRÌNH PHÂN RÃ BẮT BUỘC:\n" +
-                        "1. Chia dự án thành CHÍNH XÁC 4 GIAI ĐOẠN chính (Giai đoạn 1: Lập kế hoạch & Khảo sát, Giai đoạn 2: Thiết kế & Chuẩn bị, Giai đoạn 3: Triển khai & Thực thi, Giai đoạn 4: Kiểm thử & Nghiệm thu).\n" +
-                        "2. Trong MỖI GIAI ĐOẠN, tiếp tục phân rã thành 3-4 TASK NHỎ CỤ THỂ theo ngày, trải dài liên tục và đều đặn từ ngày bắt đầu (" + pStart + ") đến ngày kết thúc (" + pEnd + ").\n" +
-                        "3. Mỗi task nhỏ phải chứa ngày thực hiện (scheduledDate) tăng dần liên tục trong khoảng thời gian đã chọn.\n" +
-                        "Yêu cầu về định dạng kết quả:\n" +
-                        "Trả về DUY NHẤT một JSON Array chứa tất cả các task nhỏ (tổng cộng từ 12 đến 16 task). Mỗi item chứa:\n" +
+                sysPart.put("text", "Bạn là một Quản lý Dự án (Project Manager) chuyên nghiệp. Nhiệm vụ của bạn là phân rã dự án lớn do người dùng cung cấp (tên dự án, mục tiêu, ngày bắt đầu, ngày kết thúc) thành các giai đoạn (Phase) và các task nhỏ cụ thể theo ngày.\n" +
+                        "YÊU CẦU BẮT BUỘC:\n" +
+                        "1. Chia dự án thành 4 GIAI ĐOẠN chính liên tục.\n" +
+                        "2. Trong MỖI GIAI ĐOẠN, tạo 3-4 task nhỏ cụ thể, đúng chủ đề chuyên môn dự án, có ngày scheduledDate trải dài trong khoảng " + pStart + " đến " + pEnd + ".\n" +
+                        "3. Trả về DUY NHẤT một JSON Array chứa các task (12-16 tasks). Mỗi item gồm:\n" +
                         "- \"phaseName\": Tên giai đoạn (VD: \"Giai đoạn 1: Lập kế hoạch & Khảo sát\")\n" +
-                        "- \"taskTitle\": Tên công việc nhỏ cụ thể\n" +
-                        "- \"description\": Mô tả chi tiết & Definition of Done để kiểm tra chất lượng\n" +
-                        "- \"scheduledDate\": Ngày thực hiện định dạng YYYY-MM-DD (trải dài trong khoảng từ " + pStart + " đến " + pEnd + ")\n" +
-                        "- \"estimatedHours\": Số giờ dự kiến (từ 1.0 đến 4.0 giờ)\n" +
-                        "- \"priority\": Mức độ ưu tiên (\"High\", \"Medium\", hoặc \"Low\")\n" +
-                        "- \"pomodoroCount\": Số phiên Pomodoro 25 phút tương ứng (VD: 2.0h -> 4)");
+                        "- \"taskTitle\": Tên công việc cụ thể\n" +
+                        "- \"description\": Mô tả chi tiết & Definition of Done\n" +
+                        "- \"scheduledDate\": Ngày thực hiện YYYY-MM-DD\n" +
+                        "- \"estimatedHours\": Số giờ (1.0 đến 4.0)\n" +
+                        "- \"priority\": \"High\", \"Medium\", hoặc \"Low\"\n" +
+                        "- \"pomodoroCount\": Số phiên Pomodoro (1-8)");
                 sysParts.put(sysPart);
                 sysInstruction.put("parts", sysParts);
                 requestBody.put("system_instruction", sysInstruction);
 
-                // Nội dung yêu cầu từ người dùng
                 JSONArray contents = new JSONArray();
                 JSONObject contentObj = new JSONObject();
                 JSONArray contentParts = new JSONArray();
@@ -210,149 +270,134 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                 contents.put(contentObj);
                 requestBody.put("contents", contents);
 
-                // Cấu hình responseMimeType = "application/json"
                 JSONObject genConfig = new JSONObject();
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                // Gọi REST API của Gemini 1.5 Flash
-                URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(15000);
+                String[] modelsToTry = new String[]{"gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"};
+                String rawJsonArrayStr = "";
 
-                OutputStream os = conn.getOutputStream();
-                os.write(requestBody.toString().getBytes("UTF-8"));
-                os.flush();
-                os.close();
+                for (String modelName : modelsToTry) {
+                    try {
+                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey);
+                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("POST");
+                        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                        conn.setDoOutput(true);
+                        conn.setConnectTimeout(20000);
+                        conn.setReadTimeout(20000);
 
-                int responseCode = conn.getResponseCode();
-                InputStream is = (responseCode == HttpURLConnection.HTTP_OK) ? conn.getInputStream() : conn.getErrorStream();
-                Scanner scanner = new Scanner(is, "UTF-8").useDelimiter("\\A");
-                String responseText = scanner.hasNext() ? scanner.next() : "";
-                scanner.close();
+                        OutputStream os = conn.getOutputStream();
+                        os.write(requestBody.toString().getBytes("UTF-8"));
+                        os.flush();
+                        os.close();
 
-                List<WbsTask> parsedList = new ArrayList<>();
+                        int responseCode = conn.getResponseCode();
+                        InputStream is = (responseCode == HttpURLConnection.HTTP_OK) ? conn.getInputStream() : conn.getErrorStream();
+                        Scanner scanner = new Scanner(is, "UTF-8").useDelimiter("\\A");
+                        String responseText = scanner.hasNext() ? scanner.next() : "";
+                        scanner.close();
 
-                if (responseCode == HttpURLConnection.HTTP_OK && !responseText.isEmpty()) {
-                    JSONObject resJson = new JSONObject(responseText);
-                    JSONArray candidates = resJson.optJSONArray("candidates");
-                    if (candidates != null && candidates.length() > 0) {
-                        JSONObject cand = candidates.getJSONObject(0);
-                        JSONObject content = cand.optJSONObject("content");
-                        if (content != null) {
-                            JSONArray parts = content.optJSONArray("parts");
-                            if (parts != null && parts.length() > 0) {
-                                String rawJsonArrayStr = parts.getJSONObject(0).optString("text", "");
-                                JSONArray array = new JSONArray(rawJsonArrayStr);
-
-                                for (int i = 0; i < array.length(); i++) {
-                                    JSONObject item = array.getJSONObject(i);
-                                    WbsTask task = new WbsTask();
-                                    task.setPhaseName(item.optString("phaseName", "Giai đoạn"));
-                                    task.setTaskTitle(item.optString("taskTitle", "Công việc"));
-                                    task.setDescription(item.optString("description", "Definition of Done: Hoàn thành theo chuẩn"));
-                                    task.setScheduledDate(item.optString("scheduledDate", pStart));
-                                    task.setEstimatedHours(item.optDouble("estimatedHours", 2.0));
-                                    task.setPriority(item.optString("priority", "High"));
-                                    task.setPomodoroCount(item.optInt("pomodoroCount", 4));
-                                    parsedList.add(task);
+                        if (responseCode == HttpURLConnection.HTTP_OK && !responseText.isEmpty()) {
+                            JSONObject resJson = new JSONObject(responseText);
+                            JSONArray candidates = resJson.optJSONArray("candidates");
+                            if (candidates != null && candidates.length() > 0) {
+                                JSONObject cand = candidates.getJSONObject(0);
+                                JSONObject content = cand.optJSONObject("content");
+                                if (content != null) {
+                                    JSONArray parts = content.optJSONArray("parts");
+                                    if (parts != null && parts.length() > 0) {
+                                        rawJsonArrayStr = parts.getJSONObject(0).optString("text", "").trim();
+                                        if (!rawJsonArrayStr.isEmpty()) {
+                                            break; // Thành công
+                                        }
+                                    }
                                 }
                             }
+                        } else {
+                            lastErrorMsg = "Lỗi HTTP " + responseCode + ": " + responseText;
                         }
+                    } catch (Exception ex) {
+                        lastErrorMsg = ex.getMessage();
                     }
                 }
 
-                // Fallback mô phỏng 4 Giai đoạn chia nhỏ 12 tasks trải dài thời gian
-                if (parsedList.isEmpty()) {
-                    String d1_1 = pStart;
-                    String d1_2 = addDaysToDate(pStart, 2);
-                    String d1_3 = addDaysToDate(pStart, 5);
-
-                    String d2_1 = addDaysToDate(pStart, 8);
-                    String d2_2 = addDaysToDate(pStart, 11);
-                    String d2_3 = addDaysToDate(pStart, 14);
-
-                    String d3_1 = addDaysToDate(pStart, 17);
-                    String d3_2 = addDaysToDate(pStart, 20);
-                    String d3_3 = addDaysToDate(pStart, 23);
-
-                    String d4_1 = addDaysToDate(pStart, 26);
-                    String d4_2 = addDaysToDate(pStart, 28);
-                    String d4_3 = pEnd;
-
-                    // GIAI ĐOẠN 1: Lập kế hoạch & Khảo sát
-                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát", "Xác định mục tiêu & Phạm vi dự án " + pName, "Mô tả: Liệt kê chi tiết 5 đầu việc chính. Definition of Done: Được xác nhận bởi PM", d1_1, 2.0, "High", 4));
-                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát", "Phân tích tài liệu & Khảo sát yêu cầu", "Mô tả: Thu thập 10 tài liệu tham khảo chính. Definition of Done: Hoàn thành bản tóm tắt khảo sát", d1_2, 3.0, "High", 6));
-                    parsedList.add(new WbsTask("Giai đoạn 1: Lập kế hoạch & Khảo sát", "Thống nhất kiến trúc & Phân bổ nguồn lực", "Mô tả: Phác thảo sơ đồ thực thi hệ thống. Definition of Done: Thống nhất các mốc công việc", d1_3, 2.5, "Medium", 5));
-
-                    // GIAI ĐOẠN 2: Thiết kế & Chuẩn bị
-                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị", "Thiết kế chi tiết khung mẫu & Giao diện", "Mô tả: Vẽ 8 màn hình/khung mẫu chính. Definition of Done: Hoàn thiện bản phác thảo đạt chuẩn", d2_1, 3.0, "High", 6));
-                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị", "Chuẩn bị cơ sở dữ liệu & Cấu trúc lưu trữ", "Mô tả: Tạo bảng và trường dữ liệu cần thiết. Definition of Done: Kiểm tra truy vấn thành công", d2_2, 2.0, "Medium", 4));
-                    parsedList.add(new WbsTask("Giai đoạn 2: Thiết kế & Chuẩn bị", "Soạn thảo tài liệu hướng dẫn & Kịch bản", "Mô tả: Lập danh sách các kịch bản kiểm thử. Definition of Done: Sẵn sàng cho giai đoạn triển khai", d2_3, 2.5, "Medium", 5));
-
-                    // GIAI ĐOẠN 3: Triển khai & Thực thi
-                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi", "Phát triển các module tính năng cốt lõi", "Mô tả: Lập trình 100% chức năng quan trọng. Definition of Done: Tính năng chạy mượt mà", d3_1, 4.0, "High", 8));
-                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi", "Tích hợp giao diện & Xử lý luồng dữ liệu", "Mô tả: Kết nối dữ liệu vào giao diện hiển thị. Definition of Done: Không bị treo hay đơ ứng dụng", d3_2, 3.5, "High", 7));
-                    parsedList.add(new WbsTask("Giai đoạn 3: Triển khai & Thực thi", "Tối ưu hóa hiệu năng & Sửa lỗi phát sinh", "Mô tả: Rà soát và sửa các lỗi giao diện/dữ liệu. Definition of Done: Đạt chỉ số mượt 60fps", d3_3, 3.0, "Medium", 6));
-
-                    // GIAI ĐOẠN 4: Kiểm thử & Nghiệm thu
-                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu", "Chạy thử nghiệm toàn bộ hệ thống (End-to-End)", "Mô tả: Thử nghiệm mọi kịch bản người dùng. Definition of Done: Đạt 100% kịch bản không lỗi", d4_1, 2.5, "Medium", 5));
-                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu", "Đánh giá theo tiêu chuẩn Definition of Done", "Mô tả: Kiểm tra chất lượng sản phẩm cuối cùng. Definition of Done: Đáp ứng đủ tiêu chí ban đầu", d4_2, 2.0, "Medium", 4));
-                    parsedList.add(new WbsTask("Giai đoạn 4: Kiểm thử & Nghiệm thu", "Soạn báo cáo tổng kết & Bàn giao dự án", "Mô tả: Hoàn tất slide & Báo cáo tổng kết dự án. Definition of Done: Bàn giao thành công", d4_3, 2.0, "Low", 4));
-                }
-
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    btnGenerateWbs.setEnabled(true);
-                    btnGenerateWbs.setText("⚡ Phân Rã Dự Án Bằng Gemini AI");
-
-                    wbsTaskList.clear();
-                    wbsTaskList.addAll(parsedList);
-
-                    // Nhóm danh sách các WbsTask theo 4 Giai Đoạn để hiển thị bản xem trước
-                    Map<String, PhaseGroup> mapPhases = new LinkedHashMap<>();
-                    for (WbsTask wTask : wbsTaskList) {
-                        String rawPName = wTask.getPhaseName() != null ? wTask.getPhaseName() : "Giai đoạn";
-                        String phaseTitle = rawPName.startsWith("📂") ? rawPName : "📂 " + rawPName;
-
-                        PhaseGroup group = mapPhases.get(phaseTitle);
-                        if (group == null) {
-                            group = new PhaseGroup(phaseTitle);
-                            group.setExpanded(true); // Tự động mở rộng sẵn để người dùng xem trước
-                            mapPhases.put(phaseTitle, group);
+                if (!rawJsonArrayStr.isEmpty()) {
+                    // Lọc bỏ markdown codeblock ```json ... ```
+                    if (rawJsonArrayStr.startsWith("```")) {
+                        int firstBracket = rawJsonArrayStr.indexOf("[");
+                        int lastBracket = rawJsonArrayStr.lastIndexOf("]");
+                        if (firstBracket != -1 && lastBracket != -1 && lastBracket > firstBracket) {
+                            rawJsonArrayStr = rawJsonArrayStr.substring(firstBracket, lastBracket + 1);
                         }
-
-                        Task t = new Task();
-                        t.setTitle(wTask.getTaskTitle());
-                        t.setDescription(wTask.getDescription() + " • 🍅 " + wTask.getPomodoroCount() + " Pomodoro");
-                        t.setTime("📅 " + wTask.getScheduledDate() + " | 🕒 " + wTask.getEstimatedHours() + "h • 🚩 " + wTask.getPriority());
-                        t.setLocation("Dự án lớn");
-                        group.getSubTaskList().add(t);
                     }
 
-                    phaseGroupList.clear();
-                    phaseGroupList.addAll(mapPhases.values());
-
-                    if (phaseAdapter != null) {
-                        phaseAdapter.updateData(phaseGroupList);
+                    JSONArray array = new JSONArray(rawJsonArrayStr);
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject item = array.getJSONObject(i);
+                        WbsTask task = new WbsTask();
+                        task.setPhaseName(item.optString("phaseName", "Giai đoạn"));
+                        task.setTaskTitle(item.optString("taskTitle", "Công việc"));
+                        task.setDescription(item.optString("description", "Definition of Done: Hoàn thành theo chuẩn"));
+                        task.setScheduledDate(item.optString("scheduledDate", pStart));
+                        task.setEstimatedHours(item.optDouble("estimatedHours", 2.0));
+                        task.setPriority(item.optString("priority", "High"));
+                        task.setPomodoroCount(item.optInt("pomodoroCount", 4));
+                        parsedList.add(task);
                     }
-
-                    if (tvWbsCount != null) {
-                        tvWbsCount.setText("● " + phaseGroupList.size() + " Giai đoạn (" + wbsTaskList.size() + " task)");
-                    }
-                    Toast.makeText(AiTaskBreakdownActivity.this, "⚡ Gemini AI đã phân rã thành công " + phaseGroupList.size() + " giai đoạn và " + wbsTaskList.size() + " công việc!", Toast.LENGTH_SHORT).show();
-                });
-
+                }
             } catch (Exception e) {
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    btnGenerateWbs.setEnabled(true);
-                    btnGenerateWbs.setText("⚡ Phân Rã Dự Án Bằng Gemini AI");
-                    Toast.makeText(AiTaskBreakdownActivity.this, "Lỗi phân rã AI: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                lastErrorMsg = e.getMessage();
             }
+
+            final String errorMsg = lastErrorMsg;
+            final boolean isAiSuccess = !parsedList.isEmpty();
+
+            new Handler(Looper.getMainLooper()).post(() -> {
+                btnGenerateWbs.setEnabled(true);
+                btnGenerateWbs.setText("⚡ Phân Rã Bằng Gemini AI");
+
+                if (!isAiSuccess) {
+                    Toast.makeText(AiTaskBreakdownActivity.this, "⚠️ Gemini AI chưa nhận phản hồi. Hãy bấm 'Cấu hình API Key' để kiểm tra Key của bạn.\n" + (errorMsg.isEmpty() ? "" : errorMsg), Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                wbsTaskList.clear();
+                wbsTaskList.addAll(parsedList);
+
+                Map<String, PhaseGroup> mapPhases = new LinkedHashMap<>();
+                for (WbsTask wTask : wbsTaskList) {
+                    String rawPName = wTask.getPhaseName() != null ? wTask.getPhaseName() : "Giai đoạn";
+                    String phaseTitle = rawPName.startsWith("📂") ? rawPName : "📂 " + rawPName;
+
+                    PhaseGroup group = mapPhases.get(phaseTitle);
+                    if (group == null) {
+                        group = new PhaseGroup(phaseTitle);
+                        group.setExpanded(true);
+                        mapPhases.put(phaseTitle, group);
+                    }
+
+                    Task t = new Task();
+                    t.setTitle(wTask.getTaskTitle());
+                    t.setDescription(wTask.getDescription() + " • 🍅 " + wTask.getPomodoroCount() + " Pomodoro");
+                    t.setTime("📅 " + wTask.getScheduledDate() + " | 🕒 " + wTask.getEstimatedHours() + "h • 🚩 " + wTask.getPriority());
+                    t.setLocation("Dự án lớn");
+                    group.getSubTaskList().add(t);
+                }
+
+                phaseGroupList.clear();
+                phaseGroupList.addAll(mapPhases.values());
+
+                if (phaseAdapter != null) {
+                    phaseAdapter.updateData(phaseGroupList);
+                }
+
+                if (tvWbsCount != null) {
+                    tvWbsCount.setText("● " + phaseGroupList.size() + " Giai đoạn (" + wbsTaskList.size() + " task)");
+                }
+
+                Toast.makeText(AiTaskBreakdownActivity.this, "✨ Gemini AI THẬT SỰ đã phân rã thành công " + phaseGroupList.size() + " giai đoạn và " + wbsTaskList.size() + " công việc!", Toast.LENGTH_LONG).show();
+            });
         }).start();
     }
 
@@ -379,7 +424,6 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
 
         ApiService apiService = retrofit.create(ApiService.class);
 
-        // 1. Lưu Dự Án Lớn vào bảng Project
         Project projectObj = new Project();
         projectObj.setName("🚀 " + pName);
         projectObj.setDescription(pGoal);
@@ -433,17 +477,5 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
         finish();
-    }
-
-    private String addDaysToDate(String startDateStr, int daysToAdd) {
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            Calendar c = Calendar.getInstance();
-            c.setTime(sdf.parse(startDateStr));
-            c.add(Calendar.DAY_OF_MONTH, daysToAdd);
-            return sdf.format(c.getTime());
-        } catch (Exception e) {
-            return startDateStr;
-        }
     }
 }
