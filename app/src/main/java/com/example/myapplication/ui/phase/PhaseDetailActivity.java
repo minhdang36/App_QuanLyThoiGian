@@ -298,8 +298,8 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                // Ưu tiên gọi model gemini-2.5-flash theo đúng yêu cầu, fallback sang gemini-1.5-flash
-                String[] modelsToTry = new String[]{"gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-exp"};
+                // Tự động thử lần lượt các model: gemini-2.5-flash -> gemini-2.0-flash -> gemini-flash-latest -> gemini-1.5-flash
+                String[] modelsToTry = new String[]{"gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"};
                 String rawJsonArrayStr = "";
 
                 for (String modelName : modelsToTry) {
