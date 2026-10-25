@@ -57,6 +57,7 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
 
         // Đổ danh sách task nhỏ vào RecyclerView bên trong Phase Card
         holder.rvPhaseSubTasks.setLayoutManager(new LinearLayoutManager(holder.itemView.getContext()));
+        holder.rvPhaseSubTasks.setNestedScrollingEnabled(false);
         TaskAdapter subAdapter = new TaskAdapter(phase.getSubTaskList());
         holder.rvPhaseSubTasks.setAdapter(subAdapter);
 
