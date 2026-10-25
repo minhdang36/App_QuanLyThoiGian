@@ -51,7 +51,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
     private EditText edtProjectName, edtProjectGoal, edtStartDate, edtEndDate;
     private Button btnGenerateWbs, btnApplyBreakdown;
     private ImageButton btnBack;
-    private TextView tvWbsCount;
+    private TextView tvWbsCount, tvConfigureApiKey;
 
     private RecyclerView rvWbsTasks;
     private PhaseGroupAdapter phaseAdapter;
@@ -73,6 +73,11 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         btnGenerateWbs = findViewById(R.id.btnGenerateWbs);
         btnApplyBreakdown = findViewById(R.id.btnApplyBreakdown);
         tvWbsCount = findViewById(R.id.tvWbsCount);
+        tvConfigureApiKey = findViewById(R.id.tvConfigureApiKey);
+
+        if (tvConfigureApiKey != null) {
+            tvConfigureApiKey.setOnClickListener(v -> showApiKeyDialog(null));
+        }
 
         rvWbsTasks = findViewById(R.id.rvWbsTasks);
         if (rvWbsTasks != null) {
@@ -154,7 +159,66 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         datePickerDialog.show();
     }
 
+    private void showApiKeyDialog(Runnable onKeySavedCallback) {
+        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        String currentKey = sharedPref.getString("GEMINI_API_KEY", "");
+
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("🔑 Cấu Hình Gemini AI Key");
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(50, 30, 50, 10);
+
+        TextView tvGuide = new TextView(this);
+        tvGuide.setText("Nhập API Key Gemini của bạn để sử dụng AI phân rã thật 100% từ Google.\n(Lấy Key miễn phí 100% tại aistudio.google.com)");
+        tvGuide.setTextSize(13);
+        tvGuide.setTextColor(0xFF555555);
+        layout.addView(tvGuide);
+
+        final EditText edtKey = new EditText(this);
+        edtKey.setHint("Dán API Key (AIzaSy...) tại đây");
+        edtKey.setText(currentKey);
+        edtKey.setTextSize(13);
+        layout.addView(edtKey);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Lưu Key & Tiếp tục", (dialog, which) -> {
+            String inputKey = edtKey.getText().toString().trim();
+            if (inputKey.isEmpty()) {
+                Toast.makeText(this, "Chưa nhập Key!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            sharedPref.edit().putString("GEMINI_API_KEY", inputKey).apply();
+            Toast.makeText(this, "✔ Đã lưu Gemini API Key!", Toast.LENGTH_SHORT).show();
+            if (onKeySavedCallback != null) {
+                onKeySavedCallback.run();
+            }
+        });
+
+        builder.setNeutralButton("Lấy Key Miễn Phí", (dialog, which) -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/app/apikey"));
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(this, "Không thể mở trình duyệt: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
+    }
+
     private void generateWbsWithGeminiApi() {
+        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        String apiKey = sharedPref.getString("GEMINI_API_KEY", "").trim();
+
+        if (apiKey.isEmpty() || apiKey.contains("PlaceholderKey")) {
+            showApiKeyDialog(() -> generateWbsWithGeminiApi());
+            return;
+        }
+
         String pName = edtProjectName != null ? edtProjectName.getText().toString().trim() : "";
         String pGoal = edtProjectGoal != null ? edtProjectGoal.getText().toString().trim() : "";
         String pStart = edtStartDate != null ? edtStartDate.getText().toString().trim() : "";
@@ -208,8 +272,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
-                String userApiKey = sharedPref.getString("GEMINI_API_KEY", "");
+                String userApiKey = apiKey;
 
                 String[] modelsToTry = new String[]{"gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"};
                 String rawJsonArrayStr = "";
