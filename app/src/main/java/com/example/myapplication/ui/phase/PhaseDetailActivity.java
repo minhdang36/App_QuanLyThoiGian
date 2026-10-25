@@ -156,7 +156,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
             List<String> subTasks = taskSubTasksMap.get(i);
             if (subTasks != null && !subTasks.isEmpty()) {
                 TextView tvHeaderChecklist = new TextView(this);
-                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Gemini AI đã phân tách):");
+                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Gemini 2.5 AI phân tách):");
                 tvHeaderChecklist.setTextColor(0xFF362C2A);
                 tvHeaderChecklist.setTextSize(12);
                 tvHeaderChecklist.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -251,21 +251,27 @@ public class PhaseDetailActivity extends AppCompatActivity {
         }
 
         btnAiDecomposeTasks.setEnabled(false);
-        btnAiDecomposeTasks.setText("⚡ Gemini AI Đang Phân Tách Sâu...");
+        btnAiDecomposeTasks.setText("⚡ Gemini 2.5 AI Đang Phân Tách Sâu...");
 
         new Thread(() -> {
             boolean isSuccess = false;
+            String lastErrorMsg = "";
+
             try {
                 JSONObject requestBody = new JSONObject();
 
                 JSONObject sysInstruction = new JSONObject();
                 JSONArray sysParts = new JSONArray();
                 JSONObject sysPart = new JSONObject();
-                sysPart.put("text", "Bạn là một Trợ lý AI Quản Lý Dự Án & Thời Gian cao cấp. Nhiệm vụ của bạn là đào sâu phân tách từng công việc thuộc " + phaseName + " thành 3-4 đầu việc cụ thể thực tế (Action Items / Checklists) chuẩn xác 100% dựa theo tên dự án và tiêu đề công việc do người dùng tạo.\n" +
-                        "Yêu cầu về kết quả:\n" +
-                        "Trả về DUY NHẤT một JSON Array chứa tất cả các task. Mỗi item bao gồm:\n" +
+                sysPart.put("text", "Bạn là một Chuyên gia Quản lý Dự án & Trợ lý Học thuật Cá nhân cấp cao. Nhiệm vụ của bạn là phân tách các công việc thuộc " + phaseName + " thành danh sách kiểm tra (Checklist / Action Items) chi tiết, thực tế, bám sát 100% ngữ cảnh chủ đề của dự án.\n" +
+                        "HÃY THỰC HIỆN TƯ DUY THEO CÁC BƯỚC SAU TRƯỚC KHI TRẢ VỀ KẾT QUẢ:\n" +
+                        "- BƯỚC 1: Phân tích tiêu đề và mô tả của từng công việc để hiểu đúng 100% lĩnh vực chuyên môn.\n" +
+                        "- BƯỚC 2: Chia nhỏ mỗi công việc thành 3-4 đầu việc cụ thể có thể hành động ngay, ước tính mỗi đầu việc nhỏ thực hiện trong 1 phiên Pomodoro (25 phút).\n" +
+                        "- BƯỚC 3: Đảm bảo các đầu việc có tính nối tiếp, rõ ràng và có thể kiểm tra kết quả.\n" +
+                        "RÀNG BUỘC ĐỊNH DẠNG TRẢ VỀ:\n" +
+                        "Trả về DUY NHẤT một JSON Array chứa thông tin phân tách của tất cả các task. Mỗi JSON Object gồm:\n" +
                         "- \"taskIndex\": Chỉ số vị trí của task (0, 1, 2...)\n" +
-                        "- \"subTasks\": Danh sách 3-4 chuỗi đầu việc cụ thể, thực tế, đúng chính xác với ngữ cảnh tiêu đề và dự án người dùng đã tạo.");
+                        "- \"subTasks\": Danh sách 3-4 chuỗi đầu việc cụ thể, thực tế bám sát tiêu đề và nội dung task.");
                 sysParts.put(sysPart);
                 sysInstruction.put("parts", sysParts);
                 requestBody.put("system_instruction", sysInstruction);
@@ -286,24 +292,25 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 contents.put(contentObj);
                 requestBody.put("contents", contents);
 
+                // Cấu hình tham số suy luận: temperature = 0.3, responseMimeType = "application/json"
                 JSONObject genConfig = new JSONObject();
+                genConfig.put("temperature", 0.3);
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                String userApiKey = apiKey;
-
-                String[] modelsToTry = new String[]{"gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"};
+                // Ưu tiên gọi model gemini-2.5-flash theo đúng yêu cầu, fallback sang gemini-1.5-flash
+                String[] modelsToTry = new String[]{"gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-exp"};
                 String rawJsonArrayStr = "";
 
                 for (String modelName : modelsToTry) {
                     try {
-                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + userApiKey);
+                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey);
                         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("POST");
                         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                         conn.setDoOutput(true);
-                        conn.setConnectTimeout(15000);
-                        conn.setReadTimeout(15000);
+                        conn.setConnectTimeout(20000);
+                        conn.setReadTimeout(20000);
 
                         OutputStream os = conn.getOutputStream();
                         os.write(requestBody.toString().getBytes("UTF-8"));
@@ -332,8 +339,12 @@ public class PhaseDetailActivity extends AppCompatActivity {
                                     }
                                 }
                             }
+                        } else {
+                            lastErrorMsg = "HTTP " + responseCode + ": " + responseText;
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ex) {
+                        lastErrorMsg = ex.getClass().getSimpleName() + " - " + ex.getMessage();
+                    }
                 }
 
                 if (!rawJsonArrayStr.isEmpty()) {
@@ -360,73 +371,30 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     }
                     isSuccess = !taskSubTasksMap.isEmpty();
                 }
-            } catch (Exception ignored) {}
-
-            if (!isSuccess) {
-                for (int i = 0; i < taskList.size(); i++) {
-                    taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
-                }
+            } catch (Exception e) {
+                lastErrorMsg = e.getClass().getSimpleName() + " - " + e.getMessage();
             }
+
+            final String errorDetails = lastErrorMsg;
+            final boolean finalSuccess = isSuccess;
 
             new Handler(Looper.getMainLooper()).post(() -> {
                 btnAiDecomposeTasks.setEnabled(true);
                 btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
-                renderTaskCards();
-                Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách các đầu việc chi tiết!", Toast.LENGTH_SHORT).show();
+
+                if (finalSuccess) {
+                    renderTaskCards();
+                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini 2.5 Flash đã phân tách các đầu việc chi tiết!", Toast.LENGTH_SHORT).show();
+                } else {
+                    // Tuyệt đối KHÔNG tự ý điền mock data/dữ liệu giả khi API lỗi. Hiển thị Dialog báo lỗi rõ ràng.
+                    new AlertDialog.Builder(PhaseDetailActivity.this)
+                            .setTitle("❌ Lỗi Gọi Gemini AI")
+                            .setMessage("Không thể phân tách đầu việc bằng Gemini AI.\n\nChi tiết lỗi:\n" + (errorDetails.isEmpty() ? "Không nhận được phản hồi JSON hợp lệ" : errorDetails) + "\n\nVui lòng kiểm tra lại API Key hoặc kết nối mạng.")
+                            .setPositiveButton("Đóng", null)
+                            .setNeutralButton("Cấu hình API Key", (dialog, which) -> showApiKeyDialog(null))
+                            .show();
+                }
             });
         }).start();
-    }
-
-    private List<String> generateContextualSubTasks(Task task) {
-        List<String> list = new ArrayList<>();
-        String title = task.getTitle() != null ? task.getTitle().toLowerCase() : "";
-        String desc = task.getDescription() != null ? task.getDescription().toLowerCase() : "";
-        String fullText = title + " " + desc;
-
-        if (fullText.contains("tiếng trung") || fullText.contains("hsk") || fullText.contains("ngôn ngữ") || fullText.contains("học tiếng")) {
-            if (fullText.contains("mục tiêu") || fullText.contains("phạm vi") || fullText.contains("kế hoạch")) {
-                list.add("1. Liệt kê 50 từ vựng và mẫu câu giao tiếp Tiếng Trung chủ đề dự án");
-                list.add("2. Soạn bảng mục tiêu chứng chỉ (HSK/TOCFL) và kế hoạch luyện tập hàng ngày");
-                list.add("3. Luyện phát âm Pinyin và ghi âm kiểm tra phản xạ với giáo viên/ứng dụng");
-            } else if (fullText.contains("tài liệu") || fullText.contains("khảo sát")) {
-                list.add("1. Sưu tầm 10 giáo trình Tiếng Trung chuẩn (Boya / Giáo trình Hán ngữ)");
-                list.add("2. Phân loại bảng ngữ pháp theo cấp độ từ cơ bản đến nâng cao");
-                list.add("3. Tổng hợp danh sách tài liệu nghe và ứng dụng luyện thi");
-            } else {
-                list.add("1. Ôn tập từ vựng và ngữ pháp Tiếng Trung bài học hôm nay");
-                list.add("2. Thực hành viết 20 chữ Hán chuẩn thứ tự nét và ghi nhớ bộ thủ");
-                list.add("3. Luyện nghe đoạn hội thoại ngắn 15 phút và chép chính tả");
-            }
-        } else if (fullText.contains("mục tiêu") || fullText.contains("phạm vi")) {
-            list.add("1. Phân tích 5 yêu cầu cốt lõi và phạm vi công việc của " + task.getTitle());
-            list.add("2. Soạn tài liệu mô tả mục tiêu ban đầu và bảng tiêu chuẩn hoàn thành (DoD)");
-            list.add("3. Trao đổi với Quản lý dự án để chốt danh sách tính năng chính");
-        } else if (fullText.contains("kiến trúc") || fullText.contains("nguồn lực") || fullText.contains("hệ thống")) {
-            list.add("1. Phác thảo sơ đồ kiến trúc dữ liệu và luồng xử lý hệ thống cho " + task.getTitle());
-            list.add("2. Đánh giá công nghệ, thư viện phù hợp và dung lượng lưu trữ");
-            list.add("3. Lập bảng phân bổ nguồn lực và mốc thời gian cho từng hạng mục");
-        } else if (fullText.contains("thiết kế") || fullText.contains("giao diện") || fullText.contains("khung mẫu") || fullText.contains("ui")) {
-            list.add("1. Xây dựng Wireframe phác thảo cho các màn hình của " + task.getTitle());
-            list.add("2. Lựa chọn bảng màu UI, phông chữ và bộ icon chuẩn thương hiệu");
-            list.add("3. Thiết kế bản Prototype tương tác mượt mà và kiểm tra trải nghiệm người dùng");
-        } else if (fullText.contains("cơ sở dữ liệu") || fullText.contains("database") || fullText.contains("lưu trữ")) {
-            list.add("1. Thiết kế ERD mô hình các bảng và mối quan hệ giữa các entity");
-            list.add("2. Lập trình script khởi tạo database, Index và câu lệnh SQL/Migration");
-            list.add("3. Chạy thử nghiệm các truy vấn dữ liệu và kiểm tra tốc độ phản hồi");
-        } else if (fullText.contains("phát triển") || fullText.contains("lập trình") || fullText.contains("module") || fullText.contains("tính năng")) {
-            list.add("1. Khởi tạo cấu trúc module cho " + task.getTitle() + " và khai báo interface");
-            list.add("2. Lập trình xử lý logic cốt lõi và kết nối dữ liệu API");
-            list.add("3. Sửa các lỗi phát sinh và kiểm tra tính ổn định của tính năng");
-        } else if (fullText.contains("kiểm thử") || fullText.contains("thử nghiệm") || fullText.contains("nghiệm thu") || fullText.contains("test")) {
-            list.add("1. Lập danh sách kịch bản kiểm thử (Test cases) chi tiết cho " + task.getTitle());
-            list.add("2. Chạy thử nghiệm End-to-End trên môi trường thực tế để tìm lỗi");
-            list.add("3. Rà soát bảng tiêu chuẩn Definition of Done và nghiệm thu sản phẩm");
-        } else {
-            list.add("1. Chuẩn bị tài liệu và công cụ thực thi cho " + task.getTitle());
-            list.add("2. Thực hiện các bước xử lý cốt lõi theo đúng yêu cầu dự án");
-            list.add("3. Rà soát chất lượng sản phẩm và đánh giá theo tiêu chí DoD");
-        }
-
-        return list;
     }
 }

@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -75,10 +76,6 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         tvWbsCount = findViewById(R.id.tvWbsCount);
         tvConfigureApiKey = findViewById(R.id.tvConfigureApiKey);
 
-        if (tvConfigureApiKey != null) {
-            tvConfigureApiKey.setOnClickListener(v -> showApiKeyDialog(null));
-        }
-
         rvWbsTasks = findViewById(R.id.rvWbsTasks);
         if (rvWbsTasks != null) {
             rvWbsTasks.setLayoutManager(new LinearLayoutManager(this));
@@ -90,7 +87,11 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> finish());
         }
 
-        // Tự động điền thông tin mặc định từ Intent
+        if (tvConfigureApiKey != null) {
+            tvConfigureApiKey.setOnClickListener(v -> showApiKeyDialog(null));
+        }
+
+        // Tự động điền thông tin mặc định từ Intent nếu có
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra("MAIN_TASK_TITLE")) {
             String titleExtra = intent.getStringExtra("MAIN_TASK_TITLE");
@@ -163,7 +164,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
         String currentKey = sharedPref.getString("GEMINI_API_KEY", "");
 
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("🔑 Cấu Hình Gemini AI Key");
 
         android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
@@ -215,7 +216,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         String apiKey = sharedPref.getString("GEMINI_API_KEY", "").trim();
 
         if (apiKey.isEmpty() || apiKey.contains("PlaceholderKey")) {
-            showApiKeyDialog(() -> generateWbsWithGeminiApi());
+            showApiKeyDialog(this::generateWbsWithGeminiApi);
             return;
         }
 
@@ -230,29 +231,34 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         }
 
         btnGenerateWbs.setEnabled(false);
-        btnGenerateWbs.setText("⚡ Gemini Pro AI Đang Phân Tách Cụ Thể...");
+        btnGenerateWbs.setText("⚡ Gemini 2.5 AI Đang Suy Luận...");
 
         new Thread(() -> {
             List<WbsTask> parsedList = new ArrayList<>();
+            String lastErrorMsg = "";
 
             try {
                 JSONObject requestBody = new JSONObject();
 
+                // System Instruction với Chain-of-Thought (Tư duy theo các bước)
                 JSONObject sysInstruction = new JSONObject();
                 JSONArray sysParts = new JSONArray();
                 JSONObject sysPart = new JSONObject();
-                sysPart.put("text", "Bạn là Trợ lý AI Cấp Cao Gemini Pro (chuyên gia Quản Lý Dự Án & Kỹ Thuật Chuyên Sâu). Nhiệm vụ của bạn là phân tích chi tiết Tên dự án lớn và Mục tiêu do người dùng cung cấp, sau đó lập một Lộ Trình Phân Rã Công Việc (WBS) SÂU SẮC, ĐỘC ĐÁO, TÙY BIẾN 100% THEO CHUYÊN MÔN CỦA CHỦ ĐỀ NÀY.\n" +
-                        "QUY TRÌNH PHÂN RÃ CHUYÊN SÂU:\n" +
-                        "1. Tạo CHÍNH XÁC 4 GIAI ĐOẠN ĐẶC THÙ (Phase) riêng biệt hoàn toàn cho chủ đề này, kèm Emoji phù hợp (KHÔNG dùng các tên chung chung như 'Lập kế hoạch & Khảo sát', 'Thiết kế & Chuẩn bị'). Ví dụ nếu làm Arduino -> Phase 1: 🔌 Thiết kế Sơ đồ Mạch & Linh kiện, Phase 2: 💻 Lập trình Code C++ Arduino...\n" +
-                        "2. Trong MỖI GIAI ĐOẠN, tạo 3-4 công việc cụ thể có tính thực thi cao, chứa thông tin chi tiết và Definition of Done rõ ràng.\n" +
-                        "3. Trả về DUY NHẤT một JSON Array chứa các công việc (12-16 tasks). Mỗi item bao gồm:\n" +
-                        "- \"phaseName\": Tên giai đoạn đặc thù kèm Emoji (VD: \"🔌 Giai đoạn 1: Thiết kế Sơ đồ Mạch Kỹ thuật\")\n" +
+                sysPart.put("text", "Bạn là một Chuyên gia Quản lý Dự án & Trợ lý Học thuật Cá nhân cấp cao. Nhiệm vụ của bạn là phân rã dự án do người dùng cung cấp thành Lộ trình Phân rã Công việc (WBS) chuyên sâu, có tư duy logic cao.\n" +
+                        "HÃY THỰC HIỆN TƯ DUY THEO CÁC BƯỚC SAU TRƯỚC KHI TRẢ VỀ KẾT QUẢ:\n" +
+                        "- BƯỚC 1: Phân tích đúng 100% lĩnh vực, chuyên môn và mục tiêu thực tế của người dùng từ thông tin dự án. Tuyệt đối bám sát chủ đề người dùng nhập, không đưa ra các giai đoạn hay công việc sai chủ đề hoặc chung chung.\n" +
+                        "- BƯỚC 2: Tính toán khoảng thời gian từ Ngày bắt đầu (" + pStart + ") đến Ngày kết thúc (" + pEnd + ") để phân bổ khối lượng công việc và tiến độ hợp lý.\n" +
+                        "- BƯỚC 3: Chia dự án thành CHÍNH XÁC 4 GIAI ĐOẠN (Phases) theo trình tự logic từ cơ bản đến nâng cao. Mỗi giai đoạn có tên độc đáo kèm Emoji đại diện phù hợp với chuyên môn của dự án.\n" +
+                        "- BƯỚC 4: Trong mỗi giai đoạn, chia nhỏ thành 3-4 công việc cụ thể (Sub-tasks) có thể hành động ngay. Mỗi công việc ước tính thực hiện trong 1-2 phiên Pomodoro (25 - 50 phút, tương ứng 1.0 - 2.0 giờ).\n" +
+                        "RÀNG BUỘC ĐỊNH DẠNG TRẢ VỀ:\n" +
+                        "Trả về DUY NHẤT một JSON Array chứa tất cả các công việc (tổng cộng 12-16 tasks). Mỗi JSON Object có các trường bắt buộc:\n" +
+                        "- \"phaseName\": Tên giai đoạn kèm Emoji (VD: \"🔌 Giai đoạn 1: Thiết kế Sơ đồ Mạch Kỹ thuật\")\n" +
                         "- \"taskTitle\": Tên công việc cụ thể chuyên sâu\n" +
-                        "- \"description\": Mô tả từng bước thực hiện & Tiêu chuẩn hoàn thành (Definition of Done)\n" +
-                        "- \"scheduledDate\": Ngày thực hiện YYYY-MM-DD (trải dài từ " + pStart + " đến " + pEnd + ")\n" +
-                        "- \"estimatedHours\": Số giờ dự kiến (1.0 đến 4.0)\n" +
-                        "- \"priority\": \"High\", \"Medium\", hoặc \"Low\"\n" +
-                        "- \"pomodoroCount\": Số phiên Pomodoro 25 phút (2 đến 8)");
+                        "- \"description\": Mô tả chi tiết từng bước thực hiện & Tiêu chuẩn hoàn thành (Definition of Done)\n" +
+                        "- \"scheduledDate\": Ngày thực hiện theo định dạng YYYY-MM-DD (phải nằm trong khoảng từ " + pStart + " đến " + pEnd + ")\n" +
+                        "- \"estimatedHours\": Số giờ ước tính (từ 1.0 đến 2.0 giờ)\n" +
+                        "- \"priority\": Mức độ ưu tiên (\"High\", \"Medium\", hoặc \"Low\")\n" +
+                        "- \"pomodoroCount\": Số phiên Pomodoro tương ứng (1 hoặc 2)");
                 sysParts.put(sysPart);
                 sysInstruction.put("parts", sysParts);
                 requestBody.put("system_instruction", sysInstruction);
@@ -261,31 +267,32 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                 JSONObject contentObj = new JSONObject();
                 JSONArray contentParts = new JSONArray();
                 JSONObject textPart = new JSONObject();
-                textPart.put("text", "Tên dự án lớn: " + pName + "\nMục tiêu & Yêu cầu: " + (pGoal.isEmpty() ? "Hoàn thành toàn bộ mục tiêu cốt lõi" : pGoal) +
+                textPart.put("text", "Tên dự án lớn: " + pName + "\nMục tiêu & Yêu cầu cụ thể: " + (pGoal.isEmpty() ? "Hoàn thành các mục tiêu cốt lõi" : pGoal) +
                         "\nNgày bắt đầu: " + pStart + "\nNgày kết thúc: " + pEnd);
                 contentParts.put(textPart);
                 contentObj.put("parts", contentParts);
                 contents.put(contentObj);
                 requestBody.put("contents", contents);
 
+                // Cấu hình tham số suy luận: temperature = 0.3, responseMimeType = "application/json"
                 JSONObject genConfig = new JSONObject();
+                genConfig.put("temperature", 0.3);
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                String userApiKey = apiKey;
-
-                String[] modelsToTry = new String[]{"gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"};
+                // Ưu tiên gọi model gemini-2.5-flash theo đúng yêu cầu, fallback sang gemini-1.5-flash
+                String[] modelsToTry = new String[]{"gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-exp"};
                 String rawJsonArrayStr = "";
 
                 for (String modelName : modelsToTry) {
                     try {
-                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + userApiKey);
+                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey);
                         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("POST");
                         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                         conn.setDoOutput(true);
-                        conn.setConnectTimeout(15000);
-                        conn.setReadTimeout(15000);
+                        conn.setConnectTimeout(20000);
+                        conn.setReadTimeout(20000);
 
                         OutputStream os = conn.getOutputStream();
                         os.write(requestBody.toString().getBytes("UTF-8"));
@@ -309,16 +316,21 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                                     if (parts != null && parts.length() > 0) {
                                         rawJsonArrayStr = parts.getJSONObject(0).optString("text", "").trim();
                                         if (!rawJsonArrayStr.isEmpty()) {
-                                            break;
+                                            break; // Thành công
                                         }
                                     }
                                 }
                             }
+                        } else {
+                            lastErrorMsg = "HTTP " + responseCode + ": " + responseText;
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ex) {
+                        lastErrorMsg = ex.getClass().getSimpleName() + " - " + ex.getMessage();
+                    }
                 }
 
                 if (!rawJsonArrayStr.isEmpty()) {
+                    // Lọc bỏ markdown codeblock ```json nếu có
                     if (rawJsonArrayStr.startsWith("```")) {
                         int firstBracket = rawJsonArrayStr.indexOf("[");
                         int lastBracket = rawJsonArrayStr.lastIndexOf("]");
@@ -335,30 +347,40 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                         task.setTaskTitle(item.optString("taskTitle", "Công việc"));
                         task.setDescription(item.optString("description", "Definition of Done: Hoàn thành theo chuẩn"));
                         task.setScheduledDate(item.optString("scheduledDate", pStart));
-                        task.setEstimatedHours(item.optDouble("estimatedHours", 2.0));
+                        task.setEstimatedHours(item.optDouble("estimatedHours", 1.5));
                         task.setPriority(item.optString("priority", "High"));
-                        task.setPomodoroCount(item.optInt("pomodoroCount", 4));
+                        task.setPomodoroCount(item.optInt("pomodoroCount", 2));
                         parsedList.add(task);
                     }
                 }
-            } catch (Exception ignored) {}
-
-            // Trợ lý AI Phân rã Thông Minh Chuyên Sâu Tùy Biến theo đúng Chủ đề Kỹ Thuật/Chuyên Môn Dự Án người dùng
-            if (parsedList.isEmpty()) {
-                parsedList.addAll(generateSmartContextualWbs(pName, pGoal, pStart, pEnd));
+            } catch (Exception e) {
+                lastErrorMsg = e.getClass().getSimpleName() + " - " + e.getMessage();
             }
+
+            final String errorDetails = lastErrorMsg;
+            final boolean isAiSuccess = !parsedList.isEmpty();
 
             new Handler(Looper.getMainLooper()).post(() -> {
                 btnGenerateWbs.setEnabled(true);
                 btnGenerateWbs.setText("⚡ Phân Rã Bằng Gemini AI");
+
+                if (!isAiSuccess) {
+                    // Tuyệt đối KHÔNG tự ý điền mock data/dữ liệu giả khi API lỗi. Hiển thị Dialog báo lỗi rõ ràng.
+                    new AlertDialog.Builder(AiTaskBreakdownActivity.this)
+                            .setTitle("❌ Lỗi Gọi Gemini AI")
+                            .setMessage("Không thể phân rã dự án bằng Gemini AI.\n\nChi tiết lỗi:\n" + (errorDetails.isEmpty() ? "Không nhận được phản hồi JSON hợp lệ" : errorDetails) + "\n\nVui lòng kiểm tra lại API Key hoặc kết nối mạng.")
+                            .setPositiveButton("Đóng", null)
+                            .setNeutralButton("Cấu hình API Key", (dialog, which) -> showApiKeyDialog(null))
+                            .show();
+                    return;
+                }
 
                 wbsTaskList.clear();
                 wbsTaskList.addAll(parsedList);
 
                 Map<String, PhaseGroup> mapPhases = new LinkedHashMap<>();
                 for (WbsTask wTask : wbsTaskList) {
-                    String rawPName = wTask.getPhaseName() != null ? wTask.getPhaseName() : "Giai đoạn";
-                    String phaseTitle = rawPName.startsWith("📂") || rawPName.startsWith("🔌") || rawPName.startsWith("📡") || rawPName.startsWith("📚") || rawPName.startsWith("🚀") || rawPName.startsWith("✍️") || rawPName.startsWith("🎨") ? rawPName : "📂 " + rawPName;
+                    String phaseTitle = wTask.getPhaseName() != null ? wTask.getPhaseName() : "Giai đoạn";
 
                     PhaseGroup group = mapPhases.get(phaseTitle);
                     if (group == null) {
@@ -386,76 +408,9 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                     tvWbsCount.setText("● " + phaseGroupList.size() + " Giai đoạn (" + wbsTaskList.size() + " task)");
                 }
 
-                Toast.makeText(AiTaskBreakdownActivity.this, "✨ Gemini Pro AI đã tạo Lộ trình Chuyên sâu cho " + pName + "!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(AiTaskBreakdownActivity.this, "✨ Gemini 2.5 Flash đã phân rã thành công " + phaseGroupList.size() + " giai đoạn cho " + pName + "!", Toast.LENGTH_SHORT).show();
             });
         }).start();
-    }
-
-    private List<WbsTask> generateSmartContextualWbs(String pName, String pGoal, String pStart, String pEnd) {
-        List<WbsTask> list = new ArrayList<>();
-        String text = (pName + " " + pGoal).toLowerCase();
-
-        String d1 = pStart;
-        String d2 = addDaysToDate(pStart, 3);
-        String d3 = addDaysToDate(pStart, 7);
-        String d4 = addDaysToDate(pStart, 11);
-
-        if (text.contains("arduino") || text.contains("mạch") || text.contains("vi điều khiển") || text.contains("linh kiện") || text.contains("sensor") || text.contains("phần cứng")) {
-            // Arduino / Phần cứng / Mạch điện tử
-            list.add(new WbsTask("🔌 Giai đoạn 1: Thiết kế Sơ đồ Mạch & Chọn Linh kiện", "Lập sơ đồ nguyên lý mạch điện cho " + pName, "Mô tả: Vẽ sơ đồ chân kết nối Arduino, Cảm biến & Module rơ-le. DoD: Sơ đồ kiểm tra không chập cháy", d1, 2.5, "High", 5));
-            list.add(new WbsTask("🔌 Giai đoạn 1: Thiết kế Sơ đồ Mạch & Chọn Linh kiện", "Lựa chọn linh kiện & Nguồn cấp tương thích", "Mô tả: Tính toán điện áp, dòng điện tiêu thụ và chọn adapter/pin phù hợp. DoD: Linh kiện đủ công suất", d1, 2.0, "Medium", 4));
-            list.add(new WbsTask("🔌 Giai đoạn 1: Thiết kế Sơ đồ Mạch & Chọn Linh kiện", "Mô phỏng sơ đồ mạch trên phần mềm Proteus/Tinkercad", "Mô tả: Chạy thử nghiệm tín hiệu mô phỏng. DoD: Mạch mô phỏng hoạt động đạt yêu cầu", d1, 3.0, "High", 6));
-
-            list.add(new WbsTask("💻 Giai đoạn 2: Lập trình Code C++ Arduino & Viết Hàm", "Khai báo thư viện & Khởi tạo chân I/O Arduino", "Mô tả: Cấu hình ngắt, Timer và chuẩn giao tiếp I2C/SPI/UART. DoD: Code biên dịch không lỗi syntax", d2, 3.0, "High", 6));
-            list.add(new WbsTask("💻 Giai đoạn 2: Lập trình Code C++ Arduino & Viết Hàm", "Viết thuật toán đọc dữ liệu Cảm biến & Xử lý nhiễu", "Mô tả: Lọc trung bình cộng tín hiệu analog đọc về. DoD: Dữ liệu cảm biến hiển thị chính xác", d2, 3.5, "High", 7));
-            list.add(new WbsTask("💻 Giai đoạn 2: Lập trình Code C++ Arduino & Viết Hàm", "Xây dựng luồng điều khiển Động cơ/Rơ-le & Cảnh báo", "Mô tả: Kích hoạt Output khi dữ liệu vượt ngưỡng an toàn. DoD: Rơ-le đóng ngắt đúng kịch bản", d2, 2.5, "Medium", 5));
-
-            list.add(new WbsTask("🛠 Giai đoạn 3: Lắp ráp Mạch Thực tế & Nạp Code Test", "Hàn linh kiện & Cắm dây breadboard mô hình", "Mô tả: Đấu nối dây cáp tín hiệu chắc chắn. DoD: Mạch thực tế bật nguồn chạy an toàn", d3, 4.0, "High", 8));
-            list.add(new WbsTask("🛠 Giai đoạn 3: Lắp ráp Mạch Thực tế & Nạp Code Test", "Nạp code trực tiếp từ Arduino IDE & Bật Serial Monitor", "Mô tả: Theo dõi luồng dữ liệu debug qua cổng USB. DoD: Phản hồi Serial khớp với thiết kế", d3, 3.0, "Medium", 6));
-            list.add(new WbsTask("🛠 Giai đoạn 3: Lắp ráp Mạch Thực tế & Nạp Code Test", "Sửa lỗi phần cứng & Chống dội phím/Cân chỉnh cảm biến", "Mô tả: Tinh chỉnh thông số biến trở và tụ lọc nhiễu. DoD: Hệ thống phản hồi nhạy 100%", d3, 2.5, "Medium", 5));
-
-            list.add(new WbsTask("⚡ Giai đoạn 4: Đo Đạc Điện Áp, Tối Ưu Hóa & Đóng Khung", "Đo dòng điện bằng Đồng hồ vạn năng & Đánh giá công suất", "Mô tả: Đảm bảo nhiệt độ IC không quá nóng. DoD: Mạch hoạt động liên tục 2 giờ ổn định", d4, 2.5, "Medium", 5));
-            list.add(new WbsTask("⚡ Giai đoạn 4: Đo Đạc Điện Áp, Tối Ưu Hóa & Đóng Khung", "Đóng hộp bảo vệ & Viết tài liệu sơ đồ nguyên lý " + pName, "Mô tả: Hoàn thiện hộp mica bảo vệ mô hình và làm báo cáo. DoD: Bàn giao mô hình hoàn chỉnh", d4, 2.0, "Low", 4));
-
-        } else if (text.contains("gsm") || text.contains("mô phỏng") || text.contains("sóng") || text.contains("viễn thông") || text.contains("kênh")) {
-            // Mô phỏng GSM / Viễn thông
-            list.add(new WbsTask("📡 Giai đoạn 1: Phân tích Lý thuyết Kênh GSM & Sóng mang", "Phân tích cấu trúc khung GSM & Băng tần mạng", "Mô tả: Xác định tần số Up/Downlink và số khe thời gian TS. DoD: Hoàn thành bản tóm tắt thông số GSM", d1, 2.5, "High", 5));
-            list.add(new WbsTask("📡 Giai đoạn 1: Phân tích Lý thuyết Kênh GSM & Sóng mang", "Thiết lập mô hình Toán học cho Suy hao & Nhiễu Fading", "Mô tả: Tính toán công thức Rayleigh/Rician Fading. DoD: Sẵn sàng thông số cho bài toán mô phỏng", d1, 3.0, "High", 6));
-
-            list.add(new WbsTask("📊 Giai đoạn 2: Xây dựng Script Mô phỏng MATLAB/Python", "Lập trình mô hình Mã hóa Kênh & Điều chế GMSK", "Mô tả: Viết script mã hóa dòng bit dữ liệu GSM. DoD: Tín hiệu điều chế hiển thị đúng phổ tần", d2, 4.0, "High", 8));
-            list.add(new WbsTask("📊 Giai đoạn 3: Đánh giá Tỷ lệ Lỗi Bit (BER) & SNR", "Chạy mô phỏng truyền tín hiệu qua Kênh suy hao", "Mô tả: Thu thập đồ thị BER theo tỷ số SNR. DoD: Đồ thị BER mô phỏng khớp với lý thuyết GSM", d3, 3.5, "High", 7));
-
-            list.add(new WbsTask("📄 Giai đoạn 4: Tổng hợp Báo cáo Kỹ thuật GSM & Slide", "Soạn báo cáo phân tích kết quả mô phỏng GSM " + pName, "Mô tả: Đóng gói code, biểu đồ và nhận xét đánh giá. DoD: Hoàn tất tài liệu báo cáo nghiệm thu", d4, 2.0, "Medium", 4));
-
-        } else if (text.contains("tiếng trung") || text.contains("hsk") || text.contains("ngoại ngữ") || text.contains("học tiếng")) {
-            // Tiếng Trung / HSK / Ngôn ngữ
-            list.add(new WbsTask("📚 Giai đoạn 1: Khảo sát Lộ trình HSK & Bộ Từ Vựng Cốt Lõi", "Lập mục tiêu chứng chỉ HSK & Bảng 100 từ vựng cho " + pName, "Mô tả: Liệt kê từ vựng theo cấp độ. DoD: Hoàn thành bộ thẻ ghi nhớ flashcard", d1, 2.0, "High", 4));
-            list.add(new WbsTask("📚 Giai đoạn 1: Khảo sát Lộ trình HSK & Bộ Từ Vựng Cốt Lõi", "Khảo sát giáo trình Boya & Bộ đề thi Tiếng Trung chuẩn", "Mô tả: Sưu tầm 5 bộ đề và file nghe mp3. DoD: Sắp xếp tài liệu học tập theo tuần", d1, 2.5, "Medium", 5));
-
-            list.add(new WbsTask("✍️ Giai đoạn 2: Luyện Ngữ Pháp & Quy Tắc Viết Chữ Hán", "Học các mẫu câu ghép Tiếng Trung giao tiếp thông dụng", "Mô tả: Đặt 15 câu ví dụ áp dụng ngữ pháp mới. DoD: Thuộc 100% ngữ pháp cốt lõi", d2, 3.0, "High", 6));
-            list.add(new WbsTask("✍️ Giai đoạn 2: Luyện Ngữ Pháp & Quy Tắc Viết Chữ Hán", "Thực hành viết 30 chữ Hán chuẩn thứ tự nét và bộ thủ", "Mô tả: Tập viết nét chữ trên tập ô vuông. DoD: Nhớ mặt chữ và bộ thủ Hán tự", d2, 2.5, "Medium", 5));
-
-            list.add(new WbsTask("🎧 Giai đoạn 3: Luyện Nghe Bài Hội Thoại & Phản Xạ Giao Tiếp", "Nghe đoạn hội thoại Tiếng Trung 20 phút & Chép chính tả", "Mô tả: Nghe hiểu và ghi lại phát âm. DoD: Hiểu 90% nội dung bài nghe", d3, 3.5, "High", 7));
-            list.add(new WbsTask("🎧 Giai đoạn 3: Luyện Nghe Bài Hội Thoại & Phản Xạ Giao Tiếp", "Luyện nói phản xạ đoạn văn ngắn 5 phút qua ghi âm", "Mô tả: Tự ghi âm bài nói Tiếng Trung. DoD: Phát âm chuẩn thanh điệu Pinyin", d3, 3.0, "High", 6));
-
-            list.add(new WbsTask("📝 Giai đoạn 4: Giải Đề Thi Thử HSK & Đánh Giá Tiêu Chuẩn", "Giải bộ đề thi thử HSK tổng hợp có canh giờ", "Mô tả: Làm phần Đọc hiểu & Nghe trong 60 phút. DoD: Đạt số điểm đầu ra kỳ vọng", d4, 3.0, "High", 6));
-
-        } else {
-            // Mặc định tùy biến theo tên dự án người dùng
-            list.add(new WbsTask("🚀 Giai đoạn 1: Phân tích Khung Yêu cầu & Kiến trúc " + pName, "Xác định 5 mục tiêu trọng tâm & Phạm vi " + pName, "Mô tả: Lập danh sách tiêu chuẩn chất lượng. DoD: Được thống nhất bởi PM", d1, 2.5, "High", 5));
-            list.add(new WbsTask("🚀 Giai đoạn 1: Phân tích Khung Yêu cầu & Kiến trúc " + pName, "Thu thập tài liệu chuyên môn & Nghiên cứu giải pháp", "Mô tả: Khảo sát 10 nguồn thông tin hàng đầu. DoD: Hoàn thiện bản tóm tắt kỹ thuật", d1, 3.0, "High", 6));
-
-            list.add(new WbsTask("🎨 Giai đoạn 2: Thiết kế Khung Mẫu & Chuẩn bị Mô hình", "Thiết kế sơ đồ quy trình thực thi chi tiết cho " + pName, "Mô tả: Vẽ mô hình luồng hoạt động từng bước. DoD: Kiểm tra luồng chạy mượt mà", d2, 3.0, "High", 6));
-            list.add(new WbsTask("🎨 Giai đoạn 2: Thiết kế Khung Mẫu & Chuẩn bị Mô hình", "Chuẩn bị cơ sở dữ liệu & Công cụ thực thi cần thiết", "Mô tả: Khởi tạo môi trường làm việc chuẩn. DoD: Môi trường sẵn sàng 100%", d2, 2.5, "Medium", 5));
-
-            list.add(new WbsTask("💻 Giai đoạn 3: Triển khai & Thực thi Tính năng Cốt lõi", "Lập trình & Xây dựng hạng mục chính cho " + pName, "Mô tả: Hoàn thành 100% phần việc chuyên môn. DoD: Đạt tiêu chuẩn nghiệm thu", d3, 4.0, "High", 8));
-            list.add(new WbsTask("💻 Giai đoạn 3: Triển khai & Thực thi Tính năng Cốt lõi", "Tích hợp các thành phần & Kiểm tra luồng liên kết", "Mô tả: Đảm bảo dữ liệu kết nối chính xác. DoD: Không có lỗi phát sinh", d3, 3.5, "High", 7));
-
-            list.add(new WbsTask("🧪 Giai đoạn 4: Kiểm thử End-to-End, Tối ưu & Báo cáo", "Chạy thử nghiệm toàn bộ hệ thống dự án " + pName, "Mô tả: Thử nghiệm thực tế mọi kịch bản. DoD: Đáp ứng tiêu chuẩn hoàn thành DoD", d4, 2.5, "Medium", 5));
-            list.add(new WbsTask("🧪 Giai đoạn 4: Kiểm thử End-to-End, Tối ưu & Báo cáo", "Tổng kết kết quả, Soạn slide & Bàn giao " + pName, "Mô tả: Hoàn tất báo cáo tổng kết tiến độ. DoD: Bàn giao thành công dự án", d4, 2.0, "Low", 4));
-        }
-
-        return list;
     }
 
     private void syncAndSaveToDatabase() {
@@ -534,17 +489,5 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
         finish();
-    }
-
-    private String addDaysToDate(String startDateStr, int daysToAdd) {
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            Calendar c = Calendar.getInstance();
-            c.setTime(sdf.parse(startDateStr));
-            c.add(Calendar.DAY_OF_MONTH, daysToAdd);
-            return sdf.format(c.getTime());
-        } catch (Exception e) {
-            return startDateStr;
-        }
     }
 }
