@@ -38,6 +38,8 @@ import java.util.Scanner;
 
 public class PhaseDetailActivity extends AppCompatActivity {
 
+    private static final String DEFAULT_GEMINI_API_KEY = "DÁN_API_KEY_CỦA_BẠN_VÀO_ĐÂY";
+
     private TextView tvPhaseDetailTitle, tvPhaseTaskCount, tvConfigureApiKey;
     private Button btnAiDecomposeTasks;
     private ImageButton btnBack;
@@ -156,7 +158,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
             List<String> subTasks = taskSubTasksMap.get(i);
             if (subTasks != null && !subTasks.isEmpty()) {
                 TextView tvHeaderChecklist = new TextView(this);
-                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Gemini 2.5 AI phân tách):");
+                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Gemini AI đã phân tách):");
                 tvHeaderChecklist.setTextColor(0xFF362C2A);
                 tvHeaderChecklist.setTextSize(12);
                 tvHeaderChecklist.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -185,9 +187,17 @@ public class PhaseDetailActivity extends AppCompatActivity {
         }
     }
 
-    private void showApiKeyDialog(Runnable onKeySavedCallback) {
+    private String getValidApiKey() {
         SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
-        String currentKey = sharedPref.getString("GEMINI_API_KEY", "");
+        String key = sharedPref.getString("GEMINI_API_KEY", "").trim();
+        if (key.isEmpty() || key.contains("PlaceholderKey")) {
+            return DEFAULT_GEMINI_API_KEY;
+        }
+        return key;
+    }
+
+    private void showApiKeyDialog(Runnable onKeySavedCallback) {
+        String activeKey = getValidApiKey();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("🔑 Cấu Hình Gemini AI Key");
@@ -204,7 +214,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
         final EditText edtKey = new EditText(this);
         edtKey.setHint("Dán API Key (AIzaSy...) tại đây");
-        edtKey.setText(currentKey);
+        edtKey.setText(activeKey);
         edtKey.setTextSize(13);
         layout.addView(edtKey);
 
@@ -216,7 +226,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 Toast.makeText(this, "Chưa nhập Key!", Toast.LENGTH_SHORT).show();
                 return;
             }
-            sharedPref.edit().putString("GEMINI_API_KEY", inputKey).apply();
+            getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putString("GEMINI_API_KEY", inputKey).apply();
             Toast.makeText(this, "✔ Đã lưu Gemini API Key!", Toast.LENGTH_SHORT).show();
             if (onKeySavedCallback != null) {
                 onKeySavedCallback.run();
@@ -236,28 +246,89 @@ public class PhaseDetailActivity extends AppCompatActivity {
         builder.show();
     }
 
+    private String discoverBestModelName(String apiKey) {
+        String bestModel = null;
+        try {
+            URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+
+            int code = conn.getResponseCode();
+            if (code == HttpURLConnection.HTTP_OK) {
+                InputStream is = conn.getInputStream();
+                Scanner scanner = new Scanner(is, "UTF-8").useDelimiter("\\A");
+                String responseText = scanner.hasNext() ? scanner.next() : "";
+                scanner.close();
+
+                if (!responseText.isEmpty()) {
+                    JSONObject resJson = new JSONObject(responseText);
+                    JSONArray modelsArray = resJson.optJSONArray("models");
+                    if (modelsArray != null) {
+                        List<String> validModels = new ArrayList<>();
+                        for (int i = 0; i < modelsArray.length(); i++) {
+                            JSONObject mObj = modelsArray.getJSONObject(i);
+                            String mName = mObj.optString("name", "");
+                            JSONArray methods = mObj.optJSONArray("supportedGenerationMethods");
+
+                            boolean supportsGenerate = false;
+                            if (methods != null) {
+                                for (int j = 0; j < methods.length(); j++) {
+                                    if ("generateContent".equals(methods.optString(j))) {
+                                        supportsGenerate = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (supportsGenerate && mName.toLowerCase().contains("gemini")) {
+                                String shortName = mName.startsWith("models/") ? mName.substring(7) : mName;
+                                validModels.add(shortName);
+                            }
+                        }
+
+                        // Ưu tiên model chứa chữ "flash"
+                        for (String vm : validModels) {
+                            if (vm.toLowerCase().contains("flash")) {
+                                bestModel = vm;
+                                break;
+                            }
+                        }
+
+                        if (bestModel == null && !validModels.isEmpty()) {
+                            bestModel = validModels.get(0);
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (bestModel == null || bestModel.isEmpty()) {
+            bestModel = "gemini-2.5-flash";
+        }
+        return bestModel;
+    }
+
     private void decomposeTasksWithGeminiAi() {
         if (taskList.isEmpty()) {
             Toast.makeText(this, "Không có công việc nào để phân tách!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
-        String apiKey = sharedPref.getString("GEMINI_API_KEY", "").trim();
-
-        if (apiKey.isEmpty() || apiKey.contains("PlaceholderKey")) {
-            showApiKeyDialog(this::decomposeTasksWithGeminiAi);
-            return;
-        }
+        String apiKey = getValidApiKey();
 
         btnAiDecomposeTasks.setEnabled(false);
-        btnAiDecomposeTasks.setText("⚡ Gemini 2.5 AI Đang Phân Tách Sâu...");
+        btnAiDecomposeTasks.setText("⚡ Gemini AI Đang Phân Tách Sâu...");
 
         new Thread(() -> {
             boolean isSuccess = false;
             String lastErrorMsg = "";
 
             try {
+                // Tự động dò tìm tên model chính xác từ API Google
+                String bestModel = discoverBestModelName(apiKey);
+
                 JSONObject requestBody = new JSONObject();
 
                 JSONObject sysInstruction = new JSONObject();
@@ -298,8 +369,8 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                // Tự động thử lần lượt các model: gemini-2.5-flash -> gemini-2.0-flash -> gemini-flash-latest -> gemini-1.5-flash
-                String[] modelsToTry = new String[]{"gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"};
+                // Thử model vừa dò tìm được, nếu lỗi thử các model dự phòng
+                String[] modelsToTry = new String[]{bestModel, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"};
                 String rawJsonArrayStr = "";
 
                 for (String modelName : modelsToTry) {
@@ -384,7 +455,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
                 if (finalSuccess) {
                     renderTaskCards();
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini 2.5 Flash đã phân tách các đầu việc chi tiết!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách các đầu việc chi tiết!", Toast.LENGTH_SHORT).show();
                 } else {
                     // Tuyệt đối KHÔNG tự ý điền mock data/dữ liệu giả khi API lỗi. Hiển thị Dialog báo lỗi rõ ràng.
                     new AlertDialog.Builder(PhaseDetailActivity.this)
