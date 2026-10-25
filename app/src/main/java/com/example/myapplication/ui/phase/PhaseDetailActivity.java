@@ -31,6 +31,7 @@ import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,14 +208,16 @@ public class PhaseDetailActivity extends AppCompatActivity {
         layout.setPadding(50, 30, 50, 10);
 
         TextView tvGuide = new TextView(this);
-        tvGuide.setText("Nhập API Key Gemini của bạn để sử dụng AI phân rã thật 100% từ Google.\n(Lấy Key miễn phí 100% tại aistudio.google.com)");
+        tvGuide.setText("Dán API Key Gemini của bạn (AIzaSy...) để kích hoạt AI cao cấp nhất từ Google.\n(Lấy Key miễn phí 100% tại aistudio.google.com)");
         tvGuide.setTextSize(13);
         tvGuide.setTextColor(0xFF555555);
         layout.addView(tvGuide);
 
         final EditText edtKey = new EditText(this);
         edtKey.setHint("Dán API Key (AIzaSy...) tại đây");
-        edtKey.setText(activeKey);
+        if (!activeKey.contains("DÁN_API_KEY")) {
+            edtKey.setText(activeKey);
+        }
         edtKey.setTextSize(13);
         layout.addView(edtKey);
 
@@ -246,68 +249,92 @@ public class PhaseDetailActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private String discoverBestModelName(String apiKey) {
-        String bestModel = null;
-        try {
-            URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(10000);
+    private int getModelScore(String urlStr) {
+        String u = urlStr.toLowerCase();
+        int score = 0;
+        if (u.contains("2.5")) score += 30;
+        else if (u.contains("2.0")) score += 20;
+        else if (u.contains("1.5")) score += 10;
 
-            int code = conn.getResponseCode();
-            if (code == HttpURLConnection.HTTP_OK) {
-                InputStream is = conn.getInputStream();
-                Scanner scanner = new Scanner(is, "UTF-8").useDelimiter("\\A");
-                String responseText = scanner.hasNext() ? scanner.next() : "";
-                scanner.close();
+        if (u.contains("pro")) score += 5;
+        else if (u.contains("flash")) score += 3;
 
-                if (!responseText.isEmpty()) {
-                    JSONObject resJson = new JSONObject(responseText);
-                    JSONArray modelsArray = resJson.optJSONArray("models");
-                    if (modelsArray != null) {
-                        List<String> validModels = new ArrayList<>();
-                        for (int i = 0; i < modelsArray.length(); i++) {
-                            JSONObject mObj = modelsArray.getJSONObject(i);
-                            String mName = mObj.optString("name", "");
-                            JSONArray methods = mObj.optJSONArray("supportedGenerationMethods");
+        return score;
+    }
 
-                            boolean supportsGenerate = false;
-                            if (methods != null) {
-                                for (int j = 0; j < methods.length(); j++) {
-                                    if ("generateContent".equals(methods.optString(j))) {
-                                        supportsGenerate = true;
-                                        break;
+    private List<String> buildCandidateUrls(String apiKey) {
+        List<String> candidateUrls = new ArrayList<>();
+        String[] apiVersions = new String[]{"v1beta", "v1"};
+
+        // 1. Thử Dò tìm trực tiếp danh sách Model hỗ trợ từ Google API GET /models
+        for (String ver : apiVersions) {
+            try {
+                URL url = new URL("https://generativelanguage.googleapis.com/" + ver + "/models?key=" + apiKey);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+
+                if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                    InputStream is = conn.getInputStream();
+                    Scanner scanner = new Scanner(is, "UTF-8").useDelimiter("\\A");
+                    String responseText = scanner.hasNext() ? scanner.next() : "";
+                    scanner.close();
+
+                    if (!responseText.isEmpty()) {
+                        JSONObject resJson = new JSONObject(responseText);
+                        JSONArray modelsArray = resJson.optJSONArray("models");
+                        if (modelsArray != null) {
+                            for (int i = 0; i < modelsArray.length(); i++) {
+                                JSONObject mObj = modelsArray.getJSONObject(i);
+                                String mName = mObj.optString("name", "");
+                                JSONArray methods = mObj.optJSONArray("supportedGenerationMethods");
+
+                                boolean supportsGenerate = false;
+                                if (methods != null) {
+                                    for (int j = 0; j < methods.length(); j++) {
+                                        if ("generateContent".equals(methods.optString(j))) {
+                                            supportsGenerate = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (supportsGenerate && mName.toLowerCase().contains("gemini")) {
+                                    String shortName = mName.startsWith("models/") ? mName.substring(7) : mName;
+                                    String fullUrl = "https://generativelanguage.googleapis.com/" + ver + "/models/" + shortName + ":generateContent?key=" + apiKey;
+                                    if (!candidateUrls.contains(fullUrl)) {
+                                        candidateUrls.add(fullUrl);
                                     }
                                 }
                             }
-
-                            if (supportsGenerate && mName.toLowerCase().contains("gemini")) {
-                                String shortName = mName.startsWith("models/") ? mName.substring(7) : mName;
-                                validModels.add(shortName);
-                            }
-                        }
-
-                        // Ưu tiên model chứa chữ "flash"
-                        for (String vm : validModels) {
-                            if (vm.toLowerCase().contains("flash")) {
-                                bestModel = vm;
-                                break;
-                            }
-                        }
-
-                        if (bestModel == null && !validModels.isEmpty()) {
-                            bestModel = validModels.get(0);
                         }
                     }
                 }
-            }
-        } catch (Exception ignored) {}
-
-        if (bestModel == null || bestModel.isEmpty()) {
-            bestModel = "gemini-2.5-flash";
+            } catch (Exception ignored) {}
         }
-        return bestModel;
+
+        // Sắp xếp các model dò tìm được theo điểm ưu tiên đời cao nhất (2.5 Pro/Flash > 2.0 Pro/Flash > 1.5 Pro/Flash)
+        Collections.sort(candidateUrls, (u1, u2) -> Integer.compare(getModelScore(u2), getModelScore(u1)));
+
+        // 2. Thêm danh sách các URL ứng viên đời cao chuẩn để dự phòng
+        String[] highModels = new String[]{
+                "gemini-2.5-flash", "gemini-2.5-pro",
+                "gemini-2.0-flash", "gemini-2.0-pro",
+                "gemini-1.5-pro", "gemini-1.5-flash",
+                "gemini-flash-latest"
+        };
+
+        for (String m : highModels) {
+            for (String v : apiVersions) {
+                String fullUrl = "https://generativelanguage.googleapis.com/" + v + "/models/" + m + ":generateContent?key=" + apiKey;
+                if (!candidateUrls.contains(fullUrl)) {
+                    candidateUrls.add(fullUrl);
+                }
+            }
+        }
+
+        return candidateUrls;
     }
 
     private void decomposeTasksWithGeminiAi() {
@@ -318,6 +345,11 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
         String apiKey = getValidApiKey();
 
+        if (apiKey.isEmpty() || apiKey.contains("DÁN_API_KEY") || !apiKey.startsWith("AIzaSy")) {
+            showApiKeyDialog(this::decomposeTasksWithGeminiAi);
+            return;
+        }
+
         btnAiDecomposeTasks.setEnabled(false);
         btnAiDecomposeTasks.setText("⚡ Gemini AI Đang Phân Tách Sâu...");
 
@@ -326,9 +358,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
             String lastErrorMsg = "";
 
             try {
-                // Tự động dò tìm tên model chính xác từ API Google
-                String bestModel = discoverBestModelName(apiKey);
-
                 JSONObject requestBody = new JSONObject();
 
                 JSONObject sysInstruction = new JSONObject();
@@ -369,19 +398,18 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                // Thử model vừa dò tìm được, nếu lỗi thử các model dự phòng
-                String[] modelsToTry = new String[]{bestModel, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"};
+                List<String> targetUrls = buildCandidateUrls(apiKey);
                 String rawJsonArrayStr = "";
 
-                for (String modelName : modelsToTry) {
+                for (String targetUrl : targetUrls) {
                     try {
-                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey);
+                        URL url = new URL(targetUrl);
                         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("POST");
                         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                         conn.setDoOutput(true);
-                        conn.setConnectTimeout(20000);
-                        conn.setReadTimeout(20000);
+                        conn.setConnectTimeout(15000);
+                        conn.setReadTimeout(15000);
 
                         OutputStream os = conn.getOutputStream();
                         os.write(requestBody.toString().getBytes("UTF-8"));
