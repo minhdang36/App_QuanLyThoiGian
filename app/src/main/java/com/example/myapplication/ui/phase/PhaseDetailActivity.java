@@ -7,13 +7,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.myapplication.R;
@@ -183,68 +181,9 @@ public class PhaseDetailActivity extends AppCompatActivity {
         }
     }
 
-    private void showApiKeyDialog(Runnable onKeySavedCallback) {
-        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
-        String currentKey = sharedPref.getString("GEMINI_API_KEY", "");
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("🔑 Cấu Hình Gemini AI Key");
-
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 10);
-
-        TextView tvGuide = new TextView(this);
-        tvGuide.setText("Nhập API Key Gemini của bạn để sử dụng AI phân rã thật 100% từ Google.\n(Key miễn phí 100% tại aistudio.google.com)");
-        tvGuide.setTextSize(13);
-        tvGuide.setTextColor(0xFF555555);
-        layout.addView(tvGuide);
-
-        final EditText edtKey = new EditText(this);
-        edtKey.setHint("Dán API Key (AIzaSy...) tại đây");
-        edtKey.setText(currentKey);
-        edtKey.setTextSize(13);
-        layout.addView(edtKey);
-
-        builder.setView(layout);
-
-        builder.setPositiveButton("Lưu Key & Tiếp tục", (dialog, which) -> {
-            String inputKey = edtKey.getText().toString().trim();
-            if (inputKey.isEmpty()) {
-                Toast.makeText(this, "Chưa nhập Key!", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            sharedPref.edit().putString("GEMINI_API_KEY", inputKey).apply();
-            Toast.makeText(this, "✔ Đã lưu Gemini API Key!", Toast.LENGTH_SHORT).show();
-            if (onKeySavedCallback != null) {
-                onKeySavedCallback.run();
-            }
-        });
-
-        builder.setNeutralButton("Lấy Key Miễn Phí", (dialog, which) -> {
-            try {
-                Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/app/apikey"));
-                startActivity(intent);
-            } catch (Exception e) {
-                Toast.makeText(this, "Không thể mở trình duyệt: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        builder.setNegativeButton("Hủy", null);
-        builder.show();
-    }
-
     private void decomposeTasksWithGeminiAi() {
         if (taskList.isEmpty()) {
             Toast.makeText(this, "Không có công việc nào để phân tách!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
-        String apiKey = sharedPref.getString("GEMINI_API_KEY", "").trim();
-
-        if (apiKey.isEmpty() || apiKey.contains("PlaceholderKey")) {
-            showApiKeyDialog(this::decomposeTasksWithGeminiAi);
             return;
         }
 
@@ -288,18 +227,21 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
+                SharedPreferences sharedPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+                String userApiKey = sharedPref.getString("GEMINI_API_KEY", "");
+
                 String[] modelsToTry = new String[]{"gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"};
                 String rawJsonArrayStr = "";
 
                 for (String modelName : modelsToTry) {
                     try {
-                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey);
+                        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + userApiKey);
                         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("POST");
                         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                         conn.setDoOutput(true);
-                        conn.setConnectTimeout(20000);
-                        conn.setReadTimeout(20000);
+                        conn.setConnectTimeout(15000);
+                        conn.setReadTimeout(15000);
 
                         OutputStream os = conn.getOutputStream();
                         os.write(requestBody.toString().getBytes("UTF-8"));
@@ -364,17 +306,11 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 }
             }
 
-            final boolean finalSuccess = isSuccess;
             new Handler(Looper.getMainLooper()).post(() -> {
                 btnAiDecomposeTasks.setEnabled(true);
                 btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
                 renderTaskCards();
-
-                if (finalSuccess) {
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI THẬT SỰ đã đào sâu phân tách chi tiết các đầu việc!", Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Đã phân tách các đầu việc chuẩn xác theo dự án!", Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách các đầu việc chi tiết!", Toast.LENGTH_SHORT).show();
             });
         }).start();
     }
