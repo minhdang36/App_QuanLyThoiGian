@@ -1,10 +1,12 @@
 package com.example.myapplication.network;
 
+import com.example.myapplication.model.AiRequest;
 import com.example.myapplication.model.Project;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.model.User;
 
 import java.util.List;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -55,4 +57,7 @@ public interface ApiService {
 
     @GET("tasks/user/{userId}")
     Call<List<Task>> getTasksByUser(@Path("userId") int userId);
+
+    @POST("ai/ask")
+    Call<ResponseBody> askAiBackend(@Body AiRequest request);
 }
