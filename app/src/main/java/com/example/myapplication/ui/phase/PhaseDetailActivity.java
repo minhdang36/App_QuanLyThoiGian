@@ -345,7 +345,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
         String apiKey = getValidApiKey();
 
-        if (apiKey.isEmpty() || apiKey.contains("DÁN_API_KEY") || !apiKey.startsWith("AIzaSy")) {
+        if (apiKey.isEmpty() || apiKey.contains("DÁN_API_KEY")) {
             showApiKeyDialog(this::decomposeTasksWithGeminiAi);
             return;
         }

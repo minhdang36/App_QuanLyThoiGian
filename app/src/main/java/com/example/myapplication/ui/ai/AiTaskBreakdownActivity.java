@@ -315,7 +315,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
     private void generateWbsWithGeminiApi() {
         String apiKey = getValidApiKey();
 
-        if (apiKey.isEmpty() || apiKey.contains("DÁN_API_KEY") || !apiKey.startsWith("AIzaSy")) {
+        if (apiKey.isEmpty() || apiKey.contains("DÁN_API_KEY")) {
             showApiKeyDialog(this::generateWbsWithGeminiApi);
             return;
         }
