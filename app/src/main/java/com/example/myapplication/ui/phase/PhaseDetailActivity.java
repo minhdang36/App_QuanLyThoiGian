@@ -266,7 +266,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
         List<String> candidateUrls = new ArrayList<>();
         String[] apiVersions = new String[]{"v1beta", "v1"};
 
-        // 1. Thử Dò tìm trực tiếp danh sách Model hỗ trợ từ Google API GET /models
         for (String ver : apiVersions) {
             try {
                 URL url = new URL("https://generativelanguage.googleapis.com/" + ver + "/models?key=" + apiKey);
@@ -314,10 +313,8 @@ public class PhaseDetailActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
-        // Sắp xếp các model dò tìm được theo điểm ưu tiên đời cao nhất (2.5 Pro/Flash > 2.0 Pro/Flash > 1.5 Pro/Flash)
         Collections.sort(candidateUrls, (u1, u2) -> Integer.compare(getModelScore(u2), getModelScore(u1)));
 
-        // 2. Thêm danh sách các URL ứng viên đời cao chuẩn để dự phòng
         String[] highModels = new String[]{
                 "gemini-2.5-flash", "gemini-2.5-pro",
                 "gemini-2.0-flash", "gemini-2.0-pro",
@@ -335,6 +332,20 @@ public class PhaseDetailActivity extends AppCompatActivity {
         }
 
         return candidateUrls;
+    }
+
+    private void saveSubTasksToPreferences(String taskTitle, List<String> subTasks) {
+        if (taskTitle == null || taskTitle.trim().isEmpty() || subTasks == null) return;
+        SharedPreferences pref = getSharedPreferences("TaskSubTasks", MODE_PRIVATE);
+        Gson gson = new Gson();
+
+        String cleanTitle = taskTitle;
+        if (cleanTitle.startsWith("[") && cleanTitle.contains("]")) {
+            cleanTitle = cleanTitle.substring(cleanTitle.indexOf("]") + 1).trim();
+        }
+
+        pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), gson.toJson(subTasks)).apply();
+        pref.edit().putString("SUBTASKS_" + taskTitle.hashCode(), gson.toJson(subTasks)).apply();
     }
 
     private void decomposeTasksWithGeminiAi() {
@@ -392,7 +403,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 contents.put(contentObj);
                 requestBody.put("contents", contents);
 
-                // Cấu hình tham số suy luận: temperature = 0.3, responseMimeType = "application/json"
                 JSONObject genConfig = new JSONObject();
                 genConfig.put("temperature", 0.3);
                 genConfig.put("responseMimeType", "application/json");
@@ -474,6 +484,14 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 lastErrorMsg = e.getClass().getSimpleName() + " - " + e.getMessage();
             }
 
+            // Lưu trực tiếp các danh sách đầu việc nhỏ vào SharedPreferences để xuất hiện trong "Nhiệm vụ phụ & Tiến độ" của task
+            for (Map.Entry<Integer, List<String>> entry : taskSubTasksMap.entrySet()) {
+                int idx = entry.getKey();
+                if (idx >= 0 && idx < taskList.size()) {
+                    saveSubTasksToPreferences(taskList.get(idx).getTitle(), entry.getValue());
+                }
+            }
+
             final String errorDetails = lastErrorMsg;
             final boolean finalSuccess = isSuccess;
 
@@ -483,9 +501,8 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
                 if (finalSuccess) {
                     renderTaskCards();
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách các đầu việc chi tiết!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách các đầu việc và đồng bộ vào Nhiệm vụ phụ!", Toast.LENGTH_SHORT).show();
                 } else {
-                    // Tuyệt đối KHÔNG tự ý điền mock data/dữ liệu giả khi API lỗi. Hiển thị Dialog báo lỗi rõ ràng.
                     new AlertDialog.Builder(PhaseDetailActivity.this)
                             .setTitle("❌ Lỗi Gọi Gemini AI")
                             .setMessage("Không thể phân tách đầu việc bằng Gemini AI.\n\nChi tiết lỗi:\n" + (errorDetails.isEmpty() ? "Không nhận được phản hồi JSON hợp lệ" : errorDetails) + "\n\nVui lòng kiểm tra lại API Key hoặc kết nối mạng.")

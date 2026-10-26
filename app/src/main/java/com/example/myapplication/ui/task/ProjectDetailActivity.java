@@ -3,10 +3,14 @@ package com.example.myapplication.ui.task;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,8 +20,11 @@ import com.example.myapplication.R;
 import com.example.myapplication.model.Project;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
-import com.example.myapplication.ui.ai.AiTaskBreakdownActivity;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -29,6 +36,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ProjectDetailActivity extends AppCompatActivity {
 
     private int taskId = -1;
+    private LinearLayout layoutSubtasksContainer;
+    private TextView tvTitle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +45,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_project_detail);
 
         ImageView btnBack = findViewById(R.id.btnBack);
-        TextView tvTitle = findViewById(R.id.tvTaskDetailTitle);
+        tvTitle = findViewById(R.id.tvTaskDetailTitle);
         TextView tvDesc = findViewById(R.id.tvTaskDetailDesc);
         TextView tvTime = findViewById(R.id.tvTaskDetailTime);
         TextView tvLocation = findViewById(R.id.tvTaskDetailLocation);
@@ -46,6 +55,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
         TextView btnEditTask = findViewById(R.id.btnEditTask);
         TextView btnCompleteTask = findViewById(R.id.btnCompleteTask);
         TextView btnAddSubtask = findViewById(R.id.btnAddSubtask);
+        layoutSubtasksContainer = findViewById(R.id.layoutSubtasksContainer);
 
         Intent intent = getIntent();
         if (intent != null) {
@@ -149,33 +159,136 @@ public class ProjectDetailActivity extends AppCompatActivity {
                 if (tvTitle != null) {
                     pomodoroIntent.putExtra("ACTIVE_TASK_TITLE", tvTitle.getText().toString());
                 }
-                if (tvTime != null) {
-                    pomodoroIntent.putExtra("TASK_TIME", tvTime.getText().toString());
+                TextView tvTaskTime = findViewById(R.id.tvTaskDetailTime);
+                if (tvTaskTime != null) {
+                    pomodoroIntent.putExtra("TASK_TIME", tvTaskTime.getText().toString());
                 }
                 startActivity(pomodoroIntent);
             });
         }
 
-        boolean isLargeProject = (intent != null) && intent.getBooleanExtra("IS_LARGE_PROJECT", false);
         if (btnAddSubtask != null) {
-            if (isLargeProject) {
-                btnAddSubtask.setVisibility(View.VISIBLE);
-                btnAddSubtask.setOnClickListener(v -> {
-                    Intent aiIntent = new Intent(ProjectDetailActivity.this, AiTaskBreakdownActivity.class);
-                    if (tvTitle != null) aiIntent.putExtra("MAIN_TASK_TITLE", tvTitle.getText().toString());
-                    startActivity(aiIntent);
-                });
-            } else {
-                // Task công việc nhỏ thì KHÔNG có chức năng Phân rã AI
-                btnAddSubtask.setVisibility(View.GONE);
-            }
+            btnAddSubtask.setOnClickListener(v -> showAddSubtaskDialog());
         }
+
+        renderSubtasksForCurrentTask();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         loadRealTaskAndProjectData();
+    }
+
+    private void renderSubtasksForCurrentTask() {
+        if (layoutSubtasksContainer == null) return;
+        layoutSubtasksContainer.removeAllViews();
+
+        String rawTitle = tvTitle != null ? tvTitle.getText().toString().trim() : "";
+        if (rawTitle.isEmpty()) return;
+
+        SharedPreferences pref = getSharedPreferences("TaskSubTasks", MODE_PRIVATE);
+        Gson gson = new Gson();
+
+        String cleanTitle = rawTitle;
+        if (cleanTitle.startsWith("[") && cleanTitle.contains("]")) {
+            cleanTitle = cleanTitle.substring(cleanTitle.indexOf("]") + 1).trim();
+        }
+
+        String json = pref.getString("SUBTASKS_" + cleanTitle.hashCode(), null);
+        if (json == null) {
+            json = pref.getString("SUBTASKS_" + rawTitle.hashCode(), null);
+        }
+
+        List<String> subTasks = new ArrayList<>();
+        if (json != null && !json.trim().isEmpty()) {
+            try {
+                Type listType = new TypeToken<ArrayList<String>>() {}.getType();
+                List<String> parsed = gson.fromJson(json, listType);
+                if (parsed != null) subTasks.addAll(parsed);
+            } catch (Exception ignored) {}
+        }
+
+        // Nếu chưa có subtasks lưu từ trước, khởi tạo đầu việc mặc định phù hợp cho task này
+        if (subTasks.isEmpty()) {
+            subTasks.add("1. Đào sâu thu thập tài liệu & Phân tích yêu cầu thực tế");
+            subTasks.add("2. Thực thi nội dung cốt lõi & Xử lý logic chi tiết");
+            subTasks.add("3. Rà soát chất lượng & Đánh giá theo tiêu chuẩn DoD");
+            pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), gson.toJson(subTasks)).apply();
+        }
+
+        // Đổ các nhiệm vụ phụ ra dạng CheckBox tương tác
+        SharedPreferences checkPref = getSharedPreferences("SubTaskCheckedState", MODE_PRIVATE);
+        for (int i = 0; i < subTasks.size(); i++) {
+            String st = subTasks.get(i);
+            String checkKey = "CHECK_" + cleanTitle.hashCode() + "_" + i;
+
+            CheckBox checkBox = new CheckBox(this);
+            checkBox.setText(st);
+            checkBox.setTextColor(Color.parseColor("#333333"));
+            checkBox.setTextSize(13);
+            checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
+
+            boolean isChecked = checkPref.getBoolean(checkKey, false);
+            checkBox.setChecked(isChecked);
+
+            checkBox.setOnCheckedChangeListener((buttonView, isCheckedVal) -> {
+                checkPref.edit().putBoolean(checkKey, isCheckedVal).apply();
+            });
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            lp.setMargins(0, 10, 0, 10);
+            checkBox.setLayoutParams(lp);
+
+            layoutSubtasksContainer.addView(checkBox);
+        }
+    }
+
+    private void showAddSubtaskDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("⊕ Thêm nhiệm vụ phụ mới");
+
+        final EditText edtInput = new EditText(this);
+        edtInput.setHint("Nhập nội dung nhiệm vụ phụ...");
+        edtInput.setPadding(40, 30, 40, 30);
+        builder.setView(edtInput);
+
+        builder.setPositiveButton("Thêm", (dialog, which) -> {
+            String newSub = edtInput.getText().toString().trim();
+            if (!newSub.isEmpty()) {
+                String rawTitle = tvTitle != null ? tvTitle.getText().toString().trim() : "";
+                String cleanTitle = rawTitle;
+                if (cleanTitle.startsWith("[") && cleanTitle.contains("]")) {
+                    cleanTitle = cleanTitle.substring(cleanTitle.indexOf("]") + 1).trim();
+                }
+
+                SharedPreferences pref = getSharedPreferences("TaskSubTasks", MODE_PRIVATE);
+                Gson gson = new Gson();
+
+                String json = pref.getString("SUBTASKS_" + cleanTitle.hashCode(), null);
+                List<String> subTasks = new ArrayList<>();
+                if (json != null) {
+                    try {
+                        Type listType = new TypeToken<ArrayList<String>>() {}.getType();
+                        List<String> parsed = gson.fromJson(json, listType);
+                        if (parsed != null) subTasks.addAll(parsed);
+                    } catch (Exception ignored) {}
+                }
+
+                subTasks.add((subTasks.size() + 1) + ". " + newSub);
+                pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), gson.toJson(subTasks)).apply();
+                pref.edit().putString("SUBTASKS_" + rawTitle.hashCode(), gson.toJson(subTasks)).apply();
+
+                renderSubtasksForCurrentTask();
+                Toast.makeText(ProjectDetailActivity.this, "Đã thêm nhiệm vụ phụ!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
     }
 
     private void loadRealTaskAndProjectData() {
@@ -223,6 +336,8 @@ public class ProjectDetailActivity extends AppCompatActivity {
                         // Cập nhật mức độ ưu tiên thực tế
                         updatePriorityTag(currentTask.getPriority(), currentTask.getTime());
 
+                        renderSubtasksForCurrentTask();
+
                         int realProjectId = currentTask.getProjectId();
                         fetchAndShowProjectName(currentUserId, realProjectId);
                     }
@@ -243,15 +358,15 @@ public class ProjectDetailActivity extends AppCompatActivity {
 
         if (p.contains("ƯU 2") || p.contains("TRUNG BÌNH") || p.contains("MEDIUM")) {
             tvPriorityTag.setText("! ƯU TIÊN TRUNG BÌNH");
-            tvPriorityTag.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FFF8E1")));
+            tvPriorityTag.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFF8E1")));
             tvPriorityTag.setTextColor(Color.parseColor("#F57F17"));
         } else if (p.contains("ƯU 3") || p.contains("THẤP") || p.contains("LOW")) {
             tvPriorityTag.setText("! ƯU TIÊN THẤP");
-            tvPriorityTag.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#E8F5E9")));
+            tvPriorityTag.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#E8F5E9")));
             tvPriorityTag.setTextColor(Color.parseColor("#2E7D32"));
         } else {
             tvPriorityTag.setText("! ƯU TIÊN CAO");
-            tvPriorityTag.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FDECE8")));
+            tvPriorityTag.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FDECE8")));
             tvPriorityTag.setTextColor(Color.parseColor("#D84315"));
         }
     }
