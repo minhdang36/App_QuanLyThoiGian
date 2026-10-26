@@ -2,9 +2,12 @@ package com.example.myapplication.ui.phase;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -109,6 +112,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
         layoutTasksContainer.removeAllViews();
 
         for (int i = 0; i < taskList.size(); i++) {
+            final int taskIndex = i;
             Task task = taskList.get(i);
 
             MaterialCardView cardView = new MaterialCardView(this);
@@ -159,20 +163,57 @@ public class PhaseDetailActivity extends AppCompatActivity {
             List<String> subTasks = taskSubTasksMap.get(i);
             if (subTasks != null && !subTasks.isEmpty()) {
                 TextView tvHeaderChecklist = new TextView(this);
-                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Gemini AI đã phân tách):");
+                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Tích chọn để thêm vào task):");
                 tvHeaderChecklist.setTextColor(0xFF362C2A);
                 tvHeaderChecklist.setTextSize(12);
                 tvHeaderChecklist.setTypeface(null, android.graphics.Typeface.BOLD);
                 tvHeaderChecklist.setPadding(0, 8, 0, 12);
                 layoutChecklist.addView(tvHeaderChecklist);
 
+                List<CheckBox> checkBoxesList = new ArrayList<>();
                 for (String st : subTasks) {
                     CheckBox checkBox = new CheckBox(this);
                     checkBox.setText(st);
+                    checkBox.setChecked(true); // Tích chọn sẵn cho người dùng chọn nhanh
                     checkBox.setTextColor(0xFF333333);
                     checkBox.setTextSize(13);
+                    checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
+                    checkBoxesList.add(checkBox);
                     layoutChecklist.addView(checkBox);
                 }
+
+                // NÚT THÊM CÁC ĐẦU VIỆC ĐÃ TÍCH VÀO NHIỆM VỤ PHỤ CỦA TASK
+                Button btnAddSelected = new Button(this);
+                btnAddSelected.setText("➕ Thêm các đầu việc đã chọn vào Nhiệm vụ phụ");
+                btnAddSelected.setTextColor(0xFFFFFFFF);
+                btnAddSelected.setTextSize(12);
+                btnAddSelected.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
+                LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+                btnLp.setMargins(0, 20, 0, 0);
+                btnAddSelected.setLayoutParams(btnLp);
+
+                btnAddSelected.setOnClickListener(v -> {
+                    List<String> selectedSubtasks = new ArrayList<>();
+                    for (CheckBox cb : checkBoxesList) {
+                        if (cb.isChecked()) {
+                            selectedSubtasks.add(cb.getText().toString());
+                        }
+                    }
+
+                    if (selectedSubtasks.isEmpty()) {
+                        Toast.makeText(this, "Vui lòng tích chọn ít nhất 1 đầu việc!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Lưu các đầu việc đã chọn vào SharedPreferences cho task này
+                    saveSelectedSubTasksToTask(task.getTitle(), selectedSubtasks);
+                    Toast.makeText(this, "✔ Đã thêm " + selectedSubtasks.size() + " đầu việc vào Nhiệm vụ phụ của task!", Toast.LENGTH_SHORT).show();
+                });
+
+                layoutChecklist.addView(btnAddSelected);
             } else {
                 TextView tvHint = new TextView(this);
                 tvHint.setText("💡 Bấm nút 'AI Phân Tách' ở trên để Gemini AI đào sâu phân tách danh sách đầu việc chi tiết cho công việc này.");
@@ -186,6 +227,38 @@ public class PhaseDetailActivity extends AppCompatActivity {
             cardView.addView(cardContent);
             layoutTasksContainer.addView(cardView);
         }
+    }
+
+    private void saveSelectedSubTasksToTask(String taskTitle, List<String> newSubTasks) {
+        if (taskTitle == null || taskTitle.trim().isEmpty() || newSubTasks == null || newSubTasks.isEmpty()) return;
+        SharedPreferences pref = getSharedPreferences("TaskSubTasks", MODE_PRIVATE);
+        Gson gson = new Gson();
+
+        String cleanTitle = taskTitle;
+        if (cleanTitle.startsWith("[") && cleanTitle.contains("]")) {
+            cleanTitle = cleanTitle.substring(cleanTitle.indexOf("]") + 1).trim();
+        }
+
+        // Đọc danh sách nhiệm vụ phụ hiện tại đã có trong task
+        String json = pref.getString("SUBTASKS_" + cleanTitle.hashCode(), null);
+        List<String> currentSubtasks = new ArrayList<>();
+        if (json != null && !json.trim().isEmpty()) {
+            try {
+                Type listType = new TypeToken<ArrayList<String>>() {}.getType();
+                List<String> parsed = gson.fromJson(json, listType);
+                if (parsed != null) currentSubtasks.addAll(parsed);
+            } catch (Exception ignored) {}
+        }
+
+        // Bổ sung các đầu việc mới (tránh trùng lặp)
+        for (String st : newSubTasks) {
+            if (!currentSubtasks.contains(st)) {
+                currentSubtasks.add(st);
+            }
+        }
+
+        pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), gson.toJson(currentSubtasks)).apply();
+        pref.edit().putString("SUBTASKS_" + taskTitle.hashCode(), gson.toJson(currentSubtasks)).apply();
     }
 
     private String getValidApiKey() {
@@ -334,20 +407,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
         return candidateUrls;
     }
 
-    private void saveSubTasksToPreferences(String taskTitle, List<String> subTasks) {
-        if (taskTitle == null || taskTitle.trim().isEmpty() || subTasks == null) return;
-        SharedPreferences pref = getSharedPreferences("TaskSubTasks", MODE_PRIVATE);
-        Gson gson = new Gson();
-
-        String cleanTitle = taskTitle;
-        if (cleanTitle.startsWith("[") && cleanTitle.contains("]")) {
-            cleanTitle = cleanTitle.substring(cleanTitle.indexOf("]") + 1).trim();
-        }
-
-        pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), gson.toJson(subTasks)).apply();
-        pref.edit().putString("SUBTASKS_" + taskTitle.hashCode(), gson.toJson(subTasks)).apply();
-    }
-
     private void decomposeTasksWithGeminiAi() {
         if (taskList.isEmpty()) {
             Toast.makeText(this, "Không có công việc nào để phân tách!", Toast.LENGTH_SHORT).show();
@@ -484,14 +543,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 lastErrorMsg = e.getClass().getSimpleName() + " - " + e.getMessage();
             }
 
-            // Lưu trực tiếp các danh sách đầu việc nhỏ vào SharedPreferences để xuất hiện trong "Nhiệm vụ phụ & Tiến độ" của task
-            for (Map.Entry<Integer, List<String>> entry : taskSubTasksMap.entrySet()) {
-                int idx = entry.getKey();
-                if (idx >= 0 && idx < taskList.size()) {
-                    saveSubTasksToPreferences(taskList.get(idx).getTitle(), entry.getValue());
-                }
-            }
-
             final String errorDetails = lastErrorMsg;
             final boolean finalSuccess = isSuccess;
 
@@ -501,7 +552,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
                 if (finalSuccess) {
                     renderTaskCards();
-                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách các đầu việc và đồng bộ vào Nhiệm vụ phụ!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(PhaseDetailActivity.this, "✨ Gemini AI đã phân tách xong! Hãy tích chọn đầu việc và bấm 'Thêm vào Nhiệm vụ phụ'.", Toast.LENGTH_LONG).show();
                 } else {
                     new AlertDialog.Builder(PhaseDetailActivity.this)
                             .setTitle("❌ Lỗi Gọi Gemini AI")

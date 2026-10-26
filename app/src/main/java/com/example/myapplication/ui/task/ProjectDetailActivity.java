@@ -5,10 +5,13 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -209,42 +212,141 @@ public class ProjectDetailActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
-        // Nếu chưa có subtasks lưu từ trước, khởi tạo đầu việc mặc định phù hợp cho task này
+        // Nếu chưa có subtasks người dùng chủ động tích chọn thêm vào, hiển thị hướng dẫn thân thiện
         if (subTasks.isEmpty()) {
-            subTasks.add("1. Đào sâu thu thập tài liệu & Phân tích yêu cầu thực tế");
-            subTasks.add("2. Thực thi nội dung cốt lõi & Xử lý logic chi tiết");
-            subTasks.add("3. Rà soát chất lượng & Đánh giá theo tiêu chuẩn DoD");
-            pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), gson.toJson(subTasks)).apply();
+            TextView tvEmptyHint = new TextView(this);
+            tvEmptyHint.setText("💡 Chưa có nhiệm vụ phụ. Bạn có thể mở trang Chi tiết Giai đoạn, tích chọn các đầu việc và bấm nút 'Thêm vào Nhiệm vụ phụ' hoặc bấm '⊕ Thêm nhiệm vụ phụ' ở bên dưới.");
+            tvEmptyHint.setTextColor(Color.parseColor("#9E9E9E"));
+            tvEmptyHint.setTextSize(12);
+            tvEmptyHint.setPadding(10, 10, 10, 10);
+            layoutSubtasksContainer.addView(tvEmptyHint);
+            return;
         }
 
-        // Đổ các nhiệm vụ phụ ra dạng CheckBox tương tác
         SharedPreferences checkPref = getSharedPreferences("SubTaskCheckedState", MODE_PRIVATE);
-        for (int i = 0; i < subTasks.size(); i++) {
-            String st = subTasks.get(i);
-            String checkKey = "CHECK_" + cleanTitle.hashCode() + "_" + i;
 
+        final String finalCleanTitle = cleanTitle;
+
+        // Hiển thị từng nhiệm vụ phụ đầy đủ tính năng: Tích hoàn thành, Sửa, Xóa
+        for (int i = 0; i < subTasks.size(); i++) {
+            final int itemIndex = i;
+            String st = subTasks.get(i);
+            String checkKey = "CHECK_" + finalCleanTitle.hashCode() + "_" + i;
+
+            LinearLayout itemRow = new LinearLayout(this);
+            itemRow.setOrientation(LinearLayout.HORIZONTAL);
+            itemRow.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            rowLp.setMargins(0, 8, 0, 8);
+            itemRow.setLayoutParams(rowLp);
+
+            // CheckBox tích chọn hoàn thành
             CheckBox checkBox = new CheckBox(this);
+            LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1.0f
+            );
+            checkBox.setLayoutParams(cbLp);
             checkBox.setText(st);
-            checkBox.setTextColor(Color.parseColor("#333333"));
             checkBox.setTextSize(13);
             checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
 
             boolean isChecked = checkPref.getBoolean(checkKey, false);
             checkBox.setChecked(isChecked);
+            updateCheckboxStyle(checkBox, isChecked);
 
             checkBox.setOnCheckedChangeListener((buttonView, isCheckedVal) -> {
                 checkPref.edit().putBoolean(checkKey, isCheckedVal).apply();
+                updateCheckboxStyle(checkBox, isCheckedVal);
             });
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            lp.setMargins(0, 10, 0, 10);
-            checkBox.setLayoutParams(lp);
+            itemRow.addView(checkBox);
 
-            layoutSubtasksContainer.addView(checkBox);
+            // Nút SỬA nhiệm vụ phụ
+            ImageButton btnEditSub = new ImageButton(this);
+            btnEditSub.setImageResource(android.R.drawable.ic_menu_edit);
+            btnEditSub.setBackgroundResource(android.R.color.transparent);
+            btnEditSub.setImageTintList(ColorStateList.valueOf(Color.parseColor("#888888")));
+            LinearLayout.LayoutParams btnEditLp = new LinearLayout.LayoutParams(72, 72);
+            btnEditLp.setMargins(8, 0, 0, 0);
+            btnEditSub.setLayoutParams(btnEditLp);
+            btnEditSub.setOnClickListener(v -> showEditSubtaskDialog(itemIndex, st, finalCleanTitle, subTasks));
+            itemRow.addView(btnEditSub);
+
+            // Nút XÓA nhiệm vụ phụ
+            ImageButton btnDeleteSub = new ImageButton(this);
+            btnDeleteSub.setImageResource(android.R.drawable.ic_menu_delete);
+            btnDeleteSub.setBackgroundResource(android.R.color.transparent);
+            btnDeleteSub.setImageTintList(ColorStateList.valueOf(Color.parseColor("#C62828")));
+            LinearLayout.LayoutParams btnDeleteLp = new LinearLayout.LayoutParams(72, 72);
+            btnDeleteLp.setMargins(4, 0, 0, 0);
+            btnDeleteSub.setLayoutParams(btnDeleteLp);
+            btnDeleteSub.setOnClickListener(v -> showDeleteSubtaskDialog(itemIndex, finalCleanTitle, subTasks));
+            itemRow.addView(btnDeleteSub);
+
+            layoutSubtasksContainer.addView(itemRow);
         }
+    }
+
+    private void updateCheckboxStyle(CheckBox checkBox, boolean isChecked) {
+        if (isChecked) {
+            checkBox.setPaintFlags(checkBox.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            checkBox.setTextColor(Color.parseColor("#888888"));
+        } else {
+            checkBox.setPaintFlags(checkBox.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
+            checkBox.setTextColor(Color.parseColor("#222222"));
+        }
+    }
+
+    private void showEditSubtaskDialog(int index, String currentText, String cleanTitle, List<String> subTasks) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("✏ Sửa nhiệm vụ phụ");
+
+        final EditText edtInput = new EditText(this);
+        edtInput.setText(currentText);
+        edtInput.setPadding(40, 30, 40, 30);
+        builder.setView(edtInput);
+
+        builder.setPositiveButton("Lưu", (dialog, which) -> {
+            String newText = edtInput.getText().toString().trim();
+            if (!newText.isEmpty()) {
+                subTasks.set(index, newText);
+                saveSubtasksListToPref(cleanTitle, subTasks);
+                renderSubtasksForCurrentTask();
+                Toast.makeText(ProjectDetailActivity.this, "✔ Đã cập nhật nhiệm vụ phụ!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
+    }
+
+    private void showDeleteSubtaskDialog(int index, String cleanTitle, List<String> subTasks) {
+        new AlertDialog.Builder(this)
+                .setTitle("Xác nhận xóa")
+                .setMessage("Bạn có chắc chắn muốn xóa nhiệm vụ phụ này không?")
+                .setPositiveButton("Xóa", (dialog, which) -> {
+                    subTasks.remove(index);
+                    saveSubtasksListToPref(cleanTitle, subTasks);
+                    renderSubtasksForCurrentTask();
+                    Toast.makeText(ProjectDetailActivity.this, "✔ Đã xóa nhiệm vụ phụ!", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void saveSubtasksListToPref(String cleanTitle, List<String> subTasks) {
+        SharedPreferences pref = getSharedPreferences("TaskSubTasks", MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = gson.toJson(subTasks);
+
+        String rawTitle = tvTitle != null ? tvTitle.getText().toString().trim() : "";
+        pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), json).apply();
+        pref.edit().putString("SUBTASKS_" + rawTitle.hashCode(), json).apply();
     }
 
     private void showAddSubtaskDialog() {
@@ -278,12 +380,11 @@ public class ProjectDetailActivity extends AppCompatActivity {
                     } catch (Exception ignored) {}
                 }
 
-                subTasks.add((subTasks.size() + 1) + ". " + newSub);
-                pref.edit().putString("SUBTASKS_" + cleanTitle.hashCode(), gson.toJson(subTasks)).apply();
-                pref.edit().putString("SUBTASKS_" + rawTitle.hashCode(), gson.toJson(subTasks)).apply();
+                subTasks.add(newSub);
+                saveSubtasksListToPref(cleanTitle, subTasks);
 
                 renderSubtasksForCurrentTask();
-                Toast.makeText(ProjectDetailActivity.this, "Đã thêm nhiệm vụ phụ!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ProjectDetailActivity.this, "✔ Đã thêm nhiệm vụ phụ!", Toast.LENGTH_SHORT).show();
             }
         });
 
