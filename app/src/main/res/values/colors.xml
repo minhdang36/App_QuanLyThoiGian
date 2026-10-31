@@ -2,4 +2,13 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Dynamic Theme Colors -->
+    <color name="bg_main">#F8F9FA</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="card_stroke">#EEF0F4</color>
+    <color name="text_primary">#222222</color>
+    <color name="text_secondary">#777777</color>
+    <color name="input_bg">#F0F2F5</color>
+    <color name="item_bg">#FFFFFF</color>
 </resources>

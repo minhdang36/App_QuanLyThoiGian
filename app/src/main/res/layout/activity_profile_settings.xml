@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="@color/bg_main">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,7 +23,7 @@
                 android:layout_width="28dp"
                 android:layout_height="28dp"
                 android:src="@android:drawable/ic_menu_revert"
-                app:tint="#333333"
+                app:tint="@color/text_primary"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -33,7 +33,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="Cài đặt &amp; Hồ sơ"
-                android:textColor="#222222"
+                android:textColor="@color/text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -81,7 +81,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="Nguyễn Văn A"
-                android:textColor="#222222"
+                android:textColor="@color/text_primary"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -90,7 +90,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="nguyen.vana@flowagenda.vn"
-                android:textColor="#888888"
+                android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
             <!-- Huy hiệu Cấp độ -->
@@ -123,7 +123,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/bg_rounded_24dp"
-                android:backgroundTint="#FFFFFF"
+                android:backgroundTint="@color/card_bg"
                 android:gravity="center"
                 android:orientation="horizontal"
                 android:padding="16dp"
@@ -145,7 +145,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="CHUỖI BÁM ĐÍCH"
-                        android:textColor="#888888"
+                        android:textColor="@color/text_secondary"
                         android:textSize="9sp"
                         android:textStyle="bold" />
                     <TextView
@@ -153,7 +153,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="18 Ngày"
-                        android:textColor="#222222"
+                        android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -164,7 +164,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:background="@drawable/bg_rounded_24dp"
-                android:backgroundTint="#FFFFFF"
+                android:backgroundTint="@color/card_bg"
                 android:gravity="center"
                 android:orientation="horizontal"
                 android:padding="16dp"
@@ -186,7 +186,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="TẬP TRUNG"
-                        android:textColor="#888888"
+                        android:textColor="@color/text_secondary"
                         android:textSize="9sp"
                         android:textStyle="bold" />
                     <TextView
@@ -194,7 +194,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="42.5 Giờ"
-                        android:textColor="#222222"
+                        android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -209,7 +209,7 @@
             android:layout_marginTop="24dp"
             android:layout_marginBottom="8dp"
             android:text="TÀI KHOẢN"
-            android:textColor="#888888"
+            android:textColor="@color/text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
 
@@ -218,7 +218,7 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"
             android:background="@drawable/bg_rounded_24dp"
-            android:backgroundTint="#FFFFFF"
+            android:backgroundTint="@color/card_bg"
             android:orientation="vertical"
             android:paddingVertical="8dp"
             android:elevation="2dp">
@@ -252,14 +252,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Chỉnh sửa hồ sơ"
-                        android:textColor="#222222"
+                        android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Ảnh đại diện, tiểu sử và thông tin"
-                        android:textColor="#888888"
+                        android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
                 <TextView
@@ -306,14 +306,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Đổi mật khẩu"
-                        android:textColor="#222222"
+                        android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Sinh trắc học &amp; xác minh 2 bước"
-                        android:textColor="#888888"
+                        android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
                 <TextView
@@ -334,7 +334,7 @@
             android:layout_marginTop="24dp"
             android:layout_marginBottom="8dp"
             android:text="TÙY CHỌN CHUNG"
-            android:textColor="#888888"
+            android:textColor="@color/text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
 
@@ -343,7 +343,7 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"
             android:background="@drawable/bg_rounded_24dp"
-            android:backgroundTint="#FFFFFF"
+            android:backgroundTint="@color/card_bg"
             android:orientation="vertical"
             android:paddingVertical="8dp"
             android:elevation="2dp">
@@ -373,14 +373,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Chế độ tối (Dark Mode)"
-                        android:textColor="#222222"
+                        android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Bảng màu tương phản sâu"
-                        android:textColor="#888888"
+                        android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
 
