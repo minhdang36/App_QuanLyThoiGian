@@ -4,7 +4,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -40,6 +43,7 @@ public class ScanScheduleActivity extends AppCompatActivity {
     private ImageButton btnBack;
     private ImageView imgSchedulePreview;
     private Button btnPickGallery, btnAnalyzeSchedule, btnImportSchedule;
+    private EditText edtStartDate, edtEndDate;
 
     private TextView tvSubjectCount, tvDateTitle;
     private TextView tvClass1Period, tvClass1Title, tvClass1Details;
@@ -62,6 +66,9 @@ public class ScanScheduleActivity extends AppCompatActivity {
         btnAnalyzeSchedule = findViewById(R.id.btnAnalyzeSchedule);
         btnImportSchedule = findViewById(R.id.btnImportSchedule);
 
+        edtStartDate = findViewById(R.id.edtStartDate);
+        edtEndDate = findViewById(R.id.edtEndDate);
+
         tvSubjectCount = findViewById(R.id.tvSubjectCount);
         tvDateTitle = findViewById(R.id.tvDateTitle);
 
@@ -75,6 +82,26 @@ public class ScanScheduleActivity extends AppCompatActivity {
 
         tvOcrRawText = findViewById(R.id.tvOcrRawText);
 
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Calendar startCal = Calendar.getInstance();
+        edtStartDate.setText(dateFormat.format(startCal.getTime()));
+
+        Calendar endCal = Calendar.getInstance();
+        endCal.add(Calendar.DAY_OF_MONTH, 60); // Mặc định áp dụng lịch học hằng ngày trong 60 ngày (~ 2 tháng)
+        edtEndDate.setText(dateFormat.format(endCal.getTime()));
+
+        if (edtStartDate != null) {
+            edtStartDate.setFocusable(false);
+            edtStartDate.setClickable(true);
+            edtStartDate.setOnClickListener(v -> showDatePickerDialog(edtStartDate));
+        }
+
+        if (edtEndDate != null) {
+            edtEndDate.setFocusable(false);
+            edtEndDate.setClickable(true);
+            edtEndDate.setOnClickListener(v -> showDatePickerDialog(edtEndDate));
+        }
+
         Calendar cal = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("EEEE, dd/MM/yyyy", new Locale("vi", "VN"));
         if (tvDateTitle != null) {
@@ -85,7 +112,6 @@ public class ScanScheduleActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> finish());
         }
 
-        // 1. Chọn ảnh từ Bộ sưu tập
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
                 uri -> {
@@ -102,18 +128,46 @@ public class ScanScheduleActivity extends AppCompatActivity {
             btnPickGallery.setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
         }
 
-        // 2. Chạy tính năng Quét OCR thực tế bằng ML Kit
         if (btnAnalyzeSchedule != null) {
             btnAnalyzeSchedule.setOnClickListener(v -> analyzeImageWithMlKit());
         }
 
-        // 3. Lưu toàn bộ lịch học đã trích xuất vào CSDL server
         if (btnImportSchedule != null) {
             btnImportSchedule.setOnClickListener(v -> importScannedScheduleToServer());
         }
 
-        // Tạo dữ liệu mặc định ban đầu
         setupDefaultScannedTasks();
+    }
+
+    private void showDatePickerDialog(EditText targetEditText) {
+        Calendar cal = Calendar.getInstance();
+
+        String currentText = targetEditText.getText().toString().trim();
+        if (currentText.contains("-")) {
+            try {
+                String[] parts = currentText.split("-");
+                if (parts.length == 3) {
+                    int year = Integer.parseInt(parts[0]);
+                    int month = Integer.parseInt(parts[1]) - 1;
+                    int day = Integer.parseInt(parts[2]);
+                    cal.set(year, month, day);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+
+        android.app.DatePickerDialog datePickerDialog = new android.app.DatePickerDialog(
+                ScanScheduleActivity.this,
+                (view, selectedYear, selectedMonth, selectedDay) -> {
+                    String selectedDateStr = String.format(Locale.getDefault(), "%04d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay);
+                    targetEditText.setText(selectedDateStr);
+                },
+                year, month, day
+        );
+        datePickerDialog.show();
     }
 
     private void analyzeImageWithMlKit() {
@@ -170,7 +224,6 @@ public class ScanScheduleActivity extends AppCompatActivity {
         int currentUserId = sharedPref.getInt("USER_ID", -1);
 
         if (textLines.size() >= 2) {
-            // Môn 1 từ dòng quét thật
             String title1 = textLines.get(0);
             String desc1 = textLines.size() > 1 ? textLines.get(1) : "Trích xuất thực tế từ ảnh";
 
@@ -181,14 +234,13 @@ public class ScanScheduleActivity extends AppCompatActivity {
             Task task1 = new Task();
             task1.setTitle(title1 + " (Tiết 1-3)");
             task1.setDescription(desc1);
-            task1.setTime("📅 Hôm nay | 🕒 07:00 - 09:30");
-            task1.setLocation("Phòng học thực tế");
-            task1.setProjectId(2);
+            task1.setTime("🕒 07:00 - 09:30");
+            task1.setLocation("PMT 13/H");
+            task1.setProjectId(2); // Category Học tập
             task1.setStatus("PENDING");
             task1.setUserId(currentUserId);
             scannedTasks.add(task1);
 
-            // Môn 2 từ dòng quét thật
             if (textLines.size() >= 3) {
                 String title2 = textLines.get(2);
                 String desc2 = textLines.size() > 3 ? textLines.get(3) : "Trích xuất thực tế từ ảnh";
@@ -200,9 +252,9 @@ public class ScanScheduleActivity extends AppCompatActivity {
                 Task task2 = new Task();
                 task2.setTitle(title2 + " (Tiết 9-12)");
                 task2.setDescription(desc2);
-                task2.setTime("📅 Hôm nay | 🕒 15:00 - 17:30");
-                task2.setLocation("Phòng học thực tế");
-                task2.setProjectId(2);
+                task2.setTime("🕒 15:00 - 17:30");
+                task2.setLocation("H.A9-403");
+                task2.setProjectId(2); // Category Học tập
                 task2.setStatus("PENDING");
                 task2.setUserId(currentUserId);
                 scannedTasks.add(task2);
@@ -224,7 +276,7 @@ public class ScanScheduleActivity extends AppCompatActivity {
         Task task1 = new Task();
         task1.setTitle("Thực hành Lập trình & Phát triển di động (Tiết 1-3)");
         task1.setDescription("Phòng máy tính 13/H • Giảng viên: Trần Thị Huệ");
-        task1.setTime("📅 Hôm nay | 🕒 07:00 - 09:30");
+        task1.setTime("🕒 07:00 - 09:30");
         task1.setLocation("PMT 13/H");
         task1.setProjectId(2);
         task1.setStatus("PENDING");
@@ -234,7 +286,7 @@ public class ScanScheduleActivity extends AppCompatActivity {
         Task task2 = new Task();
         task2.setTitle("Hệ điều hành nhúng (Tiết 9-12)");
         task2.setDescription("Phòng học H.A9-403 • Giảng viên: Ngô Quang Trí");
-        task2.setTime("📅 Hôm nay | 🕒 15:00 - 17:30");
+        task2.setTime("🕒 15:00 - 17:30");
         task2.setLocation("H.A9-403");
         task2.setProjectId(2);
         task2.setStatus("PENDING");
@@ -256,6 +308,43 @@ public class ScanScheduleActivity extends AppCompatActivity {
             return;
         }
 
+        String pStart = edtStartDate != null ? edtStartDate.getText().toString().trim() : "";
+        String pEnd = edtEndDate != null ? edtEndDate.getText().toString().trim() : "";
+
+        Calendar startCal = Calendar.getInstance();
+        Calendar endCal = Calendar.getInstance();
+
+        SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        try {
+            if (!pStart.isEmpty()) startCal.setTime(sdfDate.parse(pStart));
+            if (!pEnd.isEmpty()) endCal.setTime(sdfDate.parse(pEnd));
+        } catch (Exception ignored) {}
+
+        // Sinh các buổi học lặp hằng ngày/hàng tuần cho toàn bộ học kỳ từ pStart đến pEnd
+        List<Task> recurringTasks = new ArrayList<>();
+
+        for (Task baseTask : scannedTasks) {
+            Calendar loopCal = (Calendar) startCal.clone();
+
+            while (!loopCal.after(endCal)) {
+                String dateStr = sdfDate.format(loopCal.getTime());
+
+                Task newTask = new Task();
+                newTask.setTitle(baseTask.getTitle());
+                newTask.setDescription(baseTask.getDescription());
+                newTask.setTime("📅 " + dateStr + " | " + baseTask.getTime());
+                newTask.setLocation(baseTask.getLocation());
+                newTask.setProjectId(2); // Category "Học tập"
+                newTask.setStatus("PENDING");
+                newTask.setUserId(currentUserId);
+
+                recurringTasks.add(newTask);
+
+                // Lặp theo tuần (cách 7 ngày) cho lịch học môn này
+                loopCal.add(Calendar.DAY_OF_MONTH, 7);
+            }
+        }
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://10.0.2.2:8080/api/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -263,48 +352,37 @@ public class ScanScheduleActivity extends AppCompatActivity {
         ApiService apiService = retrofit.create(ApiService.class);
 
         btnImportSchedule.setEnabled(false);
-        btnImportSchedule.setText("Đang đồng bộ...");
+        btnImportSchedule.setText("Đang đồng bộ lịch học...");
 
-        // Đồng bộ môn 1
-        Task t1 = scannedTasks.get(0);
-        t1.setUserId(currentUserId);
+        final int totalRecurring = recurringTasks.size();
+        final int[] completedCount = new int[]{0};
 
-        apiService.addTask(t1).enqueue(new Callback<Task>() {
-            @Override
-            public void onResponse(Call<Task> call, Response<Task> response) {
-                if (scannedTasks.size() > 1) {
-                    Task t2 = scannedTasks.get(1);
-                    t2.setUserId(currentUserId);
-                    apiService.addTask(t2).enqueue(new Callback<Task>() {
-                        @Override
-                        public void onResponse(Call<Task> call2, Response<Task> response2) {
-                            finishAndReturn();
-                        }
-
-                        @Override
-                        public void onFailure(Call<Task> call2, Throwable t) {
-                            finishAndReturn();
-                        }
-                    });
-                } else {
-                    finishAndReturn();
+        for (Task rTask : recurringTasks) {
+            apiService.addTask(rTask).enqueue(new Callback<Task>() {
+                @Override
+                public void onResponse(Call<Task> call, Response<Task> response) {
+                    checkAndFinishScheduleImport(completedCount, totalRecurring, pStart, pEnd);
                 }
-            }
 
-            @Override
-            public void onFailure(Call<Task> call, Throwable t) {
-                btnImportSchedule.setEnabled(true);
-                btnImportSchedule.setText("✔ Đồng bộ tất cả vào Lịch trình & Công việc");
-                Toast.makeText(ScanScheduleActivity.this, "Lỗi kết nối khi đồng bộ!", Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onFailure(Call<Task> call, Throwable t) {
+                    checkAndFinishScheduleImport(completedCount, totalRecurring, pStart, pEnd);
+                }
+            });
+        }
     }
 
-    private void finishAndReturn() {
-        Toast.makeText(ScanScheduleActivity.this, "✔ Đã đồng bộ lịch học thực tế vào Lịch trình!", Toast.LENGTH_LONG).show();
-        Intent intent = new Intent(ScanScheduleActivity.this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
+    private synchronized void checkAndFinishScheduleImport(int[] completedCount, int totalRecurring, String pStart, String pEnd) {
+        completedCount[0]++;
+        if (completedCount[0] >= totalRecurring) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Toast.makeText(ScanScheduleActivity.this, "✔ Đã tự động lặp " + totalRecurring + " buổi học hằng ngày từ " + pStart + " đến " + pEnd + "!", Toast.LENGTH_LONG).show();
+
+                Intent intent = new Intent(ScanScheduleActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            });
+        }
     }
 }
