@@ -106,6 +106,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Áp dụng Cấu hình Chế độ Tối (Dark Mode) toàn hệ thống khi khởi động
+        SharedPreferences appPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        boolean isDarkMode = appPref.getBoolean("DARK_MODE_ENABLED", false);
+        if (isDarkMode) {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES);
+        } else {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
+        }
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 

@@ -32,7 +32,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="Cài đặt"
+                android:text="Cài đặt &amp; Hồ sơ"
                 android:textColor="#222222"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -406,10 +406,7 @@
             android:textColor="#D32F2F"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:drawableStart="@android:drawable/ic_lock_power_off"
-            android:drawableTint="#D32F2F"
-            android:paddingStart="120dp"
-            android:paddingEnd="120dp"/>
+            android:paddingHorizontal="24dp"/>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

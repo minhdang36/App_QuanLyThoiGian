@@ -106,12 +106,19 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         }
 
         Switch switchDarkMode = findViewById(R.id.switchDarkMode);
+        SharedPreferences appPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
+        boolean isDarkMode = appPref.getBoolean("DARK_MODE_ENABLED", false);
+
         if (switchDarkMode != null) {
+            switchDarkMode.setChecked(isDarkMode);
             switchDarkMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                appPref.edit().putBoolean("DARK_MODE_ENABLED", isChecked).apply();
                 if (isChecked) {
-                    Toast.makeText(this, "Đã bật chế độ tối!", Toast.LENGTH_SHORT).show();
+                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES);
+                    Toast.makeText(this, "🌙 Đã bật Chế độ tối (Dark Mode)!", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Đã tắt chế độ tối!", Toast.LENGTH_SHORT).show();
+                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
+                    Toast.makeText(this, "☀️ Đã bật Chế độ sáng (Light Mode)!", Toast.LENGTH_SHORT).show();
                 }
             });
         }
