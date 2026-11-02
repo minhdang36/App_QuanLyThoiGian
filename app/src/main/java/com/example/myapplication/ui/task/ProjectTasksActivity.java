@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.task;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -153,7 +154,6 @@ public class ProjectTasksActivity extends AppCompatActivity {
         String searchQuery = edtSearch != null ? edtSearch.getText().toString().toLowerCase().trim() : "";
         phaseGroupList.clear();
 
-        // Sử dụng LinkedHashMap để nhóm các công việc theo Tên Giai Đoạn (Phase)
         Map<String, PhaseGroup> mapPhases = new LinkedHashMap<>();
 
         for (Task task : fullTaskList) {
@@ -173,7 +173,6 @@ public class ProjectTasksActivity extends AppCompatActivity {
             }
 
             if (matchesSearch && matchesFilter) {
-                // Tách tên Giai đoạn WBS từ tiêu đề công việc [Giai đoạn ...]
                 String rawTitle = task.getTitle() != null ? task.getTitle() : "Công việc";
                 String phaseName = "📂 Các công việc chung";
                 String cleanTitle = rawTitle;
@@ -184,7 +183,6 @@ public class ProjectTasksActivity extends AppCompatActivity {
                     cleanTitle = rawTitle.substring(endBracket + 1).trim();
                 }
 
-                // Tạo copy của Task với tiêu đề sạch sẽ
                 Task displayTask = new Task();
                 displayTask.setId(task.getId());
                 displayTask.setProjectId(task.getProjectId());
@@ -258,13 +256,25 @@ public class ProjectTasksActivity extends AppCompatActivity {
     }
 
     private void loadTasksForProject() {
+        SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        int currentUserId = sharedPref.getInt("USER_ID", -1);
+
+        if (currentUserId == -1) {
+            fullTaskList.clear();
+            updateOverviewStats();
+            applyFilterAndSearch();
+            return;
+        }
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://10.0.2.2:8080/api/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         ApiService apiService = retrofit.create(ApiService.class);
-        apiService.getAllTasks().enqueue(new Callback<List<Task>>() {
+
+        // Lọc nghiêm ngặt chỉ lấy các công việc thuộc sở hữu của User ID đang đăng nhập
+        apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
             @Override
             public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -283,7 +293,7 @@ public class ProjectTasksActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<Task>> call, Throwable t) {
-                Toast.makeText(ProjectTasksActivity.this, "Lỗi tải dữ liệu", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ProjectTasksActivity.this, "Lỗi tải dữ liệu công việc", Toast.LENGTH_SHORT).show();
             }
         });
     }
