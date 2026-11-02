@@ -1,7 +1,12 @@
 package com.example.myapplication.ui.auth;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -20,6 +25,9 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class SignUpActivity extends AppCompatActivity {
+
+    private TextView tvPasswordStrength;
+    private View viewStr1, viewStr2, viewStr3, viewStr4;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +53,8 @@ public class SignUpActivity extends AppCompatActivity {
         EditText etSignUpPassword = findViewById(R.id.etSignUpPassword);
         TextView btnSubmitSignUp = findViewById(R.id.btnSubmitSignUp);
 
+        setupPasswordStrengthWatcher(etSignUpPassword);
+
         if (btnSubmitSignUp != null) {
             btnSubmitSignUp.setOnClickListener(v -> {
                 String fullName = etFullName != null ? etFullName.getText().toString().trim() : "";
@@ -68,7 +78,6 @@ public class SignUpActivity extends AppCompatActivity {
 
                 ApiService apiService = retrofit.create(ApiService.class);
 
-                // Kiểm tra xem Email / Tên người dùng đã tồn tại trong CSDL chưa
                 btnSubmitSignUp.setEnabled(false);
                 btnSubmitSignUp.setText("Đang kiểm tra...");
 
@@ -107,9 +116,101 @@ public class SignUpActivity extends AppCompatActivity {
         }
     }
 
+    private void setupPasswordStrengthWatcher(EditText etPassword) {
+        tvPasswordStrength = findViewById(R.id.tvPasswordStrength);
+        viewStr1 = findViewById(R.id.viewStr1);
+        viewStr2 = findViewById(R.id.viewStr2);
+        viewStr3 = findViewById(R.id.viewStr3);
+        viewStr4 = findViewById(R.id.viewStr4);
+
+        if (etPassword == null) return;
+
+        etPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                evaluateStrength(s != null ? s.toString() : "");
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    private void evaluateStrength(String password) {
+        if (password.isEmpty()) {
+            if (tvPasswordStrength != null) {
+                tvPasswordStrength.setText("Chưa nhập");
+                tvPasswordStrength.setTextColor(Color.parseColor("#888888"));
+            }
+            setBarColors(0, "#E0E0E0");
+            return;
+        }
+
+        int score = 0;
+
+        // 1. Độ dài >= 6 ký tự (+1 điểm)
+        if (password.length() >= 6) score++;
+
+        // 2. Độ dài >= 8 ký tự hoặc chứa chữ hoa + chữ thường (+1 điểm)
+        if (password.length() >= 8 || (password.matches(".*[a-z].*") && password.matches(".*[A-Z].*"))) score++;
+
+        // 3. Chứa chữ số (0-9) (+1 điểm)
+        if (password.matches(".*[0-9].*")) score++;
+
+        // 4. Chứa ký tự đặc biệt (!@#$%^&*...) (+1 điểm)
+        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) score++;
+
+        if (score == 0) score = 1;
+
+        switch (score) {
+            case 1:
+                if (tvPasswordStrength != null) {
+                    tvPasswordStrength.setText("Yếu (Quá ngắn)");
+                    tvPasswordStrength.setTextColor(Color.parseColor("#EF4444"));
+                }
+                setBarColors(1, "#EF4444");
+                break;
+            case 2:
+                if (tvPasswordStrength != null) {
+                    tvPasswordStrength.setText("Trung bình");
+                    tvPasswordStrength.setTextColor(Color.parseColor("#F59E0B"));
+                }
+                setBarColors(2, "#F59E0B");
+                break;
+            case 3:
+                if (tvPasswordStrength != null) {
+                    tvPasswordStrength.setText("Khá mạnh");
+                    tvPasswordStrength.setTextColor(Color.parseColor("#3B82F6"));
+                }
+                setBarColors(3, "#3B82F6");
+                break;
+            case 4:
+            default:
+                if (tvPasswordStrength != null) {
+                    tvPasswordStrength.setText("Rất mạnh (Bảo mật 100%)");
+                    tvPasswordStrength.setTextColor(Color.parseColor("#10B981"));
+                }
+                setBarColors(4, "#10B981");
+                break;
+        }
+    }
+
+    private void setBarColors(int activeCount, String activeHexColor) {
+        int activeColor = Color.parseColor(activeHexColor);
+        int defaultColor = Color.parseColor("#E0E0E0");
+
+        if (viewStr1 != null) viewStr1.setBackgroundTintList(ColorStateList.valueOf(activeCount >= 1 ? activeColor : defaultColor));
+        if (viewStr2 != null) viewStr2.setBackgroundTintList(ColorStateList.valueOf(activeCount >= 2 ? activeColor : defaultColor));
+        if (viewStr3 != null) viewStr3.setBackgroundTintList(ColorStateList.valueOf(activeCount >= 3 ? activeColor : defaultColor));
+        if (viewStr4 != null) viewStr4.setBackgroundTintList(ColorStateList.valueOf(activeCount >= 4 ? activeColor : defaultColor));
+    }
+
     private void handleCheckResult(ApiService apiService, User newUser, boolean isDuplicate, TextView btnSubmitSignUp) {
         btnSubmitSignUp.setEnabled(true);
-        btnSubmitSignUp.setText("Tạo tài khoản →");
+        btnSubmitSignUp.setText("Đăng ký →");
 
         if (isDuplicate) {
             Toast.makeText(SignUpActivity.this, "⚠️ Email hoặc Tên người dùng này đã tồn tại! Vui lòng chọn tên khác.", Toast.LENGTH_LONG).show();
