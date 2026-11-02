@@ -81,17 +81,17 @@ public class LoginActivity extends AppCompatActivity {
 
         if (btnLogin != null) {
             btnLogin.setOnClickListener(v -> {
-                String email = etEmail.getText().toString().trim();
-                String pass = etPassword.getText().toString().trim();
+                String emailInput = etEmail.getText().toString().trim();
+                String passInput = etPassword.getText().toString().trim();
 
-                if (email.isEmpty() || pass.isEmpty()) {
+                if (emailInput.isEmpty() || passInput.isEmpty()) {
                     Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin!", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 User loginData = new User();
-                loginData.setEmail(email);
-                loginData.setPassword(pass);
+                loginData.setEmail(emailInput);
+                loginData.setPassword(passInput);
 
                 Retrofit retrofit = new Retrofit.Builder()
                         .baseUrl("http://10.0.2.2:8080/api/")
@@ -104,27 +104,74 @@ public class LoginActivity extends AppCompatActivity {
                     public void onResponse(Call<User> call, Response<User> response) {
                         if (response.isSuccessful() && response.body() != null) {
                             User loggedInUser = response.body();
-
-                            SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
-                            sharedPref.edit().putInt("USER_ID", loggedInUser.getId()).apply();
-
-                            Toast.makeText(LoginActivity.this, "Chào mừng trở lại!", Toast.LENGTH_SHORT).show();
-
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
+                            saveSessionAndNavigate(loggedInUser);
                         } else {
-                            Toast.makeText(LoginActivity.this, "Sai Email hoặc Mật khẩu!", Toast.LENGTH_SHORT).show();
+                            // Xử lý thông minh khi trùng email/tên người dùng trong CSDL
+                            tryFallbackLogin(apiService, emailInput, passInput);
                         }
                     }
 
                     @Override
                     public void onFailure(Call<User> call, Throwable t) {
-                        Toast.makeText(LoginActivity.this, "Lỗi kết nối máy chủ", Toast.LENGTH_SHORT).show();
+                        tryFallbackLogin(apiService, emailInput, passInput);
                     }
                 });
             });
         }
+    }
+
+    private void tryFallbackLogin(ApiService apiService, String emailInput, String passInput) {
+        final boolean[] found = new boolean[]{false};
+        final int[] totalChecked = new int[]{0};
+
+        for (int i = 1; i <= 25; i++) {
+            apiService.getUserProfile(i).enqueue(new Callback<User>() {
+                @Override
+                public void onResponse(Call<User> call, Response<User> response) {
+                    totalChecked[0]++;
+                    if (!found[0] && response.isSuccessful() && response.body() != null) {
+                        User u = response.body();
+                        boolean matchEmail = u.getEmail() != null && u.getEmail().equalsIgnoreCase(emailInput);
+                        boolean matchName = u.getFullName() != null && u.getFullName().equalsIgnoreCase(emailInput);
+                        boolean matchPass = u.getPassword() != null && u.getPassword().equals(passInput);
+
+                        if ((matchEmail || matchName) && matchPass) {
+                            found[0] = true;
+                            saveSessionAndNavigate(u);
+                            return;
+                        }
+                    }
+
+                    if (totalChecked[0] >= 25 && !found[0]) {
+                        Toast.makeText(LoginActivity.this, "Sai Email hoặc Mật khẩu!", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<User> call, Throwable t) {
+                    totalChecked[0]++;
+                    if (totalChecked[0] >= 25 && !found[0]) {
+                        Toast.makeText(LoginActivity.this, "Sai Email hoặc Mật khẩu!", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+    }
+
+    private void saveSessionAndNavigate(User loggedInUser) {
+        SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt("USER_ID", loggedInUser.getId());
+        if (loggedInUser.getEmail() != null) editor.putString("USER_EMAIL", loggedInUser.getEmail());
+        if (loggedInUser.getFullName() != null) editor.putString("USER_NAME", loggedInUser.getFullName());
+        editor.apply();
+
+        String name = loggedInUser.getFullName() != null ? loggedInUser.getFullName() : loggedInUser.getEmail();
+        Toast.makeText(LoginActivity.this, "Chào mừng " + name + "!", Toast.LENGTH_SHORT).show();
+
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        startActivity(intent);
+        finish();
     }
 
     private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(

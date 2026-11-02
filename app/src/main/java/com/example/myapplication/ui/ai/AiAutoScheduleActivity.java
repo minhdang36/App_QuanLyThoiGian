@@ -76,7 +76,6 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             timelineAdapter.setOnTaskStatusChangeListener(this::recalculateEfficiencyOnly);
             rvTimeline.setAdapter(timelineAdapter);
 
-            // Tích hợp Kéo & Thả (Drag & Drop) để xếp lại vị trí các task thoải mái
             ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(
                     ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
                 @Override
@@ -261,8 +260,11 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
                 if (isTodaySelected) isMatch = true;
             } else if (timeStr.contains("Hôm nay")) {
                 if (isTodaySelected) isMatch = true;
-            } else if (timeStr.contains(String.valueOf(dayNumber))) {
-                isMatch = true;
+            } else {
+                int parsedDay = parseDayOfMonthFromTimeStr(timeStr);
+                if (parsedDay == dayNumber) {
+                    isMatch = true;
+                }
             }
 
             if (isMatch) {
@@ -314,6 +316,38 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         if (tvPeakFocus != null) {
             tvPeakFocus.setText("● Đỉnh năng lượng: 09:30 - 11:30");
         }
+    }
+
+    private int parseDayOfMonthFromTimeStr(String timeStr) {
+        if (timeStr == null || timeStr.trim().isEmpty()) return -1;
+
+        try {
+            // Định dạng 1: YYYY-MM-DD (VD: 2026-11-02 hay 2026-10-19)
+            if (timeStr.contains("-")) {
+                int firstDash = timeStr.indexOf("-");
+                int secondDash = timeStr.indexOf("-", firstDash + 1);
+                if (firstDash != -1 && secondDash != -1) {
+                    String dayPart = timeStr.substring(secondDash + 1);
+                    String cleanDigits = dayPart.replaceAll("[^0-9]", " ").trim();
+                    String[] parts = cleanDigits.split("\\s+");
+                    if (parts.length > 0 && !parts[0].isEmpty()) {
+                        return Integer.parseInt(parts[0]);
+                    }
+                }
+            }
+
+            // Định dạng 2: DD/MM/YYYY hoặc DD/MM (VD: 02/11/2026 hay 19/10)
+            if (timeStr.contains("/")) {
+                int slashIdx = timeStr.indexOf("/");
+                String beforeSlash = timeStr.substring(Math.max(0, slashIdx - 2), slashIdx);
+                String cleanDigits = beforeSlash.replaceAll("[^0-9]", "").trim();
+                if (!cleanDigits.isEmpty()) {
+                    return Integer.parseInt(cleanDigits);
+                }
+            }
+        } catch (Exception ignored) {}
+
+        return -1;
     }
 
     private int getPriorityLevel(Task t) {
