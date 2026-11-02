@@ -40,13 +40,14 @@
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- CONTENT SCROLLVIEW -->
-    <ScrollView
+    <!-- UNIFIED SINGLE CONTENT NESTEDSCROLLVIEW -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:paddingHorizontal="20dp"
         android:paddingBottom="40dp"
+        android:scrollbars="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerLayout">
 
@@ -331,15 +332,17 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <!-- RECYCLERVIEW DÒNG THỜI GIAN THỰC TẾ -->
+            <!-- RECYCLERVIEW DÒNG THỜI GIAN THỰC TẾ (TẮT SCROLL RỜI) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTimeline"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:nestedScrollingEnabled="false" />
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never"
+                android:scrollbars="none" />
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
