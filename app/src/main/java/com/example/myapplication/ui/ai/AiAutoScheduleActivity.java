@@ -114,7 +114,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         if (btnReOptimize != null) {
             btnReOptimize.setOnClickListener(v -> {
                 filterAndOptimizeForDay(selectedDayNumber);
-                Toast.makeText(this, "⚡ AI đã sắp xếp Ưu tiên 1 ➔ Ưu tiên 2 ➔ Ưu tiên 3 cho ngày " + selectedDayNumber + "!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "⚡ AI đã sắp xếp tối ưu công việc cho ngày " + selectedDayNumber + "!", Toast.LENGTH_SHORT).show();
             });
         }
     }
@@ -246,24 +246,47 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         displayedScheduleTasks.clear();
 
         Calendar todayCal = Calendar.getInstance();
-        int currentMonth = todayCal.get(Calendar.MONTH) + 1;
-        boolean isTodaySelected = (dayNumber == todayCal.get(Calendar.DAY_OF_MONTH));
+        int selectedDay = dayNumber;
+        int selectedMonth = todayCal.get(Calendar.MONTH) + 1;
+        int selectedYear = todayCal.get(Calendar.YEAR);
+
+        boolean isSelectedDayToday = (selectedDay == todayCal.get(Calendar.DAY_OF_MONTH) &&
+                selectedMonth == (todayCal.get(Calendar.MONTH) + 1));
 
         int fixedCount = 0;
         int aiScheduledCount = 0;
 
+        String[] defaultTimeSlots = new String[]{
+                "🕒 08:00 - 09:30",
+                "🕒 10:00 - 11:30",
+                "🕒 13:30 - 15:00",
+                "🕒 15:30 - 17:00",
+                "🕒 19:00 - 20:30",
+                "🕒 20:30 - 22:00"
+        };
+
         for (Task t : allUserTasks) {
-            String timeStr = t.getTime();
             boolean isMatch = false;
+            String timeStr = t.getTime();
 
             if (timeStr == null || timeStr.trim().isEmpty()) {
-                if (isTodaySelected) isMatch = true;
-            } else if (timeStr.contains("Hôm nay")) {
-                if (isTodaySelected) isMatch = true;
-            } else {
-                int parsedDay = parseDayOfMonthFromTimeStr(timeStr);
-                if (parsedDay == dayNumber) {
+                if (isSelectedDayToday) {
                     isMatch = true;
+                }
+            } else {
+                if (timeStr.contains("Hôm nay") && isSelectedDayToday) {
+                    isMatch = true;
+                }
+
+                List<int[]> dates = parseDatesFromTimeStr(timeStr, selectedYear);
+                for (int[] d : dates) {
+                    int day = d[0];
+                    int month = d[1];
+                    int year = d[2];
+                    if (day == selectedDay && month == selectedMonth && (year == selectedYear || year == 0)) {
+                        isMatch = true;
+                        break;
+                    }
                 }
             }
 
@@ -274,16 +297,17 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
                 if (loc.contains("PMT") || loc.contains("H.A9") || title.contains("Tiết") || t.getProjectId() == 2) {
                     fixedCount++;
                 } else {
+                    String slot = defaultTimeSlots[aiScheduledCount % defaultTimeSlots.length];
                     aiScheduledCount++;
                     if (t.getTime() == null || !t.getTime().contains("🕒")) {
-                        t.setTime("📅 Ngày " + dayNumber + "/" + currentMonth + " | 🕒 10:00 - 12:00 (Giờ trống)");
+                        t.setTime("📅 Ngày " + dayNumber + "/" + selectedMonth + " | " + slot);
                     }
                 }
                 displayedScheduleTasks.add(t);
             }
         }
 
-        // AI SẮP XẾP ƯU TIÊN 1 ➔ ƯU TIÊN 2 ➔ ƯU TIÊN 3
+        // SẮP XẾP TOÀN BỘ CÔNG VIỆC THEO ƯU TIÊN (ƯU TIÊN 1 ➔ ƯU TIÊN 2 ➔ ƯU TIÊN 3)
         Collections.sort(displayedScheduleTasks, (t1, t2) -> {
             int p1 = getPriorityLevel(t1);
             int p2 = getPriorityLevel(t2);
@@ -318,36 +342,58 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         }
     }
 
-    private int parseDayOfMonthFromTimeStr(String timeStr) {
-        if (timeStr == null || timeStr.trim().isEmpty()) return -1;
+    private List<int[]> parseDatesFromTimeStr(String timeStr, int realTodayYear) {
+        List<int[]> dates = new ArrayList<>();
+        if (timeStr == null || timeStr.trim().isEmpty()) return dates;
 
         try {
-            // Định dạng 1: YYYY-MM-DD (VD: 2026-11-02 hay 2026-10-19)
-            if (timeStr.contains("-")) {
-                int firstDash = timeStr.indexOf("-");
-                int secondDash = timeStr.indexOf("-", firstDash + 1);
-                if (firstDash != -1 && secondDash != -1) {
-                    String dayPart = timeStr.substring(secondDash + 1);
-                    String cleanDigits = dayPart.replaceAll("[^0-9]", " ").trim();
-                    String[] parts = cleanDigits.split("\\s+");
-                    if (parts.length > 0 && !parts[0].isEmpty()) {
-                        return Integer.parseInt(parts[0]);
-                    }
-                }
-            }
+            String cleanTime = timeStr.replaceAll("[^0-9/-]", " ");
+            String[] parts = cleanTime.trim().split("\\s+");
 
-            // Định dạng 2: DD/MM/YYYY hoặc DD/MM (VD: 02/11/2026 hay 19/10)
-            if (timeStr.contains("/")) {
-                int slashIdx = timeStr.indexOf("/");
-                String beforeSlash = timeStr.substring(Math.max(0, slashIdx - 2), slashIdx);
-                String cleanDigits = beforeSlash.replaceAll("[^0-9]", "").trim();
-                if (!cleanDigits.isEmpty()) {
-                    return Integer.parseInt(cleanDigits);
+            for (String part : parts) {
+                if (part.contains("/")) {
+                    String[] dateParts = part.split("/");
+                    if (dateParts.length >= 2) {
+                        int p1 = Integer.parseInt(dateParts[0].trim());
+                        int p2 = Integer.parseInt(dateParts[1].trim());
+                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
+
+                        int day, month, year;
+                        if (p1 > 1000) {
+                            year = p1;
+                            month = p2;
+                            day = p3;
+                        } else {
+                            day = p1;
+                            month = p2;
+                            year = p3;
+                        }
+                        dates.add(new int[]{day, month, year});
+                    }
+                } else if (part.contains("-")) {
+                    String[] dateParts = part.split("-");
+                    if (dateParts.length >= 2) {
+                        int p1 = Integer.parseInt(dateParts[0].trim());
+                        int p2 = Integer.parseInt(dateParts[1].trim());
+                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
+
+                        int day, month, year;
+                        if (p1 > 1000) {
+                            year = p1;
+                            month = p2;
+                            day = p3;
+                        } else {
+                            day = p1;
+                            month = p2;
+                            year = p3;
+                        }
+                        dates.add(new int[]{day, month, year});
+                    }
                 }
             }
         } catch (Exception ignored) {}
 
-        return -1;
+        return dates;
     }
 
     private int getPriorityLevel(Task t) {
