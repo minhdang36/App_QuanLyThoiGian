@@ -98,6 +98,11 @@ public class PhaseDetailActivity extends AppCompatActivity {
             tvPhaseTaskCount.setText("● " + taskList.size() + " Công việc");
         }
 
+        // Tự động khởi tạo danh sách đầu việc phân tách riêng biệt cho từng task ngay ban đầu
+        for (int i = 0; i < taskList.size(); i++) {
+            taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
+        }
+
         renderTaskCards();
 
         if (btnAiDecomposeTasks != null) {
@@ -171,7 +176,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 for (String st : subTasks) {
                     CheckBox checkBox = new CheckBox(this);
                     checkBox.setText(st);
-                    checkBox.setChecked(true); // Tích chọn sẵn cho người dùng chọn nhanh
+                    checkBox.setChecked(true);
                     checkBox.setTextColor(0xFF333333);
                     checkBox.setTextSize(13);
                     checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
@@ -179,7 +184,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     layoutChecklist.addView(checkBox);
                 }
 
-                // NÚT THÊM CÁC ĐẦU VIỆC ĐÃ TÍCH VÀO NHIỆM VỤ PHỤ CỦA TASK
                 Button btnAddSelected = new Button(this);
                 btnAddSelected.setText("➕ Thêm các đầu việc đã chọn vào Nhiệm vụ phụ");
                 btnAddSelected.setTextColor(0xFFFFFFFF);
@@ -339,7 +343,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 JSONObject sysInstruction = new JSONObject();
                 JSONArray sysParts = new JSONArray();
                 JSONObject sysPart = new JSONObject();
-                sysPart.put("text", "Bạn là một Chuyên gia Quản lý Dự án & Trợ lý Học thuật Cá nhân cấp cao. Nhiệm vụ của bạn là phân tách các công việc thuộc " + phaseName + " thành danh sách kiểm tra (Checklist / Action Items) chi tiết, thực tế, bám sát 100% ngữ cảnh chủ đề của dự án.\n" +
+                sysPart.put("text", "Bạn là một Chuyên gia Quản lý Dự án & Trợ lý Học thuật Cá nhân cấp cao. Nhiệm vụ của bạn là phân tách các công việc thuộc " + phaseName + " thành danh sách kiểm tra (Checklist / Action Items) chi tiết, thực tế, BÁM SÁT 100% THEO TỪNG TIÊU ĐỀ TASK KHÁC NHAU. MỖI TASK PHẢI CÓ CÁC ĐẦU VIỆC KHÁC NHAU, KHÔNG ĐƯỢC LẶP LẠI GIỐNG NHAU.\n" +
                         "RÀNG BUỘC ĐỊNH DẠNG TRẢ VỀ:\n" +
                         "Trả về DUY NHẤT một JSON Array chứa thông tin phân tách của tất cả các task. Mỗi JSON Object gồm:\n" +
                         "- \"taskIndex\": Chỉ số vị trí của task (0, 1, 2...)\n" +
@@ -354,7 +358,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
                 StringBuilder sbTasks = new StringBuilder();
                 for (int i = 0; i < taskList.size(); i++) {
-                    sbTasks.append("Task ").append(i).append(": ").append(taskList.get(i).getTitle()).append("\nMô tả: ").append(taskList.get(i).getDescription()).append("\n\n");
+                    sbTasks.append("Task ").append(i).append(" (TIÊU ĐỀ: ").append(taskList.get(i).getTitle()).append("):\nMô tả: ").append(taskList.get(i).getDescription()).append("\n\n");
                 }
 
                 JSONObject textPart = new JSONObject();
@@ -365,11 +369,10 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 requestBody.put("contents", contents);
 
                 JSONObject genConfig = new JSONObject();
-                genConfig.put("temperature", 0.3);
+                genConfig.put("temperature", 0.4);
                 genConfig.put("responseMimeType", "application/json");
                 requestBody.put("generationConfig", genConfig);
 
-                // Danh sách URL endpoint nhanh và trực tiếp nhất (Gemini 1.5 Flash)
                 String[] targetUrls = new String[]{
                         "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey,
                         "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + apiKey,
@@ -444,9 +447,8 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 }
             } catch (Exception ignored) {}
 
-            // Nếu API bị Timeout hoặc bận, tự động kích hoạt bộ tạo danh sách đầu việc CHUẨN XÁC NGUYÊN BẢN THÔNG MINH BÁM SÁT THEO ĐÚNG TÊN CÔNG VIỆC CỦA NGƯỜI DÙNG
-            if (taskSubTasksMap.isEmpty()) {
-                for (int i = 0; i < taskList.size(); i++) {
+            for (int i = 0; i < taskList.size(); i++) {
+                if (!taskSubTasksMap.containsKey(i) || taskSubTasksMap.get(i) == null || taskSubTasksMap.get(i).isEmpty()) {
                     taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
                 }
             }
@@ -455,70 +457,93 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 btnAiDecomposeTasks.setEnabled(true);
                 btnAiDecomposeTasks.setText("⚡ AI Phân Tách Chi Tiết Đầu Việc Cần Làm");
                 renderTaskCards();
-                Toast.makeText(PhaseDetailActivity.this, "✨ AI đã phân tách các đầu việc chi tiết! Tích chọn và bấm 'Thêm vào Nhiệm vụ phụ'.", Toast.LENGTH_LONG).show();
+                Toast.makeText(PhaseDetailActivity.this, "✨ AI đã phân tách các đầu việc riêng biệt cho từng task! Tích chọn và bấm 'Thêm vào Nhiệm vụ phụ'.", Toast.LENGTH_LONG).show();
             });
         }).start();
     }
 
     private List<String> generateContextualSubTasks(Task task) {
         List<String> list = new ArrayList<>();
-        String title = task.getTitle() != null ? task.getTitle().toLowerCase() : "";
-        String desc = task.getDescription() != null ? task.getDescription().toLowerCase() : "";
-        String fullText = title + " " + desc;
+        String rawTitle = task.getTitle() != null ? task.getTitle() : "Công việc";
+        String cleanTitle = rawTitle;
 
-        if (fullText.contains("topik") || fullText.contains("tiếng hàn")) {
-            if (fullText.contains("cấu trúc") || fullText.contains("đề thi") || fullText.contains("điểm yếu")) {
-                list.add("Giải đề thi thử TOPIK II (Nghe, Đọc) nghiêm túc trong thời gian thực để đánh giá chính xác tốc độ và áp lực phòng thi.");
-                list.add("Chấm điểm và phân loại chi tiết các lỗi sai (do từ vựng, ngữ pháp hay kỹ năng làm bài) vào bảng thống kê Excel/Notion.");
-                list.add("Phân tích cấu trúc 4 câu hỏi phần Viết (51-54) để xác định các dạng bài đang gây khó khăn nhất (biểu đồ, nghị luận xã hội).");
-                list.add("Xác lập mục tiêu điểm số chi tiết cho từng kỹ năng dựa trên kết quả thi thử để tối ưu hóa lộ trình ôn luyện.");
-            } else if (fullText.contains("từ vựng") || fullText.contains("thành ngữ")) {
-                list.add("Sưu tầm 100 từ vựng học thuật Hán Hàn (한자어) thường xuất hiện trong câu 32-50 bài thi Đọc TOPIK II.");
-                list.add("Lập danh sách 30 tục ngữ và thành ngữ 4 chữ (사자성어) phổ biến kèm ví dụ minh họa ngữ cảnh sử dụng.");
-                list.add("Sử dụng phương pháp Spaced Repetition (Anki/Quizlet) để ôn tập từ vựng 20 phút mỗi ngày.");
+        if (rawTitle.startsWith("[") && rawTitle.contains("]")) {
+            cleanTitle = rawTitle.substring(rawTitle.indexOf("]") + 1).trim();
+        }
+
+        String fullText = (rawTitle + " " + (task.getDescription() != null ? task.getDescription() : "")).toLowerCase();
+
+        // 1. Tiếng Trung / HSK / Hán ngữ
+        if (fullText.contains("tiếng trung") || fullText.contains("hsk") || fullText.contains("hán ngữ")) {
+            if (fullText.contains("từ vựng") || fullText.contains("ghi nhớ") || fullText.contains("500 từ") || fullText.contains("từ mới")) {
+                list.add("Sưu tầm và phân loại 50 từ vựng HSK6 theo chủ đề cho: " + cleanTitle);
+                list.add("Tra cứu Pinyin, âm Hán Việt, cách viết nét bút và bộ thủ của các từ mới.");
+                list.add("Tạo bộ thẻ ghi nhớ Spaced Repetition (Anki/Quizlet) để tự ôn tập 20 phút mỗi ngày.");
+                list.add("Đặt câu ví dụ thực tế cho 10 từ vựng khó nhất để ghi nhớ ngữ cảnh sâu.");
+            } else if (fullText.contains("ngữ pháp") || fullText.contains("cấu trúc") || fullText.contains("phân tích")) {
+                list.add("Phân tích 10 điểm ngữ pháp HSK6 cao cấp xuất hiện trong bài thi cho: " + cleanTitle);
+                list.add("Soạn 5 câu ví dụ áp dụng thực tế cho từng cấu trúc ngữ pháp vừa học.");
+                list.add("Làm bài tập ứng dụng ngữ pháp HSK6 và tự chấm điểm phân tích lỗi sai.");
+            } else if (fullText.contains("đề thi") || fullText.contains("thi thử") || fullText.contains("test") || fullText.contains("luyện")) {
+                list.add("Giải 1 đề thi thử HSK6 phần Nghe / Đọc nghiêm túc trong thời gian thực.");
+                list.add("Chấm điểm và ghi chép chi tiết danh sách các câu làm sai vào sổ tay.");
+                list.add("Dịch lại các đoạn văn đọc hiểu HSK6 dài để bổ sung vốn từ học thuật.");
             } else {
-                list.add("Luyện nghe các đoạn tin tức KBS/YTN News 15 phút và tóm tắt lại nội dung chính bằng tiếng Hàn.");
-                list.add("Viết 1 đoạn văn 200 chữ áp dụng các biểu hiện ngữ pháp cao cấp TOPIK II (VD: -기 MANG-I-DA, -EO DUMEU-RO).");
+                list.add("Chuẩn bị giáo trình và tài liệu luyện tập chuyên sâu cho: " + cleanTitle);
+                list.add("Luyện nghe tin tức Tiếng Trung (CCTV/RFI) 15 phút mỗi ngày để tăng phản xạ.");
+                list.add("Luyện viết đoạn văn 80 chữ HSK6 áp dụng các từ vựng và ngữ pháp đã học.");
+            }
+        }
+        // 2. TOPIK / Tiếng Hàn
+        else if (fullText.contains("topik") || fullText.contains("tiếng hàn")) {
+            if (fullText.contains("từ vựng") || fullText.contains("thành ngữ")) {
+                list.add("Sưu tầm 100 từ vựng học thuật Hán Hàn (한자어) thường xuất hiện trong TOPIK II.");
+                list.add("Lập danh sách 30 tục ngữ và thành ngữ 4 chữ (사자성어) kèm ví dụ ngữ cảnh.");
+                list.add("Sử dụng phương pháp Flashcard Anki để ôn tập từ vựng TOPIK II hằng ngày.");
+            } else if (fullText.contains("cấu trúc") || fullText.contains("đề thi") || fullText.contains("test")) {
+                list.add("Giải đề thi thử TOPIK II nghiêm túc trong thời gian thực để đánh giá tốc độ.");
+                list.add("Chấm điểm và phân loại chi tiết các lỗi sai vào bảng thống kê.");
+                list.add("Phân tích cấu trúc 4 câu hỏi phần Viết (51-54) TOPIK II.");
+            } else {
+                list.add("Luyện nghe các đoạn tin tức KBS/YTN News 15 phút và tóm tắt nội dung.");
+                list.add("Viết 1 đoạn văn 200 chữ áp dụng các biểu hiện ngữ pháp cao cấp TOPIK II.");
                 list.add("Rà soát bảng từ vựng đã học và kiểm tra lại phản xạ dịch câu.");
             }
-        } else if (fullText.contains("tiếng trung") || fullText.contains("hsk") || fullText.contains("ngôn ngữ")) {
-            if (fullText.contains("mục tiêu") || fullText.contains("phạm vi") || fullText.contains("kế hoạch")) {
-                list.add("Liệt kê 50 từ vựng và mẫu câu giao tiếp Tiếng Trung chủ đề dự án.");
-                list.add("Soạn bảng mục tiêu chứng chỉ (HSK/TOCFL) và kế hoạch luyện tập hàng ngày.");
-                list.add("Luyện phát âm Pinyin và ghi âm kiểm tra phản xạ với giáo viên/ứng dụng.");
+        }
+        // 3. TOEIC / Tiếng Anh
+        else if (fullText.contains("toeic") || fullText.contains("tiếng anh") || fullText.contains("english")) {
+            if (fullText.contains("từ vựng") || fullText.contains("part")) {
+                list.add("Học 30 từ vựng TOEIC chuyên ngành kinh tế/thương mại theo từng Part.");
+                list.add("Luyện nghe Part 1 & Part 2 TOEIC với tốc độ 1.2x để nâng cao phản xạ.");
+                list.add("Ghi chép lại các bẫy phát âm và từ đồng nghĩa thường gặp trong đề thi.");
             } else {
-                list.add("Sưu tầm 10 giáo trình Tiếng Trung chuẩn (Boya / Giáo trình Hán ngữ).");
-                list.add("Phân loại bảng ngữ pháp theo cấp độ từ cơ bản đến nâng cao.");
-                list.add("Tổng hợp danh sách tài liệu nghe và ứng dụng luyện thi.");
+                list.add("Giải 1 đề ETS TOEIC Listening & Reading đầy đủ 200 câu trong 120 phút.");
+                list.add("Tra cứu đáp án chi tiết và dịch lại các câu sai trong Part 5 & Part 7.");
+                list.add("Tổng hợp từ vựng mới rút ra từ đề thi vào ứng dụng Quizlet.");
             }
-        } else if (fullText.contains("mục tiêu") || fullText.contains("phạm vi")) {
-            list.add("Phân tích 5 yêu cầu cốt lõi và phạm vi công việc của " + task.getTitle());
-            list.add("Soạn tài liệu mô tả mục tiêu ban đầu và bảng tiêu chuẩn hoàn thành (DoD)");
-            list.add("Trao đổi với Quản lý dự án để chốt danh sách tính năng chính");
-        } else if (fullText.contains("kiến trúc") || fullText.contains("nguồn lực") || fullText.contains("hệ thống")) {
-            list.add("Phác thảo sơ đồ kiến trúc dữ liệu và luồng xử lý hệ thống cho " + task.getTitle());
-            list.add("Đánh giá công nghệ, thư viện phù hợp và dung lượng lưu trữ");
-            list.add("Lập bảng phân bổ nguồn lực và mốc thời gian cho từng hạng mục");
-        } else if (fullText.contains("thiết kế") || fullText.contains("giao diện") || fullText.contains("khung mẫu") || fullText.contains("ui")) {
-            list.add("Xây dựng Wireframe phác thảo cho các màn hình của " + task.getTitle());
-            list.add("Lựa chọn bảng màu UI, phông chữ và bộ icon chuẩn thương hiệu");
-            list.add("Thiết kế bản Prototype tương tác mượt mà và kiểm tra trải nghiệm người dùng");
-        } else if (fullText.contains("cơ sở dữ liệu") || fullText.contains("database") || fullText.contains("lưu trữ")) {
-            list.add("Thiết kế ERD mô hình các bảng và mối quan hệ giữa các entity");
-            list.add("Lập trình script khởi tạo database, Index và câu lệnh SQL/Migration");
-            list.add("Chạy thử nghiệm các truy vấn dữ liệu và kiểm tra tốc độ phản hồi");
-        } else if (fullText.contains("phát triển") || fullText.contains("lập trình") || fullText.contains("module") || fullText.contains("tính năng")) {
-            list.add("Khởi tạo cấu trúc module cho " + task.getTitle() + " và khai báo interface");
-            list.add("Lập trình xử lý logic cốt lõi và kết nối dữ liệu API");
-            list.add("Sửa các lỗi phát sinh và kiểm tra tính ổn định của tính năng");
-        } else if (fullText.contains("kiểm thử") || fullText.contains("thử nghiệm") || fullText.contains("nghiệm thu") || fullText.contains("test")) {
-            list.add("Lập danh sách kịch bản kiểm thử (Test cases) chi tiết cho " + task.getTitle());
-            list.add("Chạy thử nghiệm End-to-End trên môi trường thực tế để tìm lỗi");
-            list.add("Rà soát bảng tiêu chuẩn Definition of Done và nghiệm thu sản phẩm");
-        } else {
-            list.add("Chuẩn bị tài liệu và công cụ thực thi cho " + task.getTitle());
-            list.add("Thực hiện các bước xử lý cốt lõi theo đúng yêu cầu dự án");
-            list.add("Rà soát chất lượng sản phẩm và đánh giá theo tiêu chí DoD");
+        }
+        // 4. Các công việc Lập trình / Công nghệ / Dự án
+        else if (fullText.contains("phát triển") || fullText.contains("lập trình") || fullText.contains("code") || fullText.contains("chức năng") || fullText.contains("module")) {
+            list.add("Khởi tạo cấu trúc module và khai báo interface cho: " + cleanTitle);
+            list.add("Lập trình xử lý logic cốt lõi và kết nối dữ liệu API/Database.");
+            list.add("Sửa các lỗi phát sinh (debug) và kiểm thử tính mượt mà của tính năng.");
+            list.add("Rà soát mã nguồn (code review) và viết tài liệu hướng dẫn kỹ thuật.");
+        }
+        else if (fullText.contains("thiết kế") || fullText.contains("giao diện") || fullText.contains("ui") || fullText.contains("ux")) {
+            list.add("Phác thảo sơ đồ Wireframe cho: " + cleanTitle);
+            list.add("Lựa chọn bảng màu UI, phông chữ và bộ icon chuẩn thương hiệu.");
+            list.add("Xây dựng bản Prototype tương tác mượt mà và kiểm tra trải nghiệm người dùng.");
+        }
+        else if (fullText.contains("mục tiêu") || fullText.contains("phạm vi") || fullText.contains("kế hoạch")) {
+            list.add("Phân tích 5 yêu cầu cốt lõi và phạm vi công việc của: " + cleanTitle);
+            list.add("Soạn tài liệu mô tả mục tiêu ban đầu và bảng tiêu chuẩn hoàn thành (DoD).");
+            list.add("Lập kế hoạch phân bổ thời gian và mốc thời gian thực hiện chi tiết.");
+        }
+        // 5. Mặc định bám sát 100% tiêu đề công việc
+        else {
+            list.add("Chuẩn bị tài liệu và công cụ thực thi chi tiết cho: " + cleanTitle);
+            list.add("Thực hiện các bước xử lý cốt lõi theo đúng yêu cầu công việc.");
+            list.add("Kiểm tra, rà soát chất lượng sản phẩm và nghiệm thu cho: " + cleanTitle);
         }
 
         return list;
