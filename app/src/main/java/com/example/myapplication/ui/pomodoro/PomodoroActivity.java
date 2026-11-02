@@ -8,7 +8,9 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.text.InputType;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -114,7 +116,7 @@ public class PomodoroActivity extends AppCompatActivity {
         btnSettings = findViewById(R.id.btnSettings);
 
         if (btnSettings != null) {
-            btnSettings.setVisibility(View.GONE); // Đã xóa/ẩn icon setting góc trên bên phải
+            btnSettings.setVisibility(View.GONE);
         }
 
         cardActiveTask = findViewById(R.id.cardActiveTask);
@@ -122,6 +124,10 @@ public class PomodoroActivity extends AppCompatActivity {
         tvTotalFocusHours = findViewById(R.id.tvTotalFocusHours);
         tvGoalProgress = findViewById(R.id.tvGoalProgress);
         progressTask = findViewById(R.id.progressTask);
+
+        if (tvGoalProgress != null) {
+            tvGoalProgress.setOnClickListener(v -> showEditGoalDialog());
+        }
 
         chipSound1 = findViewById(R.id.chipSound1);
         chipSound2 = findViewById(R.id.chipSound2);
@@ -166,10 +172,65 @@ public class PomodoroActivity extends AppCompatActivity {
         setupBottomNav();
     }
 
+    private void showEditGoalDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("🎯 Tự Điều Chỉnh Mục Tiêu Tập Trung");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 30, 50, 10);
+
+        TextView tvGuide = new TextView(this);
+        tvGuide.setText("Nhập số giờ mục tiêu tập trung mong muốn cho công việc này (VD: 1.0, 2.0, 3.5, 4.0, 6.0 giờ):");
+        tvGuide.setTextSize(13);
+        tvGuide.setTextColor(0xFF555555);
+        layout.addView(tvGuide);
+
+        final EditText edtGoal = new EditText(this);
+        edtGoal.setHint("Nhập số giờ (VD: 2.0)");
+        edtGoal.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        edtGoal.setText(String.format(Locale.getDefault(), "%.1f", goalHours));
+        edtGoal.setTextSize(15);
+        layout.addView(edtGoal);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Lưu Mục Tiêu", (dialog, which) -> {
+            String input = edtGoal.getText().toString().trim();
+            if (!input.isEmpty()) {
+                try {
+                    double newGoal = Double.parseDouble(input);
+                    if (newGoal > 0 && newGoal <= 24) {
+                        goalHours = newGoal;
+
+                        SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                        pref.edit().putFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), (float) goalHours).apply();
+
+                        updateTaskFocusStats();
+                        Toast.makeText(this, "✔ Đã đặt mục tiêu tập trung: " + String.format(Locale.getDefault(), "%.1f", goalHours) + " giờ!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Vui lòng nhập từ 0.5 đến 24 giờ!", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception ignored) {
+                    Toast.makeText(this, "Số giờ nhập vào không hợp lệ!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
+    }
+
     private void loadAccFocusMinutesForCurrentTask() {
         if (activeTaskTitle == null || activeTaskTitle.trim().isEmpty()) return;
         SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
         totalFocusMinutesAcc = pref.getInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), 0);
+
+        float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
+        if (savedGoal > 0) {
+            goalHours = savedGoal;
+        }
+
         updateTaskFocusStats();
     }
 
@@ -225,10 +286,16 @@ public class PomodoroActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Chỉ hiển thị tiêu đề nếu hôm đó thực sự có task công việc, nếu không thì ẩn hoàn toàn (để trống)
                     if (activeTodayTask != null && activeTaskTitle != null && !activeTaskTitle.trim().isEmpty()) {
-                        double parsedGoal = parseHoursFromTimeStr(activeTodayTask.getTime());
-                        if (parsedGoal > 0) goalHours = parsedGoal;
+                        SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                        float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
+
+                        if (savedGoal > 0) {
+                            goalHours = savedGoal;
+                        } else {
+                            double parsedGoal = parseHoursFromTimeStr(activeTodayTask.getTime());
+                            if (parsedGoal > 0) goalHours = parsedGoal;
+                        }
 
                         if (tvActiveTaskTitle != null) {
                             tvActiveTaskTitle.setText(activeTaskTitle);
@@ -275,7 +342,14 @@ public class PomodoroActivity extends AppCompatActivity {
                 Task selected = userTaskList.get(which);
                 if (selected != null && selected.getTitle() != null) {
                     activeTaskTitle = selected.getTitle();
-                    goalHours = parseHoursFromTimeStr(selected.getTime());
+
+                    SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                    float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
+                    if (savedGoal > 0) {
+                        goalHours = savedGoal;
+                    } else {
+                        goalHours = parseHoursFromTimeStr(selected.getTime());
+                    }
 
                     if (tvActiveTaskTitle != null) {
                         tvActiveTaskTitle.setText(activeTaskTitle);
