@@ -29,6 +29,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -42,8 +43,8 @@ public class PomodoroActivity extends AppCompatActivity {
 
     private TextView tabFocus, tabShortBreak, tabLongBreak;
     private TextView tvTimerDisplay, tvSessionCount, btnStartTimer;
-    private ImageButton btnResetTimer, btnSoundToggle, btnSwapTask;
-    private MaterialCardView cardSoundSelector;
+    private ImageButton btnResetTimer, btnSoundToggle, btnSwapTask, btnSettings;
+    private MaterialCardView cardActiveTask, cardSoundSelector;
     private TextView tvSoundTitle, tvSoundSubtitle;
     private ImageView btnPlayPauseSound;
 
@@ -68,8 +69,9 @@ public class PomodoroActivity extends AppCompatActivity {
     private Thread audioThread;
     private int selectedSoundIndex = 0;
 
-    private String activeTaskTitle = "Lập trình & Phát triển ứng dụng";
-    private double goalHours = 2.0; // Mặc định thời gian của task nhỏ (2.0h)
+    private String activeTaskTitle = "";
+    private boolean isIntentTaskProvided = false;
+    private double goalHours = 2.0;
     private int totalFocusMinutesAcc = 0;
 
     private final List<Task> userTaskList = new ArrayList<>();
@@ -109,7 +111,13 @@ public class PomodoroActivity extends AppCompatActivity {
         btnResetTimer = findViewById(R.id.btnResetTimer);
         btnSoundToggle = findViewById(R.id.btnSoundToggle);
         btnSwapTask = findViewById(R.id.btnSwapTask);
+        btnSettings = findViewById(R.id.btnSettings);
 
+        if (btnSettings != null) {
+            btnSettings.setVisibility(View.GONE); // Đã xóa/ẩn icon setting góc trên bên phải
+        }
+
+        cardActiveTask = findViewById(R.id.cardActiveTask);
         tvActiveTaskTitle = findViewById(R.id.tvActiveTaskTitle);
         tvTotalFocusHours = findViewById(R.id.tvTotalFocusHours);
         tvGoalProgress = findViewById(R.id.tvGoalProgress);
@@ -132,13 +140,13 @@ public class PomodoroActivity extends AppCompatActivity {
         navTimeline = findViewById(R.id.navTimeline);
         fabAdd = findViewById(R.id.fabAdd);
 
-        // Đọc thông tin công việc và thời gian làm task từ Intent
         Intent intent = getIntent();
         if (intent != null) {
             if (intent.hasExtra("ACTIVE_TASK_TITLE")) {
                 String tTitle = intent.getStringExtra("ACTIVE_TASK_TITLE");
                 if (tTitle != null && !tTitle.trim().isEmpty()) {
                     activeTaskTitle = tTitle;
+                    isIntentTaskProvided = true;
                 }
             }
 
@@ -148,15 +156,9 @@ public class PomodoroActivity extends AppCompatActivity {
             }
         }
 
-        if (tvActiveTaskTitle != null) {
-            tvActiveTaskTitle.setText(activeTaskTitle);
-        }
-
         if (btnSwapTask != null) {
             btnSwapTask.setOnClickListener(v -> showTaskDetailAndSwitchDialog());
         }
-
-        loadAccFocusMinutesForCurrentTask();
 
         setupTabs();
         setupTimerControls();
@@ -165,6 +167,7 @@ public class PomodoroActivity extends AppCompatActivity {
     }
 
     private void loadAccFocusMinutesForCurrentTask() {
+        if (activeTaskTitle == null || activeTaskTitle.trim().isEmpty()) return;
         SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
         totalFocusMinutesAcc = pref.getInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), 0);
         updateTaskFocusStats();
@@ -179,7 +182,10 @@ public class PomodoroActivity extends AppCompatActivity {
     private void fetchUserTasksAndSingleGoal() {
         SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
         int currentUserId = sharedPref.getInt("USER_ID", -1);
-        if (currentUserId == -1) return;
+        if (currentUserId == -1) {
+            if (cardActiveTask != null) cardActiveTask.setVisibility(View.GONE);
+            return;
+        }
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://10.0.2.2:8080/api/")
@@ -194,23 +200,61 @@ public class PomodoroActivity extends AppCompatActivity {
                     userTaskList.clear();
                     userTaskList.addAll(response.body());
 
-                    // Cập nhật số giờ mục tiêu ĐÚNG VỚI TASK NHỎ ĐANG CHỌN (Ví dụ: 2.0h)
-                    for (Task t : userTaskList) {
-                        if (t.getTitle() != null && t.getTitle().trim().equalsIgnoreCase(activeTaskTitle.trim())) {
-                            double parsedGoal = parseHoursFromTimeStr(t.getTime());
-                            if (parsedGoal > 0) {
-                                goalHours = parsedGoal;
+                    Calendar todayCal = Calendar.getInstance();
+                    int todayDayNum = todayCal.get(Calendar.DAY_OF_MONTH);
+
+                    Task activeTodayTask = null;
+
+                    if (isIntentTaskProvided && !activeTaskTitle.isEmpty()) {
+                        for (Task t : userTaskList) {
+                            if (t.getTitle() != null && t.getTitle().trim().equalsIgnoreCase(activeTaskTitle.trim())) {
+                                activeTodayTask = t;
                                 break;
                             }
                         }
                     }
 
+                    if (activeTodayTask == null) {
+                        for (Task t : userTaskList) {
+                            String timeStr = t.getTime();
+                            if (timeStr == null || timeStr.contains("Hôm nay") || timeStr.contains(String.valueOf(todayDayNum))) {
+                                activeTodayTask = t;
+                                activeTaskTitle = t.getTitle();
+                                break;
+                            }
+                        }
+                    }
+
+                    // Chỉ hiển thị tiêu đề nếu hôm đó thực sự có task công việc, nếu không thì ẩn hoàn toàn (để trống)
+                    if (activeTodayTask != null && activeTaskTitle != null && !activeTaskTitle.trim().isEmpty()) {
+                        double parsedGoal = parseHoursFromTimeStr(activeTodayTask.getTime());
+                        if (parsedGoal > 0) goalHours = parsedGoal;
+
+                        if (tvActiveTaskTitle != null) {
+                            tvActiveTaskTitle.setText(activeTaskTitle);
+                        }
+
+                        if (cardActiveTask != null) {
+                            cardActiveTask.setVisibility(View.VISIBLE);
+                        }
+
+                        loadAccFocusMinutesForCurrentTask();
+                    } else {
+                        if (cardActiveTask != null) {
+                            cardActiveTask.setVisibility(View.GONE);
+                        }
+                    }
+
                     updateTaskFocusStats();
+                } else {
+                    if (cardActiveTask != null) cardActiveTask.setVisibility(View.GONE);
                 }
             }
 
             @Override
-            public void onFailure(Call<List<Task>> call, Throwable t) {}
+            public void onFailure(Call<List<Task>> call, Throwable t) {
+                if (cardActiveTask != null) cardActiveTask.setVisibility(View.GONE);
+            }
         });
     }
 
@@ -236,6 +280,9 @@ public class PomodoroActivity extends AppCompatActivity {
                     if (tvActiveTaskTitle != null) {
                         tvActiveTaskTitle.setText(activeTaskTitle);
                     }
+                    if (cardActiveTask != null) {
+                        cardActiveTask.setVisibility(View.VISIBLE);
+                    }
 
                     loadAccFocusMinutesForCurrentTask();
                     Toast.makeText(PomodoroActivity.this, "Đã chuyển sang: " + activeTaskTitle, Toast.LENGTH_SHORT).show();
@@ -252,7 +299,6 @@ public class PomodoroActivity extends AppCompatActivity {
         if (timeStr == null || timeStr.trim().isEmpty()) return 2.0;
 
         try {
-            // Nếu chuỗi chứa biểu tượng đồng hồ 🕒
             if (timeStr.contains("🕒")) {
                 String clockPart = timeStr.substring(timeStr.indexOf("🕒") + 1);
                 String clean = clockPart.replaceAll("[^0-9.]", " ").trim();
@@ -267,7 +313,6 @@ public class PomodoroActivity extends AppCompatActivity {
                 }
             }
 
-            // Loại bỏ phần ngày YYYY-MM-DD hoặc DD/MM/YYYY
             String cleanDate = timeStr.replaceAll("\\d{4}[-/]\\d{1,2}[-/]\\d{1,2}", " ")
                                       .replaceAll("\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4}", " ");
             String clean = cleanDate.replaceAll("[^0-9.]", " ").trim();
@@ -489,13 +534,15 @@ public class PomodoroActivity extends AppCompatActivity {
                 isTimerRunning = false;
                 btnStartTimer.setText("▶ Bắt đầu");
 
-                totalFocusMinutesAcc += 25;
-                SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
-                pref.edit().putInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), totalFocusMinutesAcc).apply();
+                if (activeTaskTitle != null && !activeTaskTitle.isEmpty()) {
+                    totalFocusMinutesAcc += 25;
+                    SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                    pref.edit().putInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), totalFocusMinutesAcc).apply();
+                }
 
                 updateTaskFocusStats();
 
-                Toast.makeText(PomodoroActivity.this, "🎉 Hoàn thành phiên tập trung cho task!", Toast.LENGTH_LONG).show();
+                Toast.makeText(PomodoroActivity.this, "🎉 Hoàn thành phiên tập trung!", Toast.LENGTH_LONG).show();
 
                 if (currentSession < totalSessions) {
                     currentSession++;
