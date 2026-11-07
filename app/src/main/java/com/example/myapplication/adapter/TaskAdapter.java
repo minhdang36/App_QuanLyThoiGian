@@ -1,11 +1,13 @@
 package com.example.myapplication.adapter;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,6 +19,7 @@ import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
 import com.example.myapplication.ui.task.AddTaskActivity;
 import com.example.myapplication.ui.task.ProjectDetailActivity;
+import com.google.android.material.card.MaterialCardView;
 
 import java.util.List;
 
@@ -56,10 +59,31 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             holder.tvTaskTitle.setText("Chưa có tiêu đề");
         }
 
+        if (currentTask.getDescription() != null && !currentTask.getDescription().trim().isEmpty()) {
+            if (holder.tvTaskDesc != null) {
+                holder.tvTaskDesc.setVisibility(View.VISIBLE);
+                holder.tvTaskDesc.setText(currentTask.getDescription());
+            }
+        } else {
+            if (holder.tvTaskDesc != null) {
+                holder.tvTaskDesc.setVisibility(View.GONE);
+            }
+        }
+
+        if (currentTask.getLocation() != null && !currentTask.getLocation().trim().isEmpty()) {
+            if (holder.tvTaskLocation != null) {
+                holder.tvTaskLocation.setText(currentTask.getLocation());
+            }
+        } else {
+            if (holder.tvTaskLocation != null) {
+                holder.tvTaskLocation.setText("Địa điểm linh hoạt");
+            }
+        }
+
         if (currentTask.getTime() != null && !currentTask.getTime().trim().isEmpty()) {
             holder.tvTaskTime.setText(currentTask.getTime());
         } else {
-            holder.tvTaskTime.setText("🕒 Hôm nay, 16:30 • Ưu tiên cao");
+            holder.tvTaskTime.setText("08:00 AM - 10:00 AM");
         }
 
         if (holder.tvCategoryPill != null) {
@@ -67,11 +91,40 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             holder.tvCategoryPill.setText(categoryText);
         }
 
+        // Đổi màu accent bên trái, viền card và icon theo Project ID
+        int colorRes = getColorForProject(currentTask.getProjectId());
+        if (holder.cardTaskItem != null) {
+            holder.cardTaskItem.setStrokeColor(colorRes);
+        }
+        if (holder.viewCategoryAccent != null) {
+            holder.viewCategoryAccent.setBackgroundColor(colorRes);
+        }
+        if (holder.imgCategoryIcon != null) {
+            holder.imgCategoryIcon.setColorFilter(colorRes);
+        }
+
         if (holder.cbTaskStatus != null) {
             holder.cbTaskStatus.setOnCheckedChangeListener(null);
-            holder.cbTaskStatus.setChecked("DONE".equalsIgnoreCase(currentTask.getStatus()));
+            boolean isDone = "DONE".equalsIgnoreCase(currentTask.getStatus());
+            holder.cbTaskStatus.setChecked(isDone);
+
+            if (isDone) {
+                holder.tvTaskTitle.setPaintFlags(holder.tvTaskTitle.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+                holder.tvTaskTitle.setTextColor(0xFF888888);
+            } else {
+                holder.tvTaskTitle.setPaintFlags(holder.tvTaskTitle.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
+                holder.tvTaskTitle.setTextColor(0xFF222222);
+            }
+
             holder.cbTaskStatus.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 currentTask.setStatus(isChecked ? "DONE" : "PENDING");
+                if (isChecked) {
+                    holder.tvTaskTitle.setPaintFlags(holder.tvTaskTitle.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+                    holder.tvTaskTitle.setTextColor(0xFF888888);
+                } else {
+                    holder.tvTaskTitle.setPaintFlags(holder.tvTaskTitle.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
+                    holder.tvTaskTitle.setTextColor(0xFF222222);
+                }
                 updateTaskStatusOnServer(holder.itemView.getContext(), currentTask);
             });
         }
@@ -106,6 +159,16 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             intent.putExtra("TASK_PRIORITY", currentTask.getPriority());
             v.getContext().startActivity(intent);
         });
+    }
+
+    private int getColorForProject(int projectId) {
+        switch (projectId % 4) {
+            case 1: return Color.parseColor("#10B981"); // Teal
+            case 2: return Color.parseColor("#3B82F6"); // Blue
+            case 3: return Color.parseColor("#F59E0B"); // Amber / Yellow
+            case 0:
+            default: return Color.parseColor("#8B5CF6"); // Purple
+        }
     }
 
     private void updateTaskStatusOnServer(android.content.Context context, Task task) {
@@ -157,12 +220,18 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     public static class TaskViewHolder extends RecyclerView.ViewHolder {
+        MaterialCardView cardTaskItem;
+        View viewCategoryAccent;
+        ImageView imgCategoryIcon;
         TextView tvTaskTime, tvTaskTitle, tvTaskDesc, tvTaskLocation, tvCategoryPill;
         CheckBox cbTaskStatus;
         ImageButton btnEditTask, btnDeleteTask;
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);
+            cardTaskItem = itemView.findViewById(R.id.cardTaskItem);
+            viewCategoryAccent = itemView.findViewById(R.id.viewCategoryAccent);
+            imgCategoryIcon = itemView.findViewById(R.id.imgCategoryIcon);
             tvTaskTime = itemView.findViewById(R.id.tvTaskTime);
             tvTaskTitle = itemView.findViewById(R.id.tvTaskTitle);
             tvTaskDesc = itemView.findViewById(R.id.tvTaskDesc);

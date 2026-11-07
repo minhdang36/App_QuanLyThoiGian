@@ -473,6 +473,8 @@ public class MainActivity extends AppCompatActivity {
         if (bottomSheet == null) return;
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        int pxOffset = (int) (210 * getResources().getDisplayMetrics().density);
+        bottomSheetBehavior.setExpandedOffset(pxOffset);
 
         if (layoutFullCalendar != null) {
             layoutFullCalendar.setVisibility(View.VISIBLE);

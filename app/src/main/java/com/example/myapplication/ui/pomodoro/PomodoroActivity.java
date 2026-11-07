@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.pomodoro;
 
 import android.app.AlertDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioFormat;
@@ -8,9 +9,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.text.InputType;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -126,7 +125,7 @@ public class PomodoroActivity extends AppCompatActivity {
         progressTask = findViewById(R.id.progressTask);
 
         if (tvGoalProgress != null) {
-            tvGoalProgress.setOnClickListener(v -> showEditGoalDialog());
+            tvGoalProgress.setOnClickListener(v -> showEditGoalClockDialog());
         }
 
         chipSound1 = findViewById(R.id.chipSound1);
@@ -172,53 +171,30 @@ public class PomodoroActivity extends AppCompatActivity {
         setupBottomNav();
     }
 
-    private void showEditGoalDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("🎯 Tự Điều Chỉnh Mục Tiêu Tập Trung");
+    private void showEditGoalClockDialog() {
+        int initialHours = (int) goalHours;
+        int initialMinutes = (int) Math.round((goalHours - initialHours) * 60);
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 10);
-
-        TextView tvGuide = new TextView(this);
-        tvGuide.setText("Nhập số giờ mục tiêu tập trung mong muốn cho công việc này (VD: 1.0, 2.0, 3.5, 4.0, 6.0 giờ):");
-        tvGuide.setTextSize(13);
-        tvGuide.setTextColor(0xFF555555);
-        layout.addView(tvGuide);
-
-        final EditText edtGoal = new EditText(this);
-        edtGoal.setHint("Nhập số giờ (VD: 2.0)");
-        edtGoal.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        edtGoal.setText(String.format(Locale.getDefault(), "%.1f", goalHours));
-        edtGoal.setTextSize(15);
-        layout.addView(edtGoal);
-
-        builder.setView(layout);
-
-        builder.setPositiveButton("Lưu Mục Tiêu", (dialog, which) -> {
-            String input = edtGoal.getText().toString().trim();
-            if (!input.isEmpty()) {
-                try {
-                    double newGoal = Double.parseDouble(input);
-                    if (newGoal > 0 && newGoal <= 24) {
-                        goalHours = newGoal;
+        TimePickerDialog timePickerDialog = new TimePickerDialog(
+                PomodoroActivity.this,
+                (view, selectedHour, selectedMinute) -> {
+                    double calculatedHours = selectedHour + (selectedMinute / 60.0);
+                    if (calculatedHours > 0) {
+                        goalHours = calculatedHours;
 
                         SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
                         pref.edit().putFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), (float) goalHours).apply();
 
                         updateTaskFocusStats();
-                        Toast.makeText(this, "✔ Đã đặt mục tiêu tập trung: " + String.format(Locale.getDefault(), "%.1f", goalHours) + " giờ!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "✔ Đã chọn mục tiêu: " + selectedHour + " giờ " + selectedMinute + " phút!", Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(this, "Vui lòng nhập từ 0.5 đến 24 giờ!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Vui lòng chọn thời gian lớn hơn 0!", Toast.LENGTH_SHORT).show();
                     }
-                } catch (Exception ignored) {
-                    Toast.makeText(this, "Số giờ nhập vào không hợp lệ!", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        builder.setNegativeButton("Hủy", null);
-        builder.show();
+                },
+                initialHours, initialMinutes, true
+        );
+        timePickerDialog.setTitle("🕒 Chọn Thời Gian Mục Tiêu (Đồng Hồ)");
+        timePickerDialog.show();
     }
 
     private void loadAccFocusMinutesForCurrentTask() {
@@ -406,6 +382,9 @@ public class PomodoroActivity extends AppCompatActivity {
 
     private void updateTaskFocusStats() {
         double totalHoursAcc = totalFocusMinutesAcc / 60.0;
+
+        // Tính toán số giờ mục tiêu CÒN LẠI sau khi đã trừ đi số giờ đã tập trung
+        double remainingGoalHours = Math.max(0.0, goalHours - totalHoursAcc);
         int percent = goalHours > 0 ? (int) Math.round((totalHoursAcc / goalHours) * 100) : 0;
         percent = Math.min(percent, 100);
 
@@ -414,7 +393,11 @@ public class PomodoroActivity extends AppCompatActivity {
         }
 
         if (tvGoalProgress != null) {
-            tvGoalProgress.setText(String.format(Locale.getDefault(), "%.1fh (%d%%)", goalHours, percent));
+            if (remainingGoalHours > 0) {
+                tvGoalProgress.setText(String.format(Locale.getDefault(), "%.1fh còn lại (%d%%)", remainingGoalHours, percent));
+            } else {
+                tvGoalProgress.setText(String.format(Locale.getDefault(), "✔ Hoàn thành (%d%%)", percent));
+            }
         }
 
         if (progressTask != null) {
@@ -608,15 +591,19 @@ public class PomodoroActivity extends AppCompatActivity {
                 isTimerRunning = false;
                 btnStartTimer.setText("▶ Bắt đầu");
 
+                // Khi hoàn thành 1 phiên bấm giờ, tự động tính số phút đã hoàn thành và giảm trừ số giờ mục tiêu còn lại
+                int sessionMinutesCompleted = (int) (timerDurationInMillis / 60000);
+                if (sessionMinutesCompleted <= 0) sessionMinutesCompleted = 25;
+
                 if (activeTaskTitle != null && !activeTaskTitle.isEmpty()) {
-                    totalFocusMinutesAcc += 25;
+                    totalFocusMinutesAcc += sessionMinutesCompleted;
                     SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
                     pref.edit().putInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), totalFocusMinutesAcc).apply();
                 }
 
                 updateTaskFocusStats();
 
-                Toast.makeText(PomodoroActivity.this, "🎉 Hoàn thành phiên tập trung!", Toast.LENGTH_LONG).show();
+                Toast.makeText(PomodoroActivity.this, "🎉 Hoàn thành phiên tập trung! Mục tiêu còn lại đã tự động giảm trừ.", Toast.LENGTH_LONG).show();
 
                 if (currentSession < totalSessions) {
                     currentSession++;
