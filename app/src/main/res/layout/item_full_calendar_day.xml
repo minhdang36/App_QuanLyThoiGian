@@ -4,28 +4,40 @@
     android:layout_height="wrap_content"
     android:gravity="center"
     android:orientation="vertical"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
+    android:paddingVertical="5dp">
 
-    <!-- Số ngày trong lịch 35 ô -->
+    <!-- Số ngày (Khi chọn sẽ hiện ô vuông bo góc #8E7474 chuẩn Figma MeetEase) -->
     <TextView
         android:id="@+id/tvDateNumber"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
         android:gravity="center"
-        android:text="15"
-        android:textColor="#333333"
-        android:textSize="16sp"
-        android:textStyle="bold" />
+        android:text="2"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp" />
 
-    <!-- Chấm đỏ báo hiệu có lịch trong ngày -->
-    <View
+    <!-- Chấm tròn báo hiệu có sự kiện bên dưới số ngày -->
+    <LinearLayout
         android:id="@+id/viewEventDot"
-        android:layout_width="6dp"
-        android:layout_height="6dp"
-        android:layout_marginTop="2dp"
-        android:background="@drawable/bg_circle_teal"
-        android:backgroundTint="#E53935"
-        android:visibility="invisible" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="invisible">
+
+        <View
+            android:layout_width="3.5dp"
+            android:layout_height="3.5dp"
+            android:background="@drawable/bg_circle_teal"
+            android:backgroundTint="#2563EB" />
+
+        <View
+            android:layout_width="3.5dp"
+            android:layout_height="3.5dp"
+            android:layout_marginStart="2.5dp"
+            android:background="@drawable/bg_circle_teal"
+            android:backgroundTint="#38BDF8" />
+    </LinearLayout>
 
 </LinearLayout>

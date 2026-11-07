@@ -17,12 +17,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.myapplication.R;
 import com.example.myapplication.model.User;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -71,47 +70,12 @@ public class SignUpActivity extends AppCompatActivity {
                 newUser.setEmail(email);
                 newUser.setPassword(pass);
 
-                Retrofit retrofit = new Retrofit.Builder()
-                        .baseUrl("http://10.0.2.2:8080/api/")
-                        .addConverterFactory(GsonConverterFactory.create())
-                        .build();
-
-                ApiService apiService = retrofit.create(ApiService.class);
+                ApiService apiService = RetrofitClient.getApiService();
 
                 btnSubmitSignUp.setEnabled(false);
-                btnSubmitSignUp.setText("Đang kiểm tra...");
+                btnSubmitSignUp.setText("Đang đăng ký...");
 
-                final boolean[] isDuplicate = new boolean[]{false};
-                final int[] checkCount = new int[]{0};
-
-                for (int i = 1; i <= 25; i++) {
-                    apiService.getUserProfile(i).enqueue(new Callback<User>() {
-                        @Override
-                        public void onResponse(Call<User> call, Response<User> response) {
-                            checkCount[0]++;
-                            if (response.isSuccessful() && response.body() != null) {
-                                User u = response.body();
-                                boolean matchEmail = u.getEmail() != null && u.getEmail().equalsIgnoreCase(email);
-                                boolean matchName = u.getFullName() != null && u.getFullName().equalsIgnoreCase(fullName);
-                                if (matchEmail || matchName) {
-                                    isDuplicate[0] = true;
-                                }
-                            }
-
-                            if (checkCount[0] >= 25) {
-                                handleCheckResult(apiService, newUser, isDuplicate[0], btnSubmitSignUp);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Call<User> call, Throwable t) {
-                            checkCount[0]++;
-                            if (checkCount[0] >= 25) {
-                                handleCheckResult(apiService, newUser, isDuplicate[0], btnSubmitSignUp);
-                            }
-                        }
-                    });
-                }
+                executeRegister(apiService, newUser, btnSubmitSignUp);
             });
         }
     }
@@ -208,37 +172,30 @@ public class SignUpActivity extends AppCompatActivity {
         if (viewStr4 != null) viewStr4.setBackgroundTintList(ColorStateList.valueOf(activeCount >= 4 ? activeColor : defaultColor));
     }
 
-    private void handleCheckResult(ApiService apiService, User newUser, boolean isDuplicate, TextView btnSubmitSignUp) {
-        btnSubmitSignUp.setEnabled(true);
-        btnSubmitSignUp.setText("Đăng ký →");
-
-        if (isDuplicate) {
-            Toast.makeText(SignUpActivity.this, "⚠️ Email hoặc Tên người dùng này đã tồn tại! Vui lòng chọn tên khác.", Toast.LENGTH_LONG).show();
-        } else {
-            executeRegister(apiService, newUser);
-        }
-    }
-
-    private void executeRegister(ApiService apiService, User newUser) {
+    private void executeRegister(ApiService apiService, User newUser, TextView btnSubmitSignUp) {
         apiService.registerUser(newUser).enqueue(new Callback<User>() {
             @Override
             public void onResponse(Call<User> call, Response<User> response) {
+                btnSubmitSignUp.setEnabled(true);
+                btnSubmitSignUp.setText("Đăng ký →");
+
                 if (response.isSuccessful()) {
                     Toast.makeText(SignUpActivity.this, "✔ Đăng ký thành công! Hãy đăng nhập.", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(SignUpActivity.this, LoginActivity.class);
                     startActivity(intent);
                     finish();
+                } else if (response.code() == 409) {
+                    Toast.makeText(SignUpActivity.this, "⚠️ Email hoặc Tên người dùng này đã tồn tại! Vui lòng chọn tên khác.", Toast.LENGTH_LONG).show();
                 } else {
-                    Toast.makeText(SignUpActivity.this, "⚠️ Tên người dùng / Email này đã tồn tại!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(SignUpActivity.this, "⚠️ Không thể đăng ký tài khoản (Mã lỗi: " + response.code() + ")", Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<User> call, Throwable t) {
-                Toast.makeText(SignUpActivity.this, "✔ Đăng ký thành công! Hãy đăng nhập.", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(SignUpActivity.this, LoginActivity.class);
-                startActivity(intent);
-                finish();
+                btnSubmitSignUp.setEnabled(true);
+                btnSubmitSignUp.setText("Đăng ký →");
+                Toast.makeText(SignUpActivity.this, "❌ Không thể kết nối tới máy chủ! Vui lòng kiểm tra lại Server.", Toast.LENGTH_LONG).show();
             }
         });
     }

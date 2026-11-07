@@ -5,316 +5,343 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F3F8"
+    android:background="@color/bg_main"
     tools:context=".ui.main.MainActivity">
 
-    <!-- 1. PHẦN NỀN SÁNG (Header & Lịch) -->
+    <!-- 1. PHẦN TRÊN: HEADER TIME ZONE + LỊCH (Chuẩn Figma MeetEase Scheduler) -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollCalendar"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingBottom="220dp"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:paddingBottom="240dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <!-- Múi giờ -->
+            <!-- Badge tròn Time Zone góc trái trên -->
+            <FrameLayout
+                android:id="@+id/badgeTimeZoneIcon"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_timezone_badge"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_globe_timezone" />
+            </FrameLayout>
+
+            <!-- Text Time Zone + EST time... -->
             <LinearLayout
                 android:id="@+id/layoutTimeZone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginStart="10dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
                 android:orientation="vertical"
-                android:padding="4dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
+                android:paddingVertical="2dp"
+                app:layout_constraintBottom_toBottomOf="@id/badgeTimeZoneIcon"
+                app:layout_constraintStart_toEndOf="@id/badgeTimeZoneIcon"
+                app:layout_constraintTop_toTopOf="@id/badgeTimeZoneIcon">
 
                 <TextView
                     android:id="@+id/tvTimeZoneLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="MÚI GIỜ ▼"
-                    android:textColor="#888888"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
+                    android:text="Time Zone  ▾"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11.5sp" />
 
                 <TextView
                     android:id="@+id/tvTimeZoneValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Asia/Bangkok (UTC+7)"
-                    android:textColor="#222222"
-                    android:textSize="18sp"
+                    android:layout_marginTop="1dp"
+                    android:text="Asia/Ho_Chi_Minh"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Camera Scan Lịch học/Làm việc -->
+            <!-- Nút Quét Lịch Học OCR bằng AI -->
             <ImageView
                 android:id="@+id/btnScanSchedule"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="12dp"
-                android:background="@drawable/bg_pill_light"
-                android:padding="8dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/bg_month_nav_btn"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="9dp"
                 android:src="@android:drawable/ic_menu_camera"
-                app:tint="#10B981"
-                app:layout_constraintBottom_toBottomOf="@id/layoutTimeZone"
+                app:layout_constraintBottom_toBottomOf="@id/imgAvatar"
                 app:layout_constraintEnd_toStartOf="@id/imgAvatar"
-                app:layout_constraintTop_toTopOf="@id/layoutTimeZone" />
+                app:layout_constraintTop_toTopOf="@id/imgAvatar"
+                app:tint="@color/brand_primary" />
 
-            <!-- Avatar Người dùng -->
-            <ImageView
+            <!-- Avatar người dùng góc phải trên -->
+            <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/imgAvatar"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginEnd="24dp"
-                android:background="@drawable/bg_circle_teal"
-                android:padding="2dp"
+                android:background="@drawable/bg_timezone_badge"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="6dp"
+                android:scaleType="centerCrop"
                 android:src="@android:drawable/ic_menu_myplaces"
-                app:tint="#FFFFFF"
-                app:layout_constraintBottom_toBottomOf="@id/layoutTimeZone"
+                app:layout_constraintBottom_toBottomOf="@id/badgeTimeZoneIcon"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/layoutTimeZone" />
+                app:layout_constraintTop_toTopOf="@id/badgeTimeZoneIcon"
+                app:shapeAppearanceOverlay="@style/CircleImageStyle"
+                app:tint="@color/brand_primary" />
 
-            <!-- Khu vực Tiêu đề Tháng và Nút chuyển -->
+            <!-- Đường kẻ ngang mảnh phân tách Header -->
+            <View
+                android:id="@+id/dividerHeader"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="@color/card_stroke"
+                app:layout_constraintTop_toBottomOf="@id/badgeTimeZoneIcon" />
+
+            <!-- KHỐI LỊCH TRUNG TÂM -->
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/layoutMonthNav"
+                android:id="@+id/cardCalendarBento"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                app:layout_constraintTop_toBottomOf="@id/layoutTimeZone">
+                android:paddingTop="14dp"
+                android:paddingBottom="10dp"
+                app:layout_constraintTop_toBottomOf="@id/dividerHeader">
 
-                <TextView
-                    android:id="@+id/tvMonthYear"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="24dp"
-                    android:text="Tháng 11 năm 2026"
-                    android:textColor="#222222"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
+                <!-- 1A. Header Tháng/Năm khi ở chế độ Lịch đầy đủ (Màn hình bên phải Figma) -->
                 <ImageButton
                     android:id="@+id/btnPrevMonth"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_media_previous"
-                    app:tint="#666666"
-                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="24dp"
+                    android:background="@drawable/bg_month_nav_btn"
+                    android:contentDescription="Tháng trước"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_chevron_left"
+                    app:layout_constraintBottom_toBottomOf="@id/layoutMonthTitleCenter"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/layoutMonthTitleCenter"
+                    app:tint="@color/text_primary" />
+
+                <LinearLayout
+                    android:id="@+id/layoutMonthTitleCenter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
                     app:layout_constraintEnd_toStartOf="@id/btnNextMonth"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintStart_toEndOf="@id/btnPrevMonth"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:id="@+id/tvMonthYear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="January"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvYearSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:text="2026"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <ImageButton
                     android:id="@+id/btnNextMonth"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_marginEnd="24dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_media_next"
-                    app:tint="#666666"
-                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:background="@drawable/bg_month_nav_btn"
+                    android:contentDescription="Tháng sau"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_chevron_right"
+                    app:layout_constraintBottom_toBottomOf="@id/layoutMonthTitleCenter"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                    app:layout_constraintTop_toTopOf="@id/layoutMonthTitleCenter"
+                    app:tint="@color/text_primary" />
 
-            <!-- Lịch ngang (1 dòng) - Hiển thị khi kéo bảng xám lên -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvHorizontalCalendar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:clipToPadding="false"
-                android:orientation="horizontal"
-                android:visibility="gone"
-                app:layout_constraintTop_toBottomOf="@id/layoutMonthNav" />
-
-            <!-- Lịch đầy đủ 35/42 ngày -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/layoutFullCalendar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:layout_constraintTop_toBottomOf="@id/layoutMonthNav">
-
-                <!-- Thanh chứa thứ (T2, T3, T4...) -->
-                <LinearLayout
-                    android:id="@+id/layoutDaysOfWeek"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:orientation="horizontal"
-                    app:layout_constraintTop_toTopOf="parent">
-
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T2" android:gravity="center" android:textSize="12sp" android:textColor="#999999" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T3" android:gravity="center" android:textSize="12sp" android:textColor="#999999" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T4" android:gravity="center" android:textSize="12sp" android:textColor="#999999" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T5" android:gravity="center" android:textSize="12sp" android:textColor="#999999" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T6" android:gravity="center" android:textSize="12sp" android:textColor="#999999" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="T7" android:gravity="center" android:textSize="12sp" android:textColor="#999999" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="CN" android:gravity="center" android:textSize="12sp" android:textColor="#999999" />
-                </LinearLayout>
-
-                <!-- Lưới hiển thị các ngày -->
+                <!-- 1B. Lịch ngang thu gọn (Hiện khi kéo Bottom Sheet lên - Màn hình bên trái Figma) -->
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvFullCalendarGrid"
+                    android:id="@+id/rvHorizontalCalendar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:nestedScrollingEnabled="false"
-                    android:overScrollMode="never"
-                    app:layout_constraintTop_toBottomOf="@id/layoutDaysOfWeek" />
+                    android:layout_marginTop="14dp"
+                    android:clipToPadding="false"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="14dp"
+                    android:visibility="invisible"
+                    app:layout_constraintTop_toBottomOf="@id/layoutMonthTitleCenter" />
+
+                <!-- 1C. Lịch lưới đầy đủ (Hiện khi đóng Bottom Sheet - Màn hình bên phải Figma) -->
+                <LinearLayout
+                    android:id="@+id/layoutFullCalendar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="18dp"
+                    android:visibility="visible"
+                    app:layout_constraintTop_toBottomOf="@id/layoutMonthTitleCenter">
+
+                    <!-- Hàng tiêu đề Thứ trong tuần (Mon Tue Wed Thu Fri Sat Sun) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="horizontal"
+                        android:weightSum="7">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Mon" android:textColor="@color/text_secondary" android:textSize="12.5sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Tue" android:textColor="@color/text_secondary" android:textSize="12.5sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Wed" android:textColor="@color/text_secondary" android:textSize="12.5sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Thu" android:textColor="@color/text_secondary" android:textSize="12.5sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Fri" android:textColor="@color/text_secondary" android:textSize="12.5sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Sat" android:textColor="@color/text_secondary" android:textSize="12.5sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Sun" android:textColor="@color/text_secondary" android:textSize="12.5sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvFullCalendarGrid"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never" />
+
+                    <!-- Thanh gạch nhỏ phía dưới lịch chuẩn Figma -->
+                    <View
+                        android:id="@+id/dragHandle"
+                        android:layout_width="32dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_pill_light"
+                        android:backgroundTint="#CBD5E1" />
+                </LinearLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- 2. BẢNG XÁM (Bottom Sheet) - Header Tối + Nền Trắng Cho Danh Sách Task (Giống Hình Mẫu 100%) -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- 2. BOTTOM SHEET 2 LỚP CHUẨN FIGMA MEETEASE:
+         Lớp ngoài: Vòm Đen Nâu (#383333) hiển thị Thứ/Ngày/Tháng
+         Lớp trong: Khung Trắng (#FFFFFF) bo góc trên 28dp chứa các thẻ công việc -->
+    <LinearLayout
         android:id="@+id/layoutAgendaBottomSheet"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/transparent"
-        app:behavior_peekHeight="120dp"
-        app:behavior_expandedOffset="210dp"
+        android:background="@drawable/bg_bottom_sheet"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="vertical"
+        app:behavior_hideable="false"
+        app:behavior_peekHeight="300dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-        <!-- HEADER ĐEN/XÁM CỦA BOTTOM SHEET -->
+        <!-- Thanh tiêu đề ngày trên nền tối (#383333): ● Thursday, 05 Jan, 2024 -->
         <LinearLayout
-            android:id="@+id/layoutSheetHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_bottom_sheet"
-            android:orientation="vertical"
-            android:paddingBottom="16dp"
-            app:layout_constraintTop_toTopOf="parent">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp">
 
-            <!-- Drag Handle -->
             <View
-                android:id="@+id/dragHandle"
-                android:layout_width="32dp"
-                android:layout_height="4dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:background="#555555" />
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/bg_circle_teal"
+                android:backgroundTint="#38BDF8" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/tvAgendaDate"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="24dp">
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:text="Thursday, 05 Jan, 2024"
+                android:textColor="#FFFFFF"
+                android:textSize="13.5sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tvAgendaDate"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="● Thứ Bảy, 28 Thg 11, 2026"
-                    android:textColor="#E0E0E0"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvTasksToday"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_pill_light"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="4dp"
-                    android:text="0 Task Today"
-                    android:textColor="#362C2A"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+            <TextView
+                android:id="@+id/tvTasksToday"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3 Tasks"
+                android:textColor="#BAE6FD"
+                android:textSize="12sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- CONTAINER TRẮNG CHỨA CÁC THẺ TASK (GIỐNG HÌNH MẪU 100%) -->
+        <!-- Khung nền Trắng (#FFFFFF) bo góc trên 28dp lồng bên trong tạo hiệu ứng vòm kép chuẩn Figma -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="match_parent"
             android:background="@drawable/bg_rounded_top_white"
             android:orientation="vertical"
-            android:paddingTop="16dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/layoutSheetHeader">
+            android:paddingHorizontal="20dp"
+            android:paddingTop="20dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTasks"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginBottom="80dp"
                 android:clipToPadding="false"
-                android:paddingHorizontal="16dp" />
+                android:paddingBottom="110dp" />
+
         </LinearLayout>
+    </LinearLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- 3. THANH ĐIỀU HƯỚNG NỔI BÊN DƯỚI (FLOATING BOTTOM NAVIGATION) -->
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR (Phiên bản cũ 5 mục cân đối: Lịch trình | Tập trung | (+) | Dự án | Trợ lý AI) -->
     <LinearLayout
-        android:id="@+id/customBottomNav"
+        android:id="@+id/cardBottomNav"
         android:layout_width="match_parent"
         android:layout_height="68dp"
         android:layout_gravity="bottom"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginEnd="18dp"
+        android:layout_marginBottom="18dp"
         android:background="@drawable/bg_bottom_nav_dark"
-        android:elevation="12dp"
+        android:elevation="16dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <!-- 1. TẬP TRUNG -->
-        <LinearLayout
-            android:id="@+id/navFocus"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:src="@android:drawable/ic_menu_compass"
-                app:tint="#8E8E93" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Tập trung"
-                android:textColor="#8E8E93"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <!-- 2. LỊCH TRÌNH (ACTIVE) -->
+        <!-- 1. LỊCH TRÌNH (ACTIVE) -->
         <LinearLayout
             android:id="@+id/navAgenda"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1.2"
+            android:layout_weight="1"
             android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -322,19 +349,46 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_my_calendar"
-                app:tint="#A87563" />
+                app:tint="#38BDF8" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="3dp"
                 android:text="Lịch trình"
-                android:textColor="#A87563"
+                android:textColor="#38BDF8"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 3. NÚT (+) BẮT MẮT Ở GIỮA -->
+        <!-- 2. TẬP TRUNG -->
+        <LinearLayout
+            android:id="@+id/navFocus"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@android:drawable/ic_menu_compass"
+                app:tint="#94A3B8" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="Tập trung"
+                android:textColor="#94A3B8"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- 3. NÚT (+) TRUNG TÂM -->
         <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -346,22 +400,25 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:backgroundTint="#362C2A"
+                android:contentDescription="Thêm công việc"
                 android:src="@android:drawable/ic_input_add"
+                app:backgroundTint="@color/brand_accent"
                 app:borderWidth="0dp"
-                app:elevation="0dp"
+                app:elevation="4dp"
                 app:fabCustomSize="52dp"
                 app:maxImageSize="26dp"
                 app:tint="#FFFFFF" />
         </FrameLayout>
 
-        <!-- 4. THỐNG KÊ -->
+        <!-- 4. DỰ ÁN -->
         <LinearLayout
             android:id="@+id/navProjects"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -369,14 +426,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_agenda"
-                app:tint="#8E8E93" />
+                app:tint="#94A3B8" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Thống kê"
-                android:textColor="#8E8E93"
+                android:layout_marginTop="3dp"
+                android:text="Dự án"
+                android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -387,6 +444,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -394,14 +453,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_edit"
-                app:tint="#8E8E93" />
+                app:tint="#94A3B8" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="3dp"
                 android:text="Trợ lý AI"
-                android:textColor="#8E8E93"
+                android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>
 

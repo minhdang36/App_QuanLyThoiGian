@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.myapplication.R;
 import com.example.myapplication.model.Project;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.project.AddProjectActivity;
 import com.example.myapplication.ui.task.ProjectTasksActivity;
 
@@ -24,8 +25,6 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectViewHolder> {
 
@@ -46,20 +45,15 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
     public void onBindViewHolder(@NonNull ProjectViewHolder holder, int position) {
         Project project = projectList.get(position);
 
-        // ==========================================
         // 1. NHẤN BÌNH THƯỜNG: Mở danh sách công việc
-        // ==========================================
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), ProjectTasksActivity.class);
-            // Truyền ID và Tên của Dự án sang màn hình danh sách
             intent.putExtra("PROJECT_ID", project.getId());
             intent.putExtra("PROJECT_NAME", project.getName());
             v.getContext().startActivity(intent);
         });
 
-        // ==========================================
         // 2. NHẤN GIỮ (LONG CLICK): Mở Menu Sửa / Xóa
-        // ==========================================
         holder.itemView.setOnLongClickListener(v -> {
             CharSequence[] options = new CharSequence[]{"Sửa danh mục", "Xóa danh mục"};
             android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(v.getContext());
@@ -67,7 +61,6 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
 
             builder.setItems(options, (dialog, which) -> {
                 if (which == 0) {
-                    // CHỌN SỬA -> Mở AddProjectActivity ở chế độ Sửa
                     Intent intent = new Intent(v.getContext(), AddProjectActivity.class);
                     intent.putExtra("PROJECT_ID", project.getId());
                     intent.putExtra("PROJECT_NAME", project.getName());
@@ -75,28 +68,26 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
                     v.getContext().startActivity(intent);
 
                 } else if (which == 1) {
-                    // CHỌN XÓA -> Hiển thị hộp thoại xác nhận
                     new android.app.AlertDialog.Builder(v.getContext())
                             .setTitle("Xác nhận xóa")
                             .setMessage("Bạn có chắc muốn xóa dự án này không?")
                             .setPositiveButton("Xóa", (dialogDelete, whichDelete) -> {
-                                // Gọi hàm xóa đã được thêm ở cuối file
-                                deleteProjectFromApi(project.getId(), holder.getAdapterPosition(), v.getContext());
+                                int curPos = holder.getBindingAdapterPosition();
+                                if (curPos != RecyclerView.NO_POSITION) {
+                                    deleteProjectFromApi(project.getId(), curPos, v.getContext());
+                                }
                             })
                             .setNegativeButton("Hủy", null)
                             .show();
                 }
             });
             builder.show();
-            return true; // Trả về true để hệ thống hiểu là đã xử lý xong sự kiện nhấn giữ
+            return true;
         });
 
-        // ==========================================
         // 3. HIỂN THỊ DỮ LIỆU LÊN GIAO DIỆN
-        // ==========================================
         holder.tvProjectName.setText(project.getName() + " ●");
 
-        // Tránh lỗi null khi MySQL chưa có mô tả
         if (project.getDescription() != null && !project.getDescription().isEmpty()) {
             holder.tvProjectDesc.setText(project.getDescription());
         } else {
@@ -105,53 +96,61 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
 
         holder.tvTaskCount.setText(project.getTotalTasks() + " Công việc");
 
-        // Kiểm tra an toàn cho Icon (nếu có id)
         if (project.getIconResId() != 0) {
             holder.imgProjectIcon.setImageResource(project.getIconResId());
         }
 
-        // Xử lý tiến độ (Progress)
         int progress = project.getProgressPercentage();
         holder.tvProgressPercent.setText(progress + "%");
         holder.progressBar.setProgress(progress);
         holder.tvFinished.setText(project.getFinishedTasks() + " đã xong");
         holder.tvRemaining.setText(project.getRemainingTasks() + " còn lại");
 
-        // Xử lý màu sắc an toàn
         String colorStr = project.getColorHex();
-        int projectColor;
+        int[] modernPalette = new int[]{
+                Color.parseColor("#2563EB"), // Royal Blue
+                Color.parseColor("#38BDF8"), // Sky Blue
+                Color.parseColor("#4F46E5"), // Indigo
+                Color.parseColor("#0EA5E9"), // Ocean Blue
+                Color.parseColor("#64748B")  // Cool Slate
+        };
+        int fallbackColor = modernPalette[Math.abs(position) % modernPalette.length];
+        int projectColor = fallbackColor;
 
         if (colorStr != null && !colorStr.trim().isEmpty()) {
-            try {
-                projectColor = Color.parseColor(colorStr);
-            } catch (IllegalArgumentException e) {
-                projectColor = Color.parseColor("#4DB6AC"); // Màu Teal mặc định nếu sai format
+            String normalized = colorStr.trim().toUpperCase();
+            if (normalized.equals("#362C2A") || normalized.equals("#004D40") ||
+                normalized.equals("#5D4037") || normalized.equals("#8D6E63")) {
+                projectColor = fallbackColor;
+            } else {
+                try {
+                    projectColor = Color.parseColor(normalized);
+                } catch (IllegalArgumentException e) {
+                    projectColor = fallbackColor;
+                }
             }
-        } else {
-            projectColor = Color.parseColor("#4DB6AC");
         }
 
         holder.imgProjectIcon.setBackgroundTintList(ColorStateList.valueOf(projectColor));
         holder.progressBar.setProgressTintList(ColorStateList.valueOf(projectColor));
 
-        // Kiểm tra dự án mặc định ("Công việc", "Học tập", "Cá nhân", "Sức khỏe và thể thao")
         String pName = project.getName() != null ? project.getName().trim() : "";
         boolean isDefaultCategory = pName.contains("Công việc") ||
                                    pName.contains("Học tập") || pName.contains("Học Tập") ||
                                    pName.contains("Cá nhân") || pName.contains("Cá Nhân") ||
                                    pName.contains("Sức khỏe") || pName.contains("Thể thao") ||
-                                   project.getId() <= 4;
+                                   (project.getId() >= 1 && project.getId() <= 4);
 
         if (holder.btnAiBreakdownItem != null) {
             if (isDefaultCategory) {
-                // Dự án mặc định -> ẨN nút Phân rã AI
                 holder.btnAiBreakdownItem.setVisibility(View.GONE);
             } else {
-                // Dự án lớn do người dùng tạo -> HIỆN nút Phân rã AI
                 holder.btnAiBreakdownItem.setVisibility(View.VISIBLE);
                 holder.btnAiBreakdownItem.setOnClickListener(v -> {
                     Intent aiIntent = new Intent(v.getContext(), com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
                     aiIntent.putExtra("MAIN_TASK_TITLE", project.getName());
+                    aiIntent.putExtra("MAIN_TASK_GOAL", project.getDescription());
+                    aiIntent.putExtra("CREATED_PROJECT_ID", project.getId());
                     v.getContext().startActivity(aiIntent);
                 });
             }
@@ -163,21 +162,12 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
         return projectList != null ? projectList.size() : 0;
     }
 
-    // ==========================================
-    // HÀM GỌI API XÓA PROJECT (Nằm bên trong Adapter)
-    // ==========================================
     private void deleteProjectFromApi(int projectId, int position, android.content.Context context) {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        ApiService apiService = retrofit.create(ApiService.class);
+        ApiService apiService = RetrofitClient.getApiService();
         apiService.deleteProject(projectId).enqueue(new Callback<Void>() {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    // Xóa thành công, cập nhật lại giao diện danh sách ngay lập tức
+                if (response.isSuccessful() && position >= 0 && position < projectList.size()) {
                     projectList.remove(position);
                     notifyItemRemoved(position);
                     notifyItemRangeChanged(position, projectList.size());
@@ -194,9 +184,6 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
         });
     }
 
-    // ==========================================
-    // CLASS VIEWHOLDER
-    // ==========================================
     public static class ProjectViewHolder extends RecyclerView.ViewHolder {
         ImageView imgProjectIcon;
         TextView tvProjectName, tvProjectDesc, tvTaskCount, tvProgressPercent, tvFinished, tvRemaining, btnAiBreakdownItem;

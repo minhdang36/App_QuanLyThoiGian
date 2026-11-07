@@ -5,14 +5,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFC"
+    android:background="@color/bg_main"
     tools:context=".ui.pomodoro.PomodoroActivity">
 
     <!-- 1. HEADER BAR -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="60dp"
         android:paddingHorizontal="20dp"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -26,22 +26,21 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:src="@android:drawable/ic_menu_recent_history"
-                app:tint="#362C2A" />
+                app:tint="@color/brand_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="Pomodoro Focus"
-                android:textColor="#362C2A"
-                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Đã xóa / ẩn hoàn toàn icon setting (wrench) góc phải -->
         <ImageButton
             android:id="@+id/btnSettings"
             android:layout_width="38dp"
@@ -50,7 +49,7 @@
             android:background="@drawable/bg_pill_light"
             android:src="@android:drawable/ic_menu_preferences"
             android:visibility="gone"
-            app:tint="#555555"
+            app:tint="@color/text_secondary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/imgAvatar"
             app:layout_constraintTop_toTopOf="parent" />
@@ -59,7 +58,7 @@
             android:id="@+id/imgAvatar"
             android:layout_width="38dp"
             android:layout_height="38dp"
-            android:background="@drawable/bg_circle_teal"
+            android:background="@drawable/bg_circle_brown"
             android:padding="2dp"
             android:src="@android:drawable/ic_menu_myplaces"
             app:tint="#FFFFFF"
@@ -88,7 +87,7 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_pill_light"
                 android:orientation="horizontal"
                 android:padding="4dp">
@@ -96,7 +95,7 @@
                 <TextView
                     android:id="@+id/tabFocus"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="38dp"
                     android:background="@drawable/bg_pill_brown"
                     android:gravity="center"
                     android:paddingHorizontal="20dp"
@@ -108,35 +107,35 @@
                 <TextView
                     android:id="@+id/tabShortBreak"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="38dp"
                     android:gravity="center"
                     android:paddingHorizontal="16dp"
                     android:text="Nghỉ ngắn"
-                    android:textColor="#777777"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/tabLongBreak"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="38dp"
                     android:gravity="center"
                     android:paddingHorizontal="16dp"
                     android:text="Nghỉ dài"
-                    android:textColor="#777777"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- CURRENT ACTIVE TASK CARD (Chỉ hiển thị khi ngày hôm đó có task công việc) -->
+            <!-- CURRENT ACTIVE TASK CARD -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardActiveTask"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="#FFFFFF"
-                app:cardCornerRadius="20dp"
+                app:cardBackgroundColor="@color/card_bg"
+                app:cardCornerRadius="22dp"
                 app:cardElevation="0dp"
-                app:strokeColor="#EEF0F4"
+                app:strokeColor="@color/card_stroke"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -158,8 +157,8 @@
                             android:background="@drawable/bg_pill_light"
                             android:gravity="center"
                             android:paddingHorizontal="10dp"
-                            android:text="🏷 Q1 Strategy"
-                            android:textColor="#FF9800"
+                            android:text="🏷 Công việc"
+                            android:textColor="@color/brand_primary"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -174,7 +173,7 @@
                             android:layout_height="28dp"
                             android:background="?android:attr/selectableItemBackgroundBorderless"
                             android:src="@android:drawable/ic_menu_sort_by_size"
-                            app:tint="#888888" />
+                            app:tint="@color/brand_primary" />
                     </LinearLayout>
 
                     <TextView
@@ -185,8 +184,8 @@
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:text="Hoàn thiện báo cáo chiến lược..."
-                        android:textColor="#222222"
-                        android:textSize="15sp"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <ProgressBar
@@ -196,16 +195,17 @@
                         android:layout_height="6dp"
                         android:layout_marginTop="10dp"
                         android:progress="0"
-                        android:progressTint="#10B981" />
+                        android:progressTint="@color/brand_primary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- CIRCULAR POMODORO TIMER DIAL -->
             <FrameLayout
-                android:layout_width="230dp"
-                android:layout_height="230dp"
-                android:layout_marginTop="28dp"
-                android:background="@drawable/bg_timer_dial">
+                android:layout_width="240dp"
+                android:layout_height="240dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bg_timer_dial"
+                android:elevation="6dp">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -219,8 +219,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="25:00"
-                        android:textColor="#222222"
-                        android:textSize="44sp"
+                        android:textColor="@color/text_primary"
+                        android:textSize="48sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -228,9 +228,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
+                        android:background="@drawable/bg_pill_light"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="3dp"
                         android:text="● Phiên 1 / 4"
-                        android:textColor="#10B981"
-                        android:textSize="13sp"
+                        android:textColor="@color/brand_primary"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </FrameLayout>
@@ -249,12 +252,12 @@
                     android:layout_height="48dp"
                     android:background="@drawable/bg_pill_light"
                     android:src="@android:drawable/ic_menu_revert"
-                    app:tint="#555555" />
+                    app:tint="@color/brand_primary" />
 
                 <TextView
                     android:id="@+id/btnStartTimer"
-                    android:layout_width="140dp"
-                    android:layout_height="52dp"
+                    android:layout_width="150dp"
+                    android:layout_height="54dp"
                     android:layout_marginHorizontal="16dp"
                     android:background="@drawable/bg_pill_brown"
                     android:gravity="center"
@@ -269,25 +272,25 @@
                     android:layout_height="48dp"
                     android:background="@drawable/bg_pill_light"
                     android:src="@android:drawable/ic_lock_silent_mode_off"
-                    app:tint="#555555" />
+                    app:tint="@color/brand_primary" />
             </LinearLayout>
 
             <!-- FOCUS STATS CARD -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
-                app:cardBackgroundColor="#FFFFFF"
-                app:cardCornerRadius="20dp"
+                android:layout_marginTop="24dp"
+                app:cardBackgroundColor="@color/card_bg"
+                app:cardCornerRadius="22dp"
                 app:cardElevation="0dp"
-                app:strokeColor="#EEF0F4"
+                app:strokeColor="@color/card_stroke"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:padding="18dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -300,7 +303,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Tổng tập trung"
-                            android:textColor="#888888"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
 
                         <TextView
@@ -309,15 +312,15 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="2.5 Giờ"
-                            android:textColor="#222222"
-                            android:textSize="16sp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="17sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="1dp"
                         android:layout_height="match_parent"
-                        android:background="#EEEEEE" />
+                        android:background="@color/card_stroke" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -329,8 +332,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🎯 Mục tiêu"
-                            android:textColor="#888888"
+                            android:text="🎯 Mục tiêu ngày"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
 
                         <TextView
@@ -339,8 +342,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="4h (62%)"
-                            android:textColor="#10B981"
-                            android:textSize="16sp"
+                            android:textColor="@color/brand_accent"
+                            android:textSize="17sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
@@ -353,7 +356,7 @@
                 android:layout_marginTop="20dp"
                 android:layout_gravity="start"
                 android:text="ÂM THANH NỀN THƯ GIÃN (6 LOẠI)"
-                android:textColor="#9E9E9E"
+                android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.05" />
@@ -362,7 +365,7 @@
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -392,7 +395,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="🌧 Tiếng mưa rơi"
-                        android:textColor="#555555"
+                        android:textColor="@color/text_primary"
                         android:textSize="12sp" />
 
                     <TextView
@@ -404,7 +407,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="🌊 Sóng biển"
-                        android:textColor="#555555"
+                        android:textColor="@color/text_primary"
                         android:textSize="12sp" />
 
                     <TextView
@@ -416,7 +419,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="☕ Quán cà phê"
-                        android:textColor="#555555"
+                        android:textColor="@color/text_primary"
                         android:textSize="12sp" />
 
                     <TextView
@@ -428,7 +431,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="⚡ Binaural 432Hz"
-                        android:textColor="#555555"
+                        android:textColor="@color/text_primary"
                         android:textSize="12sp" />
 
                     <TextView
@@ -440,7 +443,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="⚪ White Noise"
-                        android:textColor="#555555"
+                        android:textColor="@color/text_primary"
                         android:textSize="12sp" />
                 </LinearLayout>
             </HorizontalScrollView>
@@ -450,11 +453,11 @@
                 android:id="@+id/cardSoundSelector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:cardBackgroundColor="#FFFFFF"
-                app:cardCornerRadius="20dp"
+                android:layout_marginTop="12dp"
+                app:cardBackgroundColor="@color/card_bg"
+                app:cardCornerRadius="22dp"
                 app:cardElevation="0dp"
-                app:strokeColor="#EEF0F4"
+                app:strokeColor="@color/card_stroke"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -469,7 +472,7 @@
                         android:layout_width="28dp"
                         android:layout_height="28dp"
                         android:src="@android:drawable/ic_lock_silent_mode_off"
-                        app:tint="#362C2A" />
+                        app:tint="@color/brand_primary" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -483,7 +486,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Âm thanh nền: Rừng thông &amp; Gió nhẹ"
-                            android:textColor="#222222"
+                            android:textColor="@color/text_primary"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -493,7 +496,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Tần số thiên nhiên - 432Hz"
-                            android:textColor="#888888"
+                            android:textColor="@color/text_secondary"
                             android:textSize="11sp" />
                     </LinearLayout>
 
@@ -503,7 +506,7 @@
                         android:layout_height="32dp"
                         android:background="?android:attr/selectableItemBackgroundBorderless"
                         android:src="@android:drawable/ic_media_play"
-                        app:tint="#10B981" />
+                        app:tint="@color/brand_accent" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -516,11 +519,11 @@
         android:layout_width="match_parent"
         android:layout_height="68dp"
         android:layout_gravity="bottom"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginEnd="18dp"
+        android:layout_marginBottom="18dp"
         android:background="@drawable/bg_bottom_nav_dark"
-        android:elevation="12dp"
+        android:elevation="16dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent">
@@ -539,14 +542,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_compass"
-                app:tint="#10B981" />
+                app:tint="#38BDF8" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="3dp"
                 android:text="Tập trung"
-                android:textColor="#10B981"
+                android:textColor="#38BDF8"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -565,14 +568,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_my_calendar"
-                app:tint="#8E8E93" />
+                app:tint="#94A3B8" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="3dp"
                 android:text="Lịch trình"
-                android:textColor="#8E8E93"
+                android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -588,10 +591,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:backgroundTint="#362C2A"
+                android:backgroundTint="@color/brand_accent"
                 android:src="@android:drawable/ic_input_add"
                 app:borderWidth="0dp"
-                app:elevation="0dp"
+                app:elevation="4dp"
                 app:fabCustomSize="52dp"
                 app:maxImageSize="26dp"
                 app:tint="#FFFFFF" />
@@ -611,14 +614,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_agenda"
-                app:tint="#8E8E93" />
+                app:tint="#94A3B8" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Thống kê"
-                android:textColor="#8E8E93"
+                android:layout_marginTop="3dp"
+                android:text="Dự án"
+                android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -636,14 +639,14 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_edit"
-                app:tint="#8E8E93" />
+                app:tint="#94A3B8" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="3dp"
                 android:text="Trợ lý AI"
-                android:textColor="#8E8E93"
+                android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>

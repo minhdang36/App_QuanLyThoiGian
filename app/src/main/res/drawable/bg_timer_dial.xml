@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <solid android:color="#FFFFFF" />
-    <stroke android:width="8dp" android:color="#14B8A6" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/card_bg" />
+            <stroke
+                android:width="6dp"
+                android:color="@color/surface_pill" />
+        </shape>
+    </item>
+    <item
+        android:bottom="14dp"
+        android:left="14dp"
+        android:right="14dp"
+        android:top="14dp">
+        <shape android:shape="oval">
+            <stroke
+                android:width="3dp"
+                android:color="@color/brand_primary" />
+        </shape>
+    </item>
+</layer-list>

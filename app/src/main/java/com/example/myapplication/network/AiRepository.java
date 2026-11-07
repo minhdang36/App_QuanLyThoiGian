@@ -16,11 +16,10 @@ public class AiRepository {
         void onError(String errorMessage);
     }
 
-    private static final String DEFAULT_BASE_URL = "http://10.0.2.2:8080/api/";
     private final ApiService apiService;
 
     public AiRepository() {
-        this(DEFAULT_BASE_URL);
+        this.apiService = RetrofitClient.getApiService();
     }
 
     public AiRepository(String baseUrl) {

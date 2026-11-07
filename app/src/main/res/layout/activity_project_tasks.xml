@@ -4,24 +4,25 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFC"
+    android:background="@color/bg_main"
     android:orientation="vertical"
     tools:context=".ui.task.ProjectTasksActivity">
 
     <!-- 1. TOP BAR -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="#FFFFFF"
-        android:paddingHorizontal="16dp">
+        android:layout_height="60dp"
+        android:background="@color/card_bg"
+        android:paddingHorizontal="18dp">
 
         <ImageView
             android:id="@+id/btnBack"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_pill_light"
+            android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
-            app:tint="#333333"
+            app:tint="@color/brand_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -32,7 +33,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:text="Công việc"
-            android:textColor="#222222"
+            android:textColor="@color/text_primary"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -45,9 +46,9 @@
             android:layout_height="wrap_content"
             android:background="@drawable/bg_pill_light"
             android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:text="8 công việc"
-            android:textColor="#362C2A"
+            android:paddingVertical="5dp"
+            android:text="0 công việc"
+            android:textColor="@color/brand_primary"
             android:textSize="12sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -72,7 +73,7 @@
             <!-- 2. SEARCH BAR -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="50dp"
                 android:background="@drawable/bg_search_bar"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -82,7 +83,7 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_search"
-                    app:tint="#888888" />
+                    app:tint="@color/brand_primary" />
 
                 <EditText
                     android:id="@+id/edtSearch"
@@ -91,18 +92,18 @@
                     android:layout_marginStart="10dp"
                     android:layout_weight="1"
                     android:background="@null"
-                    android:hint="Tìm kiếm công việc, dự án..."
+                    android:hint="Tìm kiếm công việc trong dự án..."
                     android:inputType="text|textNoSuggestions"
                     android:imeOptions="actionSearch"
-                    android:textColor="#222222"
-                    android:textColorHint="#AAAAAA"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_muted"
                     android:textSize="14sp" />
 
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_preferences"
-                    app:tint="#888888" />
+                    app:tint="@color/text_secondary" />
             </LinearLayout>
 
             <!-- BANNER DỰ ÁN LỚN: PHÂN RÃ CÔNG VIỆC AI -->
@@ -111,7 +112,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:background="@drawable/bg_pill_brown"
+                android:background="@drawable/bg_hero_gradient"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
@@ -131,10 +132,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
-                app:strokeColor="#EEF0F4"
+                app:strokeColor="@color/card_stroke"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -143,7 +144,6 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- Title & Percentage -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -155,7 +155,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Tổng quan trạng thái"
-                            android:textColor="#222222"
+                            android:textColor="@color/text_primary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -166,13 +166,12 @@
                             android:background="@drawable/bg_pill_light"
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="4dp"
-                            android:text="65% Hoàn thành"
-                            android:textColor="#362C2A"
+                            android:text="0% Hoàn thành"
+                            android:textColor="@color/brand_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Breakdown items -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -185,7 +184,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="● Chờ xử lý"
-                            android:textColor="#FF9800"
+                            android:textColor="@color/brand_warning"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -193,8 +192,8 @@
                             android:id="@+id/tvPendingCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="3 mục • 25%"
-                            android:textColor="#777777"
+                            android:text="0 mục • 0%"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -210,7 +209,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="● Đang thực hiện"
-                            android:textColor="#2196F3"
+                            android:textColor="@color/brand_primary"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -218,8 +217,8 @@
                             android:id="@+id/tvInProgressCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="4 mục • 45%"
-                            android:textColor="#777777"
+                            android:text="0 mục • 0%"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -235,7 +234,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="● Đã hoàn thành"
-                            android:textColor="#10B981"
+                            android:textColor="@color/brand_accent"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -243,8 +242,8 @@
                             android:id="@+id/tvDoneCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="5 mục • 70%"
-                            android:textColor="#777777"
+                            android:text="0 mục • 0%"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -269,7 +268,7 @@
                         android:background="@drawable/bg_pill_brown"
                         android:gravity="center"
                         android:paddingHorizontal="18dp"
-                        android:text="Tất cả 12"
+                        android:text="Tất cả"
                         android:textColor="#FFFFFF"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -282,8 +281,8 @@
                         android:background="@drawable/bg_pill_light"
                         android:gravity="center"
                         android:paddingHorizontal="18dp"
-                        android:text="● Chờ xử lý 3"
-                        android:textColor="#555555"
+                        android:text="● Chờ xử lý"
+                        android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
                     <TextView
@@ -294,8 +293,8 @@
                         android:background="@drawable/bg_pill_light"
                         android:gravity="center"
                         android:paddingHorizontal="18dp"
-                        android:text="● Đang làm 4"
-                        android:textColor="#555555"
+                        android:text="● Đang làm"
+                        android:textColor="@color/text_primary"
                         android:textSize="13sp" />
                 </LinearLayout>
             </HorizontalScrollView>

@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.myapplication.R;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.main.MainActivity;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
@@ -35,8 +36,6 @@ import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ScanScheduleActivity extends AppCompatActivity {
 
@@ -320,7 +319,7 @@ public class ScanScheduleActivity extends AppCompatActivity {
             if (!pEnd.isEmpty()) endCal.setTime(sdfDate.parse(pEnd));
         } catch (Exception ignored) {}
 
-        // Sinh các buổi học lặp hằng ngày/hàng tuần cho toàn bộ học kỳ từ pStart đến pEnd
+        // Sinh các buổi học lặp hàng tuần cho toàn bộ học kỳ từ pStart đến pEnd
         List<Task> recurringTasks = new ArrayList<>();
 
         for (Task baseTask : scannedTasks) {
@@ -334,26 +333,43 @@ public class ScanScheduleActivity extends AppCompatActivity {
                 newTask.setDescription(baseTask.getDescription());
                 newTask.setTime("📅 " + dateStr + " | " + baseTask.getTime());
                 newTask.setLocation(baseTask.getLocation());
+                newTask.setCategory("Học tập");
                 newTask.setProjectId(2); // Category "Học tập"
                 newTask.setStatus("PENDING");
                 newTask.setUserId(currentUserId);
 
                 recurringTasks.add(newTask);
 
-                // Lặp theo tuần (cách 7 ngày) cho lịch học môn này
                 loopCal.add(Calendar.DAY_OF_MONTH, 7);
             }
         }
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        ApiService apiService = retrofit.create(ApiService.class);
+        ApiService apiService = RetrofitClient.getApiService();
 
         btnImportSchedule.setEnabled(false);
         btnImportSchedule.setText("Đang đồng bộ lịch học...");
 
+        final int totalRecurring = recurringTasks.size();
+
+        apiService.addTasksBatch(recurringTasks).enqueue(new Callback<List<Task>>() {
+            @Override
+            public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(ScanScheduleActivity.this, "✔ Đã tự động lặp " + totalRecurring + " buổi học từ " + pStart + " đến " + pEnd + "!", Toast.LENGTH_LONG).show();
+                    navigateToMain();
+                } else {
+                    fallbackIndividualImport(apiService, recurringTasks, pStart, pEnd);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Task>> call, Throwable t) {
+                fallbackIndividualImport(apiService, recurringTasks, pStart, pEnd);
+            }
+        });
+    }
+
+    private void fallbackIndividualImport(ApiService apiService, List<Task> recurringTasks, String pStart, String pEnd) {
         final int totalRecurring = recurringTasks.size();
         final int[] completedCount = new int[]{0};
 
@@ -376,13 +392,16 @@ public class ScanScheduleActivity extends AppCompatActivity {
         completedCount[0]++;
         if (completedCount[0] >= totalRecurring) {
             new Handler(Looper.getMainLooper()).post(() -> {
-                Toast.makeText(ScanScheduleActivity.this, "✔ Đã tự động lặp " + totalRecurring + " buổi học hằng ngày từ " + pStart + " đến " + pEnd + "!", Toast.LENGTH_LONG).show();
-
-                Intent intent = new Intent(ScanScheduleActivity.this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                finish();
+                Toast.makeText(ScanScheduleActivity.this, "✔ Đã tự động lặp " + totalRecurring + " buổi học từ " + pStart + " đến " + pEnd + "!", Toast.LENGTH_LONG).show();
+                navigateToMain();
             });
         }
+    }
+
+    private void navigateToMain() {
+        Intent intent = new Intent(ScanScheduleActivity.this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 }

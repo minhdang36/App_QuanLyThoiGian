@@ -5,15 +5,21 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.R;
 import com.example.myapplication.model.Task;
+import com.example.myapplication.network.RetrofitClient;
 
 import java.util.Collections;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimelineAdapter.TimelineViewHolder> {
 
@@ -109,7 +115,7 @@ public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimeli
         if (task.getProjectId() == 2 || (task.getLocation() != null && task.getLocation().contains("PMT"))) {
             holder.tvTimelineTagAi.setText("📌 Lịch cố định");
             holder.tvTimelineTagAi.setBackgroundResource(R.drawable.bg_pill_light);
-            holder.tvTimelineTagAi.setTextColor(0xFF555555);
+            holder.tvTimelineTagAi.setTextColor(0xFF2563EB);
             holder.tvTimelineTagCategory.setText("🏷 Học tập");
         } else {
             holder.tvTimelineTagAi.setText("⚡ FlowAI Xếp");
@@ -125,14 +131,30 @@ public class ScheduleTimelineAdapter extends RecyclerView.Adapter<ScheduleTimeli
             holder.tvTimelineSubInfo.setText("📍 Hoàn thành công việc");
         }
 
-        boolean isDone = "DONE".equalsIgnoreCase(task.getStatus()) || "COMPLETED".equalsIgnoreCase(task.getStatus());
+        String s = task.getStatus();
+        boolean isDone = "DONE".equalsIgnoreCase(s) || "COMPLETED".equalsIgnoreCase(s) || "HOÀN THÀNH".equalsIgnoreCase(s);
         holder.cbTimelineStatus.setOnCheckedChangeListener(null);
         holder.cbTimelineStatus.setChecked(isDone);
 
         holder.cbTimelineStatus.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            task.setStatus(isChecked ? "DONE" : "PENDING");
+            String newStatus = isChecked ? "DONE" : "PENDING";
+            task.setStatus(newStatus);
             if (statusChangeListener != null) {
                 statusChangeListener.onStatusChanged();
+            }
+
+            if (task.getId() > 0) {
+                RetrofitClient.getApiService().updateTask(task.getId(), task).enqueue(new Callback<Task>() {
+                    @Override
+                    public void onResponse(Call<Task> call, Response<Task> response) {
+                        if (response.isSuccessful()) {
+                            Toast.makeText(buttonView.getContext(), "✔ Đã lưu trạng thái công việc!", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<Task> call, Throwable t) {}
+                });
             }
         });
     }

@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.myapplication.R;
 import com.example.myapplication.model.User;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.main.MainActivity;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -28,8 +29,6 @@ import com.google.android.gms.tasks.Task;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -62,7 +61,7 @@ public class LoginActivity extends AppCompatActivity {
                     googleSignInLauncher.launch(signInIntent);
                 } catch (Exception e) {
                     Log.e("GOOGLE_LOGIN", "Lỗi: " + e.getMessage());
-                    proceedWithGoogleLogin("Google User", "googleuser@gmail.com");
+                    Toast.makeText(this, "Không thể khởi chạy Google Sign-In trên thiết bị này", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -81,8 +80,8 @@ public class LoginActivity extends AppCompatActivity {
 
         if (btnLogin != null) {
             btnLogin.setOnClickListener(v -> {
-                String emailInput = etEmail.getText().toString().trim();
-                String passInput = etPassword.getText().toString().trim();
+                String emailInput = etEmail != null ? etEmail.getText().toString().trim() : "";
+                String passInput = etPassword != null ? etPassword.getText().toString().trim() : "";
 
                 if (emailInput.isEmpty() || passInput.isEmpty()) {
                     Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin!", Toast.LENGTH_SHORT).show();
@@ -93,67 +92,31 @@ public class LoginActivity extends AppCompatActivity {
                 loginData.setEmail(emailInput);
                 loginData.setPassword(passInput);
 
-                Retrofit retrofit = new Retrofit.Builder()
-                        .baseUrl("http://10.0.2.2:8080/api/")
-                        .addConverterFactory(GsonConverterFactory.create())
-                        .build();
+                btnLogin.setEnabled(false);
+                btnLogin.setText("Đang đăng nhập...");
 
-                ApiService apiService = retrofit.create(ApiService.class);
+                ApiService apiService = RetrofitClient.getApiService();
                 apiService.loginUser(loginData).enqueue(new Callback<User>() {
                     @Override
                     public void onResponse(Call<User> call, Response<User> response) {
+                        btnLogin.setEnabled(true);
+                        btnLogin.setText("Đăng nhập →");
+
                         if (response.isSuccessful() && response.body() != null) {
                             User loggedInUser = response.body();
                             saveSessionAndNavigate(loggedInUser);
                         } else {
-                            // Xử lý thông minh khi trùng email/tên người dùng trong CSDL
-                            tryFallbackLogin(apiService, emailInput, passInput);
+                            Toast.makeText(LoginActivity.this, "Sai Email / Tên đăng nhập hoặc Mật khẩu!", Toast.LENGTH_SHORT).show();
                         }
                     }
 
                     @Override
                     public void onFailure(Call<User> call, Throwable t) {
-                        tryFallbackLogin(apiService, emailInput, passInput);
+                        btnLogin.setEnabled(true);
+                        btnLogin.setText("Đăng nhập →");
+                        Toast.makeText(LoginActivity.this, "❌ Không thể kết nối tới máy chủ! Vui lòng kiểm tra Server.", Toast.LENGTH_LONG).show();
                     }
                 });
-            });
-        }
-    }
-
-    private void tryFallbackLogin(ApiService apiService, String emailInput, String passInput) {
-        final boolean[] found = new boolean[]{false};
-        final int[] totalChecked = new int[]{0};
-
-        for (int i = 1; i <= 25; i++) {
-            apiService.getUserProfile(i).enqueue(new Callback<User>() {
-                @Override
-                public void onResponse(Call<User> call, Response<User> response) {
-                    totalChecked[0]++;
-                    if (!found[0] && response.isSuccessful() && response.body() != null) {
-                        User u = response.body();
-                        boolean matchEmail = u.getEmail() != null && u.getEmail().equalsIgnoreCase(emailInput);
-                        boolean matchName = u.getFullName() != null && u.getFullName().equalsIgnoreCase(emailInput);
-                        boolean matchPass = u.getPassword() != null && u.getPassword().equals(passInput);
-
-                        if ((matchEmail || matchName) && matchPass) {
-                            found[0] = true;
-                            saveSessionAndNavigate(u);
-                            return;
-                        }
-                    }
-
-                    if (totalChecked[0] >= 25 && !found[0]) {
-                        Toast.makeText(LoginActivity.this, "Sai Email hoặc Mật khẩu!", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<User> call, Throwable t) {
-                    totalChecked[0]++;
-                    if (totalChecked[0] >= 25 && !found[0]) {
-                        Toast.makeText(LoginActivity.this, "Sai Email hoặc Mật khẩu!", Toast.LENGTH_SHORT).show();
-                    }
-                }
             });
         }
     }
@@ -164,9 +127,16 @@ public class LoginActivity extends AppCompatActivity {
         editor.putInt("USER_ID", loggedInUser.getId());
         if (loggedInUser.getEmail() != null) editor.putString("USER_EMAIL", loggedInUser.getEmail());
         if (loggedInUser.getFullName() != null) editor.putString("USER_NAME", loggedInUser.getFullName());
+        if (loggedInUser.getPhone() != null) editor.putString("USER_PHONE", loggedInUser.getPhone());
+        if (loggedInUser.getBio() != null) editor.putString("USER_BIO", loggedInUser.getBio());
+        if (loggedInUser.getAvatarUrl() != null && !loggedInUser.getAvatarUrl().isEmpty()) {
+            editor.putString("USER_AVATAR_URI", loggedInUser.getAvatarUrl());
+        }
         editor.apply();
 
-        String name = loggedInUser.getFullName() != null ? loggedInUser.getFullName() : loggedInUser.getEmail();
+        String name = (loggedInUser.getFullName() != null && !loggedInUser.getFullName().isEmpty())
+                ? loggedInUser.getFullName()
+                : loggedInUser.getEmail();
         Toast.makeText(LoginActivity.this, "Chào mừng " + name + "!", Toast.LENGTH_SHORT).show();
 
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
@@ -177,7 +147,7 @@ public class LoginActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getResultCode() == RESULT_OK) {
+                if (result.getData() != null) {
                     Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
                     try {
                         GoogleSignInAccount account = task.getResult(ApiException.class);
@@ -185,15 +155,16 @@ public class LoginActivity extends AppCompatActivity {
                             String email = account.getEmail();
                             String name = account.getDisplayName();
                             proceedWithGoogleLogin(name, email);
-                        } else {
-                            proceedWithGoogleLogin("Google User", "user@gmail.com");
                         }
                     } catch (ApiException e) {
                         Log.e("GOOGLE_LOGIN", "Mã lỗi Google: " + e.getStatusCode());
-                        proceedWithGoogleLogin("Google User", "user@gmail.com");
+                        if (e.getStatusCode() == 10 || e.getStatusCode() == 12500) {
+                            // Cấu hình SHA-1 trên máy ảo chưa khớp Google Console -> hỗ trợ tài khoản Google Demo
+                            proceedWithGoogleLogin("Google User", "googleuser@gmail.com");
+                        } else {
+                            Toast.makeText(this, "Đã hủy hoặc lỗi đăng nhập Google (Mã " + e.getStatusCode() + ")", Toast.LENGTH_SHORT).show();
+                        }
                     }
-                } else {
-                    proceedWithGoogleLogin("Google User", "user@gmail.com");
                 }
             }
     );

@@ -20,6 +20,7 @@ import com.example.myapplication.R;
 import com.example.myapplication.adapter.ScheduleTimelineAdapter;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.main.ProfileSettingsActivity;
 
 import java.text.SimpleDateFormat;
@@ -28,14 +29,16 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class AiAutoScheduleActivity extends AppCompatActivity {
+
+    private static final Pattern NON_DATE_CHARS = Pattern.compile("[^0-9/-]");
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     private ImageButton btnBack;
     private ImageView imgAvatar;
@@ -72,6 +75,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         rvTimeline = findViewById(R.id.rvTimeline);
         if (rvTimeline != null) {
             rvTimeline.setLayoutManager(new LinearLayoutManager(this));
+            rvTimeline.setItemViewCacheSize(10);
             timelineAdapter = new ScheduleTimelineAdapter(displayedScheduleTasks);
             timelineAdapter.setOnTaskStatusChangeListener(this::recalculateEfficiencyOnly);
             rvTimeline.setAdapter(timelineAdapter);
@@ -191,7 +195,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         if (selectedLayout != null) {
             selectedLayout.setBackgroundResource(R.drawable.bg_pill_brown);
         }
-        if (tvLabel != null) tvLabel.setTextColor(0xFFCCCCCC);
+        if (tvLabel != null) tvLabel.setTextColor(0xFFBAE6FD);
         if (tvNum != null) tvNum.setTextColor(0xFFFFFFFF);
 
         filterAndOptimizeForDay(dayNumber);
@@ -199,8 +203,8 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
 
     private void resetCapsuleStyle(LinearLayout layout, TextView tvLabel, TextView tvNum) {
         if (layout != null) layout.setBackgroundResource(0);
-        if (tvLabel != null) tvLabel.setTextColor(0xFF888888);
-        if (tvNum != null) tvNum.setTextColor(0xFF222222);
+        if (tvLabel != null) tvLabel.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary));
+        if (tvNum != null) tvNum.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.text_primary));
     }
 
     @Override
@@ -218,18 +222,22 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             return;
         }
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        // Hiển thị tức thì từ RAM cache nếu có
+        List<Task> cached = RetrofitClient.getCachedTasks();
+        if (!cached.isEmpty() && allUserTasks.isEmpty()) {
+            allUserTasks.clear();
+            allUserTasks.addAll(cached);
+            filterAndOptimizeForDay(selectedDayNumber);
+        }
 
-        ApiService apiService = retrofit.create(ApiService.class);
+        ApiService apiService = RetrofitClient.getApiService();
         apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
             @Override
             public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     allUserTasks.clear();
                     allUserTasks.addAll(response.body());
+                    RetrofitClient.setCachedTasks(allUserTasks);
 
                     filterAndOptimizeForDay(selectedDayNumber);
                 }
@@ -237,7 +245,9 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<Task>> call, Throwable t) {
-                Toast.makeText(AiAutoScheduleActivity.this, "Lỗi tải lịch trình AI", Toast.LENGTH_SHORT).show();
+                if (allUserTasks.isEmpty()) {
+                    Toast.makeText(AiAutoScheduleActivity.this, "Lỗi tải lịch trình AI", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -274,19 +284,19 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
                     isMatch = true;
                 }
             } else {
-                if (timeStr.contains("Hôm nay") && isSelectedDayToday) {
-                    isMatch = true;
-                }
-
                 List<int[]> dates = parseDatesFromTimeStr(timeStr, selectedYear);
-                for (int[] d : dates) {
-                    int day = d[0];
-                    int month = d[1];
-                    int year = d[2];
-                    if (day == selectedDay && month == selectedMonth && (year == selectedYear || year == 0)) {
-                        isMatch = true;
-                        break;
+                if (!dates.isEmpty()) {
+                    for (int[] d : dates) {
+                        int day = d[0];
+                        int month = d[1];
+                        int year = d[2];
+                        if (day == selectedDay && month == selectedMonth && (year == selectedYear || year == 0)) {
+                            isMatch = true;
+                            break;
+                        }
                     }
+                } else if (timeStr.contains("Hôm nay") && isSelectedDayToday) {
+                    isMatch = true;
                 }
             }
 
@@ -307,7 +317,6 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             }
         }
 
-        // SẮP XẾP TOÀN BỘ CÔNG VIỆC THEO ƯU TIÊN (ƯU TIÊN 1 ➔ ƯU TIÊN 2 ➔ ƯU TIÊN 3)
         Collections.sort(displayedScheduleTasks, (t1, t2) -> {
             int p1 = getPriorityLevel(t1);
             int p2 = getPriorityLevel(t2);
@@ -343,51 +352,36 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
     }
 
     private List<int[]> parseDatesFromTimeStr(String timeStr, int realTodayYear) {
-        List<int[]> dates = new ArrayList<>();
-        if (timeStr == null || timeStr.trim().isEmpty()) return dates;
+        if (timeStr == null || timeStr.isEmpty()) return Collections.emptyList();
 
+        List<int[]> dates = new ArrayList<>(2);
         try {
-            String cleanTime = timeStr.replaceAll("[^0-9/-]", " ");
-            String[] parts = cleanTime.trim().split("\\s+");
+            String cleanTime = NON_DATE_CHARS.matcher(timeStr).replaceAll(" ").trim();
+            if (!cleanTime.isEmpty()) {
+                String[] parts = WHITESPACE.split(cleanTime);
+                for (String part : parts) {
+                    int slashIdx = part.indexOf('/');
+                    int dashIdx = part.indexOf('-');
+                    if (slashIdx > 0 || dashIdx > 0) {
+                        String sep = slashIdx > 0 ? "/" : "-";
+                        String[] dateParts = part.split(sep);
+                        if (dateParts.length >= 2) {
+                            int p1 = Integer.parseInt(dateParts[0].trim());
+                            int p2 = Integer.parseInt(dateParts[1].trim());
+                            int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
 
-            for (String part : parts) {
-                if (part.contains("/")) {
-                    String[] dateParts = part.split("/");
-                    if (dateParts.length >= 2) {
-                        int p1 = Integer.parseInt(dateParts[0].trim());
-                        int p2 = Integer.parseInt(dateParts[1].trim());
-                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
-
-                        int day, month, year;
-                        if (p1 > 1000) {
-                            year = p1;
-                            month = p2;
-                            day = p3;
-                        } else {
-                            day = p1;
-                            month = p2;
-                            year = p3;
+                            int day, month, year;
+                            if (p1 > 1000) {
+                                year = p1;
+                                month = p2;
+                                day = p3;
+                            } else {
+                                day = p1;
+                                month = p2;
+                                year = p3;
+                            }
+                            dates.add(new int[]{day, month, year});
                         }
-                        dates.add(new int[]{day, month, year});
-                    }
-                } else if (part.contains("-")) {
-                    String[] dateParts = part.split("-");
-                    if (dateParts.length >= 2) {
-                        int p1 = Integer.parseInt(dateParts[0].trim());
-                        int p2 = Integer.parseInt(dateParts[1].trim());
-                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
-
-                        int day, month, year;
-                        if (p1 > 1000) {
-                            year = p1;
-                            month = p2;
-                            day = p3;
-                        } else {
-                            day = p1;
-                            month = p2;
-                            year = p3;
-                        }
-                        dates.add(new int[]{day, month, year});
                     }
                 }
             }
@@ -398,7 +392,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
 
     private int getPriorityLevel(Task t) {
         String combined = (t.getPriority() != null ? t.getPriority() : "") + " " + (t.getTime() != null ? t.getTime() : "");
-        String p = combined.toUpperCase();
+        String p = combined.toUpperCase(Locale.ROOT);
         if (p.contains("ƯU 1") || p.contains("CAO") || p.contains("HIGH")) return 1;
         if (p.contains("ƯU 2") || p.contains("TRUNG BÌNH") || p.contains("MEDIUM")) return 2;
         if (p.contains("ƯU 3") || p.contains("THẤP") || p.contains("LOW")) return 3;

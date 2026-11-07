@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.myapplication.R;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.ai.AiAutoScheduleActivity;
 import com.example.myapplication.ui.main.MainActivity;
 import com.example.myapplication.ui.project.ProjectsActivity;
@@ -37,8 +38,6 @@ import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class PomodoroActivity extends AppCompatActivity {
 
@@ -70,6 +69,7 @@ public class PomodoroActivity extends AppCompatActivity {
     private Thread audioThread;
     private int selectedSoundIndex = 0;
 
+    private int activeTaskId = -1;
     private String activeTaskTitle = "";
     private boolean isIntentTaskProvided = false;
     private double goalHours = 2.0;
@@ -147,6 +147,7 @@ public class PomodoroActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         if (intent != null) {
+            activeTaskId = intent.getIntExtra("ACTIVE_TASK_ID", -1);
             if (intent.hasExtra("ACTIVE_TASK_TITLE")) {
                 String tTitle = intent.getStringExtra("ACTIVE_TASK_TITLE");
                 if (tTitle != null && !tTitle.trim().isEmpty()) {
@@ -224,12 +225,7 @@ public class PomodoroActivity extends AppCompatActivity {
             return;
         }
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        ApiService apiService = retrofit.create(ApiService.class);
+        ApiService apiService = RetrofitClient.getApiService();
         apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
             @Override
             public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
@@ -244,8 +240,10 @@ public class PomodoroActivity extends AppCompatActivity {
 
                     if (isIntentTaskProvided && !activeTaskTitle.isEmpty()) {
                         for (Task t : userTaskList) {
-                            if (t.getTitle() != null && t.getTitle().trim().equalsIgnoreCase(activeTaskTitle.trim())) {
+                            if ((activeTaskId != -1 && t.getId() == activeTaskId) ||
+                                (t.getTitle() != null && t.getTitle().trim().equalsIgnoreCase(activeTaskTitle.trim()))) {
                                 activeTodayTask = t;
+                                activeTaskId = t.getId();
                                 break;
                             }
                         }
@@ -256,6 +254,7 @@ public class PomodoroActivity extends AppCompatActivity {
                             String timeStr = t.getTime();
                             if (timeStr == null || timeStr.contains("Hôm nay") || timeStr.contains(String.valueOf(todayDayNum))) {
                                 activeTodayTask = t;
+                                activeTaskId = t.getId();
                                 activeTaskTitle = t.getTitle();
                                 break;
                             }
@@ -282,6 +281,9 @@ public class PomodoroActivity extends AppCompatActivity {
                         }
 
                         loadAccFocusMinutesForCurrentTask();
+                        if (activeTodayTask.getTotalFocusTimeMinutes() > totalFocusMinutesAcc) {
+                            totalFocusMinutesAcc = activeTodayTask.getTotalFocusTimeMinutes();
+                        }
                     } else {
                         if (cardActiveTask != null) {
                             cardActiveTask.setVisibility(View.GONE);
@@ -317,6 +319,7 @@ public class PomodoroActivity extends AppCompatActivity {
             builder.setSingleChoiceItems(taskTitles, -1, (dialog, which) -> {
                 Task selected = userTaskList.get(which);
                 if (selected != null && selected.getTitle() != null) {
+                    activeTaskId = selected.getId();
                     activeTaskTitle = selected.getTitle();
 
                     SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
@@ -383,7 +386,6 @@ public class PomodoroActivity extends AppCompatActivity {
     private void updateTaskFocusStats() {
         double totalHoursAcc = totalFocusMinutesAcc / 60.0;
 
-        // Tính toán số giờ mục tiêu CÒN LẠI sau khi đã trừ đi số giờ đã tập trung
         double remainingGoalHours = Math.max(0.0, goalHours - totalHoursAcc);
         int percent = goalHours > 0 ? (int) Math.round((totalHoursAcc / goalHours) * 100) : 0;
         percent = Math.min(percent, 100);
@@ -416,12 +418,13 @@ public class PomodoroActivity extends AppCompatActivity {
             pauseTimer();
         }
 
+        int inactiveTabColor = androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary);
         tabFocus.setBackground(null);
-        tabFocus.setTextColor(0xFF777777);
+        tabFocus.setTextColor(inactiveTabColor);
         tabShortBreak.setBackground(null);
-        tabShortBreak.setTextColor(0xFF777777);
+        tabShortBreak.setTextColor(inactiveTabColor);
         tabLongBreak.setBackground(null);
-        tabLongBreak.setTextColor(0xFF777777);
+        tabLongBreak.setTextColor(inactiveTabColor);
 
         selectedTab.setBackgroundResource(R.drawable.bg_pill_brown);
         selectedTab.setTextColor(0xFFFFFFFF);
@@ -468,6 +471,7 @@ public class PomodoroActivity extends AppCompatActivity {
     private void selectSoundByIndex(int index) {
         selectedSoundIndex = index;
 
+        int inactiveChipColor = androidx.core.content.ContextCompat.getColor(this, R.color.brand_primary);
         TextView[] soundChips = {chipSound1, chipSound2, chipSound3, chipSound4, chipSound5, chipSound6};
         for (int i = 0; i < soundChips.length; i++) {
             if (soundChips[i] != null) {
@@ -476,7 +480,7 @@ public class PomodoroActivity extends AppCompatActivity {
                     soundChips[i].setTextColor(0xFFFFFFFF);
                 } else {
                     soundChips[i].setBackgroundResource(R.drawable.bg_pill_light);
-                    soundChips[i].setTextColor(0xFF555555);
+                    soundChips[i].setTextColor(inactiveChipColor);
                 }
             }
         }
@@ -591,7 +595,6 @@ public class PomodoroActivity extends AppCompatActivity {
                 isTimerRunning = false;
                 btnStartTimer.setText("▶ Bắt đầu");
 
-                // Khi hoàn thành 1 phiên bấm giờ, tự động tính số phút đã hoàn thành và giảm trừ số giờ mục tiêu còn lại
                 int sessionMinutesCompleted = (int) (timerDurationInMillis / 60000);
                 if (sessionMinutesCompleted <= 0) sessionMinutesCompleted = 25;
 
@@ -601,9 +604,20 @@ public class PomodoroActivity extends AppCompatActivity {
                     pref.edit().putInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), totalFocusMinutesAcc).apply();
                 }
 
+                // Đồng bộ số phiên Pomodoro và giờ tập trung lên Server MySQL
+                if (activeTaskId > 0) {
+                    RetrofitClient.getApiService().completePomodoro(activeTaskId, sessionMinutesCompleted).enqueue(new Callback<Task>() {
+                        @Override
+                        public void onResponse(Call<Task> call, Response<Task> response) {}
+
+                        @Override
+                        public void onFailure(Call<Task> call, Throwable t) {}
+                    });
+                }
+
                 updateTaskFocusStats();
 
-                Toast.makeText(PomodoroActivity.this, "🎉 Hoàn thành phiên tập trung! Mục tiêu còn lại đã tự động giảm trừ.", Toast.LENGTH_LONG).show();
+                Toast.makeText(PomodoroActivity.this, "🎉 Hoàn thành phiên tập trung! Đã đồng bộ giờ tập trung.", Toast.LENGTH_LONG).show();
 
                 if (currentSession < totalSessions) {
                     currentSession++;
@@ -645,7 +659,7 @@ public class PomodoroActivity extends AppCompatActivity {
         if (navAgenda != null) {
             navAgenda.setOnClickListener(v -> {
                 Intent intent = new Intent(PomodoroActivity.this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 finish();
             });
@@ -661,6 +675,7 @@ public class PomodoroActivity extends AppCompatActivity {
         if (navProjects != null) {
             navProjects.setOnClickListener(v -> {
                 Intent intent = new Intent(PomodoroActivity.this, ProjectsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
             });
         }
@@ -668,6 +683,7 @@ public class PomodoroActivity extends AppCompatActivity {
         if (navTimeline != null) {
             navTimeline.setOnClickListener(v -> {
                 Intent intent = new Intent(PomodoroActivity.this, AiAutoScheduleActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
             });
         }

@@ -21,6 +21,7 @@ import com.example.myapplication.adapter.PhaseGroupAdapter;
 import com.example.myapplication.model.PhaseGroup;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,16 +31,14 @@ import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ProjectTasksActivity extends AppCompatActivity {
 
     private RecyclerView rvProjectTasks;
     private PhaseGroupAdapter phaseAdapter;
 
-    private List<Task> fullTaskList = new ArrayList<>();
-    private List<PhaseGroup> phaseGroupList = new ArrayList<>();
+    private final List<Task> fullTaskList = new ArrayList<>();
+    private final List<PhaseGroup> phaseGroupList = new ArrayList<>();
 
     private TextView tvTasksCount, tvCompletionPercent, tvPendingCount, tvInProgressCount, tvDoneCount;
     private TextView tabAll, tabPending, tabInProgress;
@@ -84,7 +83,7 @@ public class ProjectTasksActivity extends AppCompatActivity {
                                       pName.contains("Học tập") || pName.contains("Học Tập") ||
                                       pName.contains("Cá nhân") || pName.contains("Cá Nhân") ||
                                       pName.contains("Sức khỏe") || pName.contains("Thể thao") ||
-                                      projectId <= 4;
+                                      (projectId >= 1 && projectId <= 4);
 
             if (isDefaultProject) {
                 btnAiBreakdownProject.setVisibility(View.GONE);
@@ -93,6 +92,7 @@ public class ProjectTasksActivity extends AppCompatActivity {
                 btnAiBreakdownProject.setOnClickListener(v -> {
                     Intent aiIntent = new Intent(ProjectTasksActivity.this, com.example.myapplication.ui.ai.AiTaskBreakdownActivity.class);
                     aiIntent.putExtra("MAIN_TASK_TITLE", projectName != null ? projectName : "Dự án lớn");
+                    aiIntent.putExtra("CREATED_PROJECT_ID", projectId);
                     startActivity(aiIntent);
                 });
             }
@@ -137,12 +137,13 @@ public class ProjectTasksActivity extends AppCompatActivity {
     private void selectFilterTab(String filterMode, TextView selectedTab) {
         currentFilter = filterMode;
 
+        int inactiveText = androidx.core.content.ContextCompat.getColor(this, R.color.brand_primary);
         tabAll.setBackgroundResource(R.drawable.bg_pill_light);
-        tabAll.setTextColor(0xFF555555);
+        tabAll.setTextColor(inactiveText);
         tabPending.setBackgroundResource(R.drawable.bg_pill_light);
-        tabPending.setTextColor(0xFF555555);
+        tabPending.setTextColor(inactiveText);
         tabInProgress.setBackgroundResource(R.drawable.bg_pill_light);
-        tabInProgress.setTextColor(0xFF555555);
+        tabInProgress.setTextColor(inactiveText);
 
         selectedTab.setBackgroundResource(R.drawable.bg_pill_brown);
         selectedTab.setTextColor(0xFFFFFFFF);
@@ -217,7 +218,7 @@ public class ProjectTasksActivity extends AppCompatActivity {
 
         for (Task t : fullTaskList) {
             String s = t.getStatus() != null ? t.getStatus().toUpperCase() : "PENDING";
-            if ("DONE".equals(s) || "COMPLETED".equals(s)) {
+            if ("DONE".equals(s) || "COMPLETED".equals(s) || "HOÀN THÀNH".equals(s)) {
                 done++;
             } else if ("IN_PROGRESS".equals(s) || "DOING".equals(s)) {
                 inProgress++;
@@ -266,21 +267,28 @@ public class ProjectTasksActivity extends AppCompatActivity {
             return;
         }
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        ApiService apiService = RetrofitClient.getApiService();
 
-        ApiService apiService = retrofit.create(ApiService.class);
+        List<Task> cached = RetrofitClient.getCachedTasks();
+        if (!cached.isEmpty() && fullTaskList.isEmpty()) {
+            for (Task task : cached) {
+                if (projectId == -1 || task.getProjectId() == projectId) {
+                    fullTaskList.add(task);
+                }
+            }
+            updateOverviewStats();
+            applyFilterAndSearch();
+        }
 
-        // Lọc nghiêm ngặt chỉ lấy các công việc thuộc sở hữu của User ID đang đăng nhập
         apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
             @Override
             public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
                 if (response.isSuccessful() && response.body() != null) {
+                    List<Task> body = response.body();
+                    RetrofitClient.setCachedTasks(body);
                     fullTaskList.clear();
 
-                    for (Task task : response.body()) {
+                    for (Task task : body) {
                         if (projectId == -1 || task.getProjectId() == projectId) {
                             fullTaskList.add(task);
                         }
@@ -293,7 +301,9 @@ public class ProjectTasksActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<Task>> call, Throwable t) {
-                Toast.makeText(ProjectTasksActivity.this, "Lỗi tải dữ liệu công việc", Toast.LENGTH_SHORT).show();
+                if (fullTaskList.isEmpty()) {
+                    Toast.makeText(ProjectTasksActivity.this, "Lỗi tải dữ liệu công việc", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

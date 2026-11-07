@@ -3,39 +3,55 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FAFAFC"
+    android:background="@color/bg_main"
     android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_pill_light"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="5dp"
+        android:text="✨ KHÔNG GIAN DỰ ÁN"
+        android:textColor="@color/brand_primary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="10dp" />
 
     <TextView
         android:id="@+id/tvHeaderTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Tạo Dự Án Lớn Mới"
-        android:textSize="22sp"
+        android:textSize="26sp"
         android:textStyle="bold"
-        android:textColor="#222222"
+        android:textColor="@color/text_primary"
         android:layout_marginBottom="24dp"/>
 
     <EditText
         android:id="@+id/etProjectName"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:background="@drawable/bg_rounded_24dp"
-        android:backgroundTint="#FFFFFF"
-        android:paddingHorizontal="20dp"
+        android:background="@drawable/bg_search_bar"
+        android:paddingHorizontal="18dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
         android:hint="Tên dự án lớn (VD: Đồ án tốt nghiệp, Ra mắt sản phẩm...)"
         android:inputType="text|textNoSuggestions"
+        android:textSize="14sp"
         android:layout_marginBottom="16dp"/>
 
     <EditText
         android:id="@+id/etProjectDesc"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:background="@drawable/bg_rounded_24dp"
-        android:backgroundTint="#FFFFFF"
-        android:paddingHorizontal="20dp"
+        android:background="@drawable/bg_search_bar"
+        android:paddingHorizontal="18dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
         android:hint="Mô tả mục tiêu chính của dự án..."
         android:inputType="text|textNoSuggestions"
+        android:textSize="14sp"
         android:layout_marginBottom="20dp"/>
 
     <!-- CHỨC NĂNG DỰ ÁN LỚN: PHÂN RÃ CÔNG VIỆC AI -->
@@ -44,7 +60,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bg_voice_card"
         android:orientation="vertical"
-        android:padding="16dp"
+        android:padding="18dp"
         android:layout_marginBottom="32dp">
 
         <LinearLayout
@@ -58,7 +74,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="⚡ Dự án lớn (Kích hoạt AI Phân Rã)"
-                android:textColor="#362C2A"
+                android:textColor="@color/brand_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -73,8 +89,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="FlowAI sẽ tự động giúp bạn chia nhỏ dự án lớn thành các bước công việc thực thi cụ thể."
-            android:textColor="#777777"
+            android:text="FlowAI sẽ tự động chia nhỏ dự án lớn thành các giai đoạn và đầu việc thực thi cụ thể."
+            android:textColor="@color/text_secondary"
             android:textSize="12sp" />
     </LinearLayout>
 
@@ -82,8 +98,7 @@
         android:id="@+id/btnSaveProject"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:background="@drawable/bg_rounded_24dp"
-        android:backgroundTint="#362C2A"
+        android:background="@drawable/bg_pill_brown"
         android:gravity="center"
         android:text="✔ TẠO DỰ ÁN LỚN"
         android:textColor="#FFFFFF"

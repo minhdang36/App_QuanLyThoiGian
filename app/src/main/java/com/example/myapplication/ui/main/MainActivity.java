@@ -2,6 +2,7 @@ package com.example.myapplication.ui.main;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
@@ -13,6 +14,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,6 +26,7 @@ import com.example.myapplication.adapter.TaskAdapter;
 import com.example.myapplication.model.CalendarDate;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.ai.AiAutoScheduleActivity;
 import com.example.myapplication.ui.ai.ScanScheduleActivity;
 import com.example.myapplication.ui.pomodoro.PomodoroActivity;
@@ -35,19 +38,25 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final Pattern NON_DATE_CHARS = Pattern.compile("[^0-9/-]");
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    private static final Locale LOCALE_VN = new Locale("vi", "VN");
 
     private static final String[] TIMEZONE_OPTIONS = new String[]{
             "Asia/Ho_Chi_Minh (UTC+7) - Việt Nam",
@@ -77,13 +86,21 @@ public class MainActivity extends AppCompatActivity {
             "America/Chicago"
     };
 
+    private final SimpleDateFormat monthFormat = new SimpleDateFormat("'Tháng' MM", LOCALE_VN);
+    private final SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", LOCALE_VN);
+    private final SimpleDateFormat agendaFormat = new SimpleDateFormat("EEEE, dd 'Thg' MM, yyyy", LOCALE_VN);
+    private final SimpleDateFormat dayFormat = new SimpleDateFormat("EEE", LOCALE_VN);
+    private final SimpleDateFormat numberFormat = new SimpleDateFormat("dd", LOCALE_VN);
+
     private TextView tvTimeZoneValue;
     private TextView tvAgendaDate;
     private TextView tvTasksToday;
     private TextView tvMonthYear;
+    private TextView tvYearSubtitle;
 
     private ImageButton btnPrevMonth, btnNextMonth;
     private ImageView imgAvatar;
+    private String lastLoadedAvatarUri = "";
 
     private RecyclerView rvHorizontalCalendar;
     private View layoutFullCalendar;
@@ -91,8 +108,12 @@ public class MainActivity extends AppCompatActivity {
 
     private CalendarAdapter calendarAdapter;
     private FullCalendarAdapter fullCalendarAdapter;
-    private final List<CalendarDate> dateList = new ArrayList<>();
+    private final List<String> daysInMonth = new ArrayList<>(42);
+    private final List<CalendarDate> dateList = new ArrayList<>(31);
     private final Set<Integer> currentDaysWithEvents = new HashSet<>();
+    private final Map<Integer, List<Integer>> currentDayTaskColors = new HashMap<>();
+    private final Map<String, List<int[]>> parsedDatesCache = new HashMap<>();
+    private int currentLeadingEmpty = 0;
 
     private RecyclerView rvTasks;
     private TaskAdapter taskAdapter;
@@ -106,13 +127,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Áp dụng Cấu hình Chế độ Tối (Dark Mode) toàn hệ thống khi khởi động
         SharedPreferences appPref = getSharedPreferences("AppSettings", MODE_PRIVATE);
         boolean isDarkMode = appPref.getBoolean("DARK_MODE_ENABLED", false);
-        if (isDarkMode) {
-            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES);
-        } else {
-            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
+        int targetNightMode = isDarkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
+        if (AppCompatDelegate.getDefaultNightMode() != targetNightMode) {
+            AppCompatDelegate.setDefaultNightMode(targetNightMode);
         }
 
         super.onCreate(savedInstanceState);
@@ -123,6 +142,7 @@ public class MainActivity extends AppCompatActivity {
         tvAgendaDate = findViewById(R.id.tvAgendaDate);
         tvTasksToday = findViewById(R.id.tvTasksToday);
         tvMonthYear = findViewById(R.id.tvMonthYear);
+        tvYearSubtitle = findViewById(R.id.tvYearSubtitle);
 
         btnPrevMonth = findViewById(R.id.btnPrevMonth);
         btnNextMonth = findViewById(R.id.btnNextMonth);
@@ -135,37 +155,41 @@ public class MainActivity extends AppCompatActivity {
         bottomSheet = findViewById(R.id.layoutAgendaBottomSheet);
         rvTasks = findViewById(R.id.rvTasks);
 
-        // 2. KHỞI TẠO LỊCH & THÔNG TIN HEADER
-        setupHeaderAndCalendar();
-
-        // 3. KHỞI TẠO DANH SÁCH TASK
+        // 2. KHỞI TẠO DANH SÁCH TASK (Tối ưu RecyclerView cache)
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
+        rvTasks.setItemViewCacheSize(10);
         taskAdapter = new TaskAdapter(displayedTaskList);
         rvTasks.setAdapter(taskAdapter);
+
+        // 3. KHỞI TẠO LỊCH & THÔNG TIN HEADER
+        setupHeaderAndCalendar();
 
         // 4. THIẾT LẬP BOTTOM SHEET (KÉO LÊN KÉO XUỐNG)
         setupBottomSheet();
 
         // 5. THIẾT LẬP BOTTOM NAV & CLICKS
         setupClickListeners();
-
-        // 6. TẢI DỮ LIỆU TỪ SERVER
-        loadTasksFromServer();
     }
 
     private void setupHeaderAndCalendar() {
-        // Cài đặt và lắng nghe sự kiện đổi Múi giờ
-        setupTimeZoneHeader();
-
-        // LayoutManager cho lịch grid (7 cột: T2 -> CN)
         rvFullCalendarGrid.setLayoutManager(new GridLayoutManager(this, 7));
+        rvFullCalendarGrid.setHasFixedSize(true);
+        rvFullCalendarGrid.setItemAnimator(null);
+        rvFullCalendarGrid.setItemViewCacheSize(42);
 
-        // LayoutManager cho lịch ngang
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         rvHorizontalCalendar.setLayoutManager(layoutManager);
+        rvHorizontalCalendar.setHasFixedSize(true);
+        rvHorizontalCalendar.setItemAnimator(null);
+        rvHorizontalCalendar.setItemViewCacheSize(14);
 
-        // Hiển thị dữ liệu lịch tháng hiện tại
-        refreshAllCalendarViews();
+        fullCalendarAdapter = new FullCalendarAdapter(daysInMonth, 0, this::onDateSelected);
+        rvFullCalendarGrid.setAdapter(fullCalendarAdapter);
+
+        calendarAdapter = new CalendarAdapter(dateList, 0, this::onDateSelected);
+        rvHorizontalCalendar.setAdapter(calendarAdapter);
+
+        setupTimeZoneHeader();
 
         if (btnPrevMonth != null) {
             btnPrevMonth.setOnClickListener(v -> {
@@ -174,6 +198,7 @@ public class MainActivity extends AppCompatActivity {
                 int maxDays = currentCalendar.getActualMaximum(Calendar.DAY_OF_MONTH);
                 currentCalendar.set(Calendar.DAY_OF_MONTH, Math.min(day, maxDays));
                 refreshAllCalendarViews();
+                filterTasksForSelectedDate();
             });
         }
 
@@ -184,6 +209,7 @@ public class MainActivity extends AppCompatActivity {
                 int maxDays = currentCalendar.getActualMaximum(Calendar.DAY_OF_MONTH);
                 currentCalendar.set(Calendar.DAY_OF_MONTH, Math.min(day, maxDays));
                 refreshAllCalendarViews();
+                filterTasksForSelectedDate();
             });
         }
     }
@@ -230,61 +256,63 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private List<int[]> parseDatesFromTimeStr(String timeStr, int realTodayYear) {
-        List<int[]> dates = new ArrayList<>();
-        if (timeStr == null || timeStr.trim().isEmpty()) return dates;
+        if (timeStr == null || timeStr.isEmpty()) return Collections.emptyList();
 
+        List<int[]> cached = parsedDatesCache.get(timeStr);
+        if (cached != null) {
+            return cached;
+        }
+
+        List<int[]> dates = new ArrayList<>(2);
         try {
-            String cleanTime = timeStr.replaceAll("[^0-9/-]", " ");
-            String[] parts = cleanTime.trim().split("\\s+");
+            String cleanTime = NON_DATE_CHARS.matcher(timeStr).replaceAll(" ").trim();
+            if (!cleanTime.isEmpty()) {
+                String[] parts = WHITESPACE.split(cleanTime);
+                for (String part : parts) {
+                    int slashIdx = part.indexOf('/');
+                    int dashIdx = part.indexOf('-');
+                    if (slashIdx > 0 || dashIdx > 0) {
+                        String sep = slashIdx > 0 ? "/" : "-";
+                        String[] dateParts = part.split(sep);
+                        if (dateParts.length >= 2) {
+                            int p1 = Integer.parseInt(dateParts[0].trim());
+                            int p2 = Integer.parseInt(dateParts[1].trim());
+                            int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
 
-            for (String part : parts) {
-                if (part.contains("/")) {
-                    String[] dateParts = part.split("/");
-                    if (dateParts.length >= 2) {
-                        int p1 = Integer.parseInt(dateParts[0].trim());
-                        int p2 = Integer.parseInt(dateParts[1].trim());
-                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
-
-                        int day, month, year;
-                        if (p1 > 1000) {
-                            year = p1;
-                            month = p2;
-                            day = p3;
-                        } else {
-                            day = p1;
-                            month = p2;
-                            year = p3;
+                            int day, month, year;
+                            if (p1 > 1000) {
+                                year = p1;
+                                month = p2;
+                                day = p3;
+                            } else {
+                                day = p1;
+                                month = p2;
+                                year = p3;
+                            }
+                            dates.add(new int[]{day, month, year});
                         }
-                        dates.add(new int[]{day, month, year});
-                    }
-                } else if (part.contains("-")) {
-                    String[] dateParts = part.split("-");
-                    if (dateParts.length >= 2) {
-                        int p1 = Integer.parseInt(dateParts[0].trim());
-                        int p2 = Integer.parseInt(dateParts[1].trim());
-                        int p3 = (dateParts.length >= 3) ? Integer.parseInt(dateParts[2].trim()) : realTodayYear;
-
-                        int day, month, year;
-                        if (p1 > 1000) {
-                            year = p1;
-                            month = p2;
-                            day = p3;
-                        } else {
-                            day = p1;
-                            month = p2;
-                            year = p3;
-                        }
-                        dates.add(new int[]{day, month, year});
                     }
                 }
             }
         } catch (Exception ignored) {}
 
+        parsedDatesCache.put(timeStr, dates);
         return dates;
+    }
+
+    private void addTaskColorForDay(int day, Task task) {
+        currentDaysWithEvents.add(day);
+        List<Integer> colors = currentDayTaskColors.get(day);
+        if (colors == null) {
+            colors = new ArrayList<>(4);
+            currentDayTaskColors.put(day, colors);
+        }
+        colors.add(TaskAdapter.getColorForPriority(task, colors.size()));
     }
 
     private void updateDaysWithEventsForCurrentCalendar() {
         currentDaysWithEvents.clear();
+        currentDayTaskColors.clear();
 
         int viewedMonth = currentCalendar.get(Calendar.MONTH) + 1;
         int viewedYear = currentCalendar.get(Calendar.YEAR);
@@ -298,65 +326,62 @@ public class MainActivity extends AppCompatActivity {
             String timeStr = t.getTime();
             if (timeStr == null || timeStr.trim().isEmpty()) {
                 if (viewedMonth == realTodayMonth && viewedYear == realTodayYear) {
-                    currentDaysWithEvents.add(realTodayDay);
+                    addTaskColorForDay(realTodayDay, t);
                 }
                 continue;
             }
 
-            if (timeStr.contains("Hôm nay")) {
-                if (viewedMonth == realTodayMonth && viewedYear == realTodayYear) {
-                    currentDaysWithEvents.add(realTodayDay);
-                }
-            }
-
             List<int[]> dates = parseDatesFromTimeStr(timeStr, realTodayYear);
-            for (int[] d : dates) {
-                int day = d[0];
-                int month = d[1];
-                int year = d[2];
+            if (!dates.isEmpty()) {
+                for (int[] d : dates) {
+                    int day = d[0];
+                    int month = d[1];
+                    int year = d[2];
 
-                if (month == viewedMonth && year == viewedYear) {
-                    currentDaysWithEvents.add(day);
+                    if (month == viewedMonth && (year == viewedYear || year == 0)) {
+                        addTaskColorForDay(day, t);
+                    }
+                }
+            } else if (timeStr.contains("Hôm nay")) {
+                if (viewedMonth == realTodayMonth && viewedYear == realTodayYear) {
+                    addTaskColorForDay(realTodayDay, t);
                 }
             }
         }
     }
 
     private void refreshAllCalendarViews() {
-        Locale localeVN = new Locale("vi", "VN");
-
-        // Cập nhật tập hợp các ngày có lịch/task thuộc đúng tháng & năm đang xem
         updateDaysWithEventsForCurrentCalendar();
 
         // 1. Cập nhật Tiêu đề Tháng/Năm
-        SimpleDateFormat monthFormat = new SimpleDateFormat("'Tháng' MM 'năm' yyyy", localeVN);
         if (tvMonthYear != null) {
             tvMonthYear.setText(monthFormat.format(currentCalendar.getTime()));
         }
+        if (tvYearSubtitle != null) {
+            tvYearSubtitle.setText(yearFormat.format(currentCalendar.getTime()));
+        }
 
         // 2. Cập nhật Tiêu đề Ngày ở Bottom Sheet
-        SimpleDateFormat agendaFormat = new SimpleDateFormat("'●' EEEE, dd 'Thg' MM, yyyy", localeVN);
         if (tvAgendaDate != null) {
             tvAgendaDate.setText(agendaFormat.format(currentCalendar.getTime()));
         }
 
-        // 3. Cập nhật Lịch Lưới (Full Grid Calendar)
+        // 3. Cập nhật Lịch Lưới (Full Grid Calendar) — Tái sử dụng Adapter không tạo mới
         Calendar cal = (Calendar) currentCalendar.clone();
         cal.set(Calendar.DAY_OF_MONTH, 1);
 
         int firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK); // Sunday=1, Monday=2...
-        int leadingEmpty = (firstDayOfWeek + 5) % 7; // Căn chỉnh cột T2=0, T3=1... CN=6
-        int daysInMonthCount = cal.getActualMaximum(Calendar.DAY_OF_MONTH); // 28, 29, 30 hoặc 31 ngày thực tế
+        currentLeadingEmpty = (firstDayOfWeek + 5) % 7; // Căn chỉnh cột T2=0, T3=1... CN=6
+        int daysInMonthCount = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
 
-        List<String> daysInMonth = new ArrayList<>();
-        for (int i = 0; i < leadingEmpty; i++) {
+        daysInMonth.clear();
+        for (int i = 0; i < currentLeadingEmpty; i++) {
             daysInMonth.add("");
         }
         for (int i = 1; i <= daysInMonthCount; i++) {
             daysInMonth.add(String.valueOf(i));
         }
 
-        // Đảm bảo số ô là bội số của 7 (tối thiểu 35 ô)
         int totalCells = daysInMonth.size();
         int targetSize = totalCells <= 35 ? 35 : ((totalCells + 6) / 7) * 7;
         while (daysInMonth.size() < targetSize) {
@@ -364,19 +389,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         int currentDay = currentCalendar.get(Calendar.DAY_OF_MONTH);
-        int gridSelectedIndex = leadingEmpty + currentDay - 1;
+        int gridSelectedIndex = currentLeadingEmpty + currentDay - 1;
 
-        fullCalendarAdapter = new FullCalendarAdapter(daysInMonth, gridSelectedIndex, dayNumber -> onDateSelected(dayNumber));
-        fullCalendarAdapter.setDaysWithEvents(currentDaysWithEvents);
-        rvFullCalendarGrid.setAdapter(fullCalendarAdapter);
+        if (fullCalendarAdapter != null) {
+            fullCalendarAdapter.updateCalendarData(daysInMonth, gridSelectedIndex, currentDaysWithEvents, currentDayTaskColors);
+        }
 
-        // 4. Cập nhật Lịch Ngang (Horizontal Calendar)
+        // 4. Cập nhật Lịch Ngang (Horizontal Calendar) — Tái sử dụng Adapter không tạo mới
         dateList.clear();
         Calendar horizontalCal = (Calendar) currentCalendar.clone();
         horizontalCal.set(Calendar.DAY_OF_MONTH, 1);
-
-        SimpleDateFormat dayFormat = new SimpleDateFormat("EEE", localeVN);
-        SimpleDateFormat numberFormat = new SimpleDateFormat("dd", localeVN);
 
         int horizontalSelectedIndex = currentDay - 1;
 
@@ -387,11 +409,8 @@ public class MainActivity extends AppCompatActivity {
             dateList.add(new CalendarDate(dayName, dayNum, i == currentDay));
         }
 
-        calendarAdapter = new CalendarAdapter(dateList, horizontalSelectedIndex, dayNumber -> onDateSelected(dayNumber));
-        calendarAdapter.setDaysWithEvents(currentDaysWithEvents);
-        rvHorizontalCalendar.setAdapter(calendarAdapter);
-        if (horizontalSelectedIndex >= 0 && horizontalSelectedIndex < dateList.size()) {
-            rvHorizontalCalendar.scrollToPosition(horizontalSelectedIndex);
+        if (calendarAdapter != null) {
+            calendarAdapter.updateCalendarData(dateList, horizontalSelectedIndex, currentDaysWithEvents, currentDayTaskColors);
         }
         if (horizontalSelectedIndex >= 0 && horizontalSelectedIndex < dateList.size()) {
             rvHorizontalCalendar.scrollToPosition(horizontalSelectedIndex);
@@ -404,16 +423,20 @@ public class MainActivity extends AppCompatActivity {
 
         currentCalendar.set(Calendar.DAY_OF_MONTH, dayNumber);
 
-        Locale localeVN = new Locale("vi", "VN");
-        SimpleDateFormat agendaFormat = new SimpleDateFormat("'●' EEEE, dd 'Thg' MM, yyyy", localeVN);
         if (tvAgendaDate != null) {
             tvAgendaDate.setText(agendaFormat.format(currentCalendar.getTime()));
         }
 
-        // Đồng bộ vị trí chọn giữa 2 lịch
-        refreshAllCalendarViews();
+        // Chỉ cập nhật ô được chọn trên 2 lịch (2 ViewHolder) thay vì tạo mới toàn bộ Adapter
+        int gridSelectedIndex = currentLeadingEmpty + dayNumber - 1;
+        if (fullCalendarAdapter != null) {
+            fullCalendarAdapter.setSelectedPosition(gridSelectedIndex);
+        }
+        int horizontalSelectedIndex = dayNumber - 1;
+        if (calendarAdapter != null) {
+            calendarAdapter.setSelectedPosition(horizontalSelectedIndex);
+        }
 
-        // Lọc danh sách công việc chỉ thuộc về ngày được chọn
         filterTasksForSelectedDate();
     }
 
@@ -425,6 +448,7 @@ public class MainActivity extends AppCompatActivity {
         int selectedYear = currentCalendar.get(Calendar.YEAR);
 
         Calendar todayCal = Calendar.getInstance();
+        int realTodayYear = todayCal.get(Calendar.YEAR);
         boolean isSelectedDayToday = (selectedDay == todayCal.get(Calendar.DAY_OF_MONTH) &&
                 selectedMonth == (todayCal.get(Calendar.MONTH) + 1));
 
@@ -439,21 +463,19 @@ public class MainActivity extends AppCompatActivity {
 
             boolean isMatch = false;
 
-            if (timeStr.contains("Hôm nay")) {
-                if (isSelectedDayToday) {
-                    isMatch = true;
+            List<int[]> dates = parseDatesFromTimeStr(timeStr, realTodayYear);
+            if (!dates.isEmpty()) {
+                for (int[] d : dates) {
+                    int day = d[0];
+                    int month = d[1];
+                    int year = d[2];
+                    if (day == selectedDay && month == selectedMonth && (year == selectedYear || year == 0)) {
+                        isMatch = true;
+                        break;
+                    }
                 }
-            }
-
-            List<int[]> dates = parseDatesFromTimeStr(timeStr, todayCal.get(Calendar.YEAR));
-            for (int[] d : dates) {
-                int day = d[0];
-                int month = d[1];
-                int year = d[2];
-                if (day == selectedDay && month == selectedMonth && (year == selectedYear || year == 0)) {
-                    isMatch = true;
-                    break;
-                }
+            } else if (timeStr.contains("Hôm nay") && isSelectedDayToday) {
+                isMatch = true;
             }
 
             if (isMatch) {
@@ -565,6 +587,7 @@ public class MainActivity extends AppCompatActivity {
         if (navFocus != null) {
             navFocus.setOnClickListener(v -> {
                 Intent intent = new Intent(MainActivity.this, PomodoroActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
             });
         }
@@ -573,6 +596,7 @@ public class MainActivity extends AppCompatActivity {
         if (navProjects != null) {
             navProjects.setOnClickListener(v -> {
                 Intent intent = new Intent(MainActivity.this, ProjectsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
             });
         }
@@ -581,6 +605,7 @@ public class MainActivity extends AppCompatActivity {
         if (navTimeline != null) {
             navTimeline.setOnClickListener(v -> {
                 Intent intent = new Intent(MainActivity.this, AiAutoScheduleActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
             });
         }
@@ -589,7 +614,40 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        updateHeaderAvatar();
         loadTasksFromServer();
+    }
+
+    private void updateHeaderAvatar() {
+        if (imgAvatar == null) return;
+        SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        String savedAvatarUriStr = sharedPref.getString("USER_AVATAR_URI", "");
+        if (!savedAvatarUriStr.isEmpty() && !savedAvatarUriStr.equals(lastLoadedAvatarUri)) {
+            try {
+                imgAvatar.setImageTintList(null);
+                imgAvatar.setImageURI(Uri.parse(savedAvatarUriStr));
+                lastLoadedAvatarUri = savedAvatarUriStr;
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void applyTasksToViews(List<Task> tasks) {
+        allTaskList.clear();
+        allTaskList.addAll(tasks);
+        parsedDatesCache.clear();
+
+        updateDaysWithEventsForCurrentCalendar();
+
+        int currentDay = currentCalendar.get(Calendar.DAY_OF_MONTH);
+        int gridSelectedIndex = currentLeadingEmpty + currentDay - 1;
+        if (fullCalendarAdapter != null) {
+            fullCalendarAdapter.updateCalendarData(daysInMonth, gridSelectedIndex, currentDaysWithEvents, currentDayTaskColors);
+        }
+        if (calendarAdapter != null) {
+            calendarAdapter.updateCalendarData(dateList, currentDay - 1, currentDaysWithEvents, currentDayTaskColors);
+        }
+
+        filterTasksForSelectedDate();
     }
 
     private void loadTasksFromServer() {
@@ -598,37 +656,28 @@ public class MainActivity extends AppCompatActivity {
 
         if (currentUserId == -1) return;
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        // Hiển thị tức thì từ bộ nhớ đệm RAM (0ms) nếu đã có dữ liệu
+        List<Task> cached = RetrofitClient.getCachedTasks();
+        if (!cached.isEmpty() && allTaskList.isEmpty()) {
+            applyTasksToViews(cached);
+        }
 
-        ApiService apiService = retrofit.create(ApiService.class);
+        ApiService apiService = RetrofitClient.getApiService();
         apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
             @Override
             public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    allTaskList.clear();
-                    allTaskList.addAll(response.body());
-
-                    // Trích xuất các ngày có lịch/task thuộc đúng tháng/năm đang xem
-                    updateDaysWithEventsForCurrentCalendar();
-
-                    if (fullCalendarAdapter != null) {
-                        fullCalendarAdapter.setDaysWithEvents(currentDaysWithEvents);
-                    }
-                    if (calendarAdapter != null) {
-                        calendarAdapter.setDaysWithEvents(currentDaysWithEvents);
-                    }
-
-                    // Lọc hiển thị công việc đúng theo ngày đang được chọn
-                    filterTasksForSelectedDate();
+                    List<Task> tasks = response.body();
+                    RetrofitClient.setCachedTasks(tasks);
+                    applyTasksToViews(tasks);
                 }
             }
 
             @Override
             public void onFailure(Call<List<Task>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Lỗi tải danh sách công việc!", Toast.LENGTH_SHORT).show();
+                if (allTaskList.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "Lỗi tải danh sách công việc!", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

@@ -20,17 +20,21 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.myapplication.R;
 import com.example.myapplication.model.User;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.auth.LoginActivity;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ProfileSettingsActivity extends AppCompatActivity {
 
@@ -39,6 +43,10 @@ public class ProfileSettingsActivity extends AppCompatActivity {
     private TextView tvUserName, tvUserEmail, tvUserBadge, tvStreakDays, tvFocusHours;
 
     private ActivityResultLauncher<String> avatarPickerLauncher;
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,29 +150,35 @@ public class ProfileSettingsActivity extends AppCompatActivity {
 
     private void showEditProfileDialog() {
         SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        int currentUserId = sharedPref.getInt("USER_ID", 1);
         String currentName = tvUserName != null ? tvUserName.getText().toString() : "";
         String currentEmail = tvUserEmail != null ? tvUserEmail.getText().toString() : "";
         String currentPhone = sharedPref.getString("USER_PHONE", "");
         String currentBio = sharedPref.getString("USER_BIO", "");
         String savedAvatarUriStr = sharedPref.getString("USER_AVATAR_URI", "");
 
+        int textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary);
+        int textSecondaryColor = ContextCompat.getColor(this, R.color.text_secondary);
+
         ScrollView scrollView = new ScrollView(this);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 20);
+        layout.setPadding(dpToPx(20), dpToPx(12), dpToPx(20), dpToPx(8));
         scrollView.addView(layout);
 
         // 1. Chỉnh sửa Ảnh Đại diện
         LinearLayout avatarLayout = new LinearLayout(this);
         avatarLayout.setOrientation(LinearLayout.VERTICAL);
         avatarLayout.setGravity(Gravity.CENTER_HORIZONTAL);
-        avatarLayout.setPadding(0, 0, 0, 16);
+        avatarLayout.setPadding(0, 0, 0, dpToPx(8));
 
         dialogAvatarPreview = new ImageView(this);
-        LinearLayout.LayoutParams avatarParams = new LinearLayout.LayoutParams(160, 160);
+        int avatarSize = dpToPx(64);
+        LinearLayout.LayoutParams avatarParams = new LinearLayout.LayoutParams(avatarSize, avatarSize);
         dialogAvatarPreview.setLayoutParams(avatarParams);
         dialogAvatarPreview.setBackgroundResource(R.drawable.bg_circle_teal);
-        dialogAvatarPreview.setPadding(4, 4, 4, 4);
+        int avatarPad = dpToPx(2);
+        dialogAvatarPreview.setPadding(avatarPad, avatarPad, avatarPad, avatarPad);
 
         if (!savedAvatarUriStr.isEmpty()) {
             try {
@@ -178,10 +192,10 @@ public class ProfileSettingsActivity extends AppCompatActivity {
 
         TextView tvChangeAvatar = new TextView(this);
         tvChangeAvatar.setText("📷 Đổi ảnh đại diện");
-        tvChangeAvatar.setTextColor(0xFF10B981);
+        tvChangeAvatar.setTextColor(0xFF2563EB);
         tvChangeAvatar.setTextSize(13);
         tvChangeAvatar.setTypeface(null, Typeface.BOLD);
-        tvChangeAvatar.setPadding(0, 10, 0, 12);
+        tvChangeAvatar.setPadding(0, dpToPx(4), 0, dpToPx(6));
         tvChangeAvatar.setGravity(Gravity.CENTER);
 
         View.OnClickListener avatarPickListener = v -> avatarPickerLauncher.launch("image/*");
@@ -196,6 +210,8 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         final EditText etName = new EditText(this);
         etName.setHint("Họ và tên");
         etName.setText(currentName);
+        etName.setTextColor(textPrimaryColor);
+        etName.setHintTextColor(textSecondaryColor);
         layout.addView(etName);
 
         // 3. Số điện thoại
@@ -203,6 +219,8 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         etPhone.setHint("Số điện thoại");
         etPhone.setInputType(InputType.TYPE_CLASS_PHONE);
         etPhone.setText(currentPhone);
+        etPhone.setTextColor(textPrimaryColor);
+        etPhone.setHintTextColor(textSecondaryColor);
         layout.addView(etPhone);
 
         // 4. Địa chỉ Email
@@ -210,13 +228,17 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         etEmail.setHint("Địa chỉ Email");
         etEmail.setText(currentEmail);
         etEmail.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+        etEmail.setTextColor(textPrimaryColor);
+        etEmail.setHintTextColor(textSecondaryColor);
         layout.addView(etEmail);
 
         // 5. Tiểu sử / Giới thiệu
         final EditText etBio = new EditText(this);
         etBio.setHint("Tiểu sử / Giới thiệu bản thân");
         etBio.setText(currentBio);
-        etBio.setInputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        etBio.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        etBio.setTextColor(textPrimaryColor);
+        etBio.setHintTextColor(textSecondaryColor);
         layout.addView(etBio);
 
         new AlertDialog.Builder(this)
@@ -227,6 +249,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                     String newPhone = etPhone.getText().toString().trim();
                     String newEmail = etEmail.getText().toString().trim();
                     String newBio = etBio.getText().toString().trim();
+                    String latestAvatar = sharedPref.getString("USER_AVATAR_URI", "");
 
                     if (newName.isEmpty()) {
                         Toast.makeText(this, "Họ và tên không được để trống!", Toast.LENGTH_SHORT).show();
@@ -243,7 +266,24 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                     if (tvUserName != null) tvUserName.setText(newName);
                     if (tvUserEmail != null && !newEmail.isEmpty()) tvUserEmail.setText(newEmail);
 
-                    Toast.makeText(this, "✔ Đã cập nhật ảnh đại diện & thông tin hồ sơ!", Toast.LENGTH_SHORT).show();
+                    User updateData = new User();
+                    updateData.setFullName(newName);
+                    if (!newEmail.isEmpty()) updateData.setEmail(newEmail);
+                    updateData.setPhone(newPhone);
+                    updateData.setBio(newBio);
+                    updateData.setAvatarUrl(latestAvatar);
+
+                    RetrofitClient.getApiService().updateUserProfile(currentUserId, updateData).enqueue(new Callback<User>() {
+                        @Override
+                        public void onResponse(Call<User> call, Response<User> response) {
+                            Toast.makeText(ProfileSettingsActivity.this, "✔ Đã đồng bộ hồ sơ lên máy chủ!", Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onFailure(Call<User> call, Throwable t) {
+                            Toast.makeText(ProfileSettingsActivity.this, "✔ Đã lưu hồ sơ trên thiết bị!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
@@ -251,13 +291,17 @@ public class ProfileSettingsActivity extends AppCompatActivity {
 
     private void showChangePasswordDialog() {
         SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        int currentUserId = sharedPref.getInt("USER_ID", 1);
         boolean isBiometricOn = sharedPref.getBoolean("BIOMETRIC_ENABLED", false);
         boolean is2FAOn = sharedPref.getBoolean("TWO_FACTOR_ENABLED", false);
+
+        int textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary);
+        int textSecondaryColor = ContextCompat.getColor(this, R.color.text_secondary);
 
         ScrollView scrollView = new ScrollView(this);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 20);
+        layout.setPadding(dpToPx(20), dpToPx(12), dpToPx(20), dpToPx(8));
         scrollView.addView(layout);
 
         // --- PHẦN 1: MẬT KHẨU TÀI KHOẢN ---
@@ -265,23 +309,29 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         tvHeaderPass.setText("🔑 ĐỔI MẬT KHẨU TÀI KHOẢN");
         tvHeaderPass.setTextSize(12);
         tvHeaderPass.setTypeface(null, Typeface.BOLD);
-        tvHeaderPass.setTextColor(0xFF888888);
-        tvHeaderPass.setPadding(0, 0, 0, 10);
+        tvHeaderPass.setTextColor(textSecondaryColor);
+        tvHeaderPass.setPadding(0, 0, 0, dpToPx(4));
         layout.addView(tvHeaderPass);
 
         final EditText etOldPass = new EditText(this);
         etOldPass.setHint("Mật khẩu hiện tại");
         etOldPass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        etOldPass.setTextColor(textPrimaryColor);
+        etOldPass.setHintTextColor(textSecondaryColor);
         layout.addView(etOldPass);
 
         final EditText etNewPass = new EditText(this);
         etNewPass.setHint("Mật khẩu mới");
         etNewPass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        etNewPass.setTextColor(textPrimaryColor);
+        etNewPass.setHintTextColor(textSecondaryColor);
         layout.addView(etNewPass);
 
         final EditText etConfirmPass = new EditText(this);
         etConfirmPass.setHint("Xác nhận mật khẩu mới");
         etConfirmPass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        etConfirmPass.setTextColor(textPrimaryColor);
+        etConfirmPass.setHintTextColor(textSecondaryColor);
         layout.addView(etConfirmPass);
 
         // --- PHẦN 2: SINH TRẮC HỌC & BẢO MẬT 2 LỚP ---
@@ -289,15 +339,15 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         tvHeaderSec.setText("🛡 SINH TRẮC HỌC & BẢO MẬT 2 LỚP");
         tvHeaderSec.setTextSize(12);
         tvHeaderSec.setTypeface(null, Typeface.BOLD);
-        tvHeaderSec.setTextColor(0xFF888888);
-        tvHeaderSec.setPadding(0, 30, 0, 10);
+        tvHeaderSec.setTextColor(textSecondaryColor);
+        tvHeaderSec.setPadding(0, dpToPx(12), 0, dpToPx(4));
         layout.addView(tvHeaderSec);
 
         // 1. Switch Sinh trắc học (Vân tay / Face ID)
         LinearLayout bioLayout = new LinearLayout(this);
         bioLayout.setOrientation(LinearLayout.HORIZONTAL);
         bioLayout.setGravity(Gravity.CENTER_VERTICAL);
-        bioLayout.setPadding(0, 10, 0, 10);
+        bioLayout.setPadding(0, dpToPx(4), 0, dpToPx(4));
 
         LinearLayout bioTextLayout = new LinearLayout(this);
         bioTextLayout.setOrientation(LinearLayout.VERTICAL);
@@ -306,13 +356,13 @@ public class ProfileSettingsActivity extends AppCompatActivity {
 
         TextView tvBioTitle = new TextView(this);
         tvBioTitle.setText("Xác thực Sinh trắc học (Vân tay)");
-        tvBioTitle.setTextColor(0xFF222222);
+        tvBioTitle.setTextColor(textPrimaryColor);
         tvBioTitle.setTextSize(14);
         tvBioTitle.setTypeface(null, Typeface.BOLD);
 
         TextView tvBioSub = new TextView(this);
         tvBioSub.setText("Đăng nhập ứng dụng bằng Vân tay / Face ID");
-        tvBioSub.setTextColor(0xFF888888);
+        tvBioSub.setTextColor(textSecondaryColor);
         tvBioSub.setTextSize(11);
 
         bioTextLayout.addView(tvBioTitle);
@@ -329,7 +379,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
         LinearLayout twoFaLayout = new LinearLayout(this);
         twoFaLayout.setOrientation(LinearLayout.HORIZONTAL);
         twoFaLayout.setGravity(Gravity.CENTER_VERTICAL);
-        twoFaLayout.setPadding(0, 10, 0, 10);
+        twoFaLayout.setPadding(0, dpToPx(4), 0, dpToPx(4));
 
         LinearLayout twoFaTextLayout = new LinearLayout(this);
         twoFaTextLayout.setOrientation(LinearLayout.VERTICAL);
@@ -337,13 +387,13 @@ public class ProfileSettingsActivity extends AppCompatActivity {
 
         TextView tv2FATitle = new TextView(this);
         tv2FATitle.setText("Bảo mật 2 lớp (Xác minh 2 bước)");
-        tv2FATitle.setTextColor(0xFF222222);
+        tv2FATitle.setTextColor(textPrimaryColor);
         tv2FATitle.setTextSize(14);
         tv2FATitle.setTypeface(null, Typeface.BOLD);
 
         TextView tv2FASub = new TextView(this);
         tv2FASub.setText("Gửi mã OTP xác nhận về Email khi đăng nhập");
-        tv2FASub.setTextColor(0xFF888888);
+        tv2FASub.setTextColor(textSecondaryColor);
         tv2FASub.setTextSize(11);
 
         twoFaTextLayout.addView(tv2FATitle);
@@ -360,6 +410,7 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                 .setTitle("Mật khẩu & Bảo mật 2 lớp")
                 .setView(scrollView)
                 .setPositiveButton("Lưu cài đặt", (dialog, which) -> {
+                    String oldPass = etOldPass.getText().toString().trim();
                     String newPass = etNewPass.getText().toString().trim();
                     String confirmPass = etConfirmPass.getText().toString().trim();
 
@@ -378,24 +429,39 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                     editor.putBoolean("TWO_FACTOR_ENABLED", twoFaChecked);
                     editor.apply();
 
-                    String msg = "✔ Đã cập nhật bảo mật!";
-                    if (!newPass.isEmpty()) msg += " (Đã đổi mật khẩu)";
-                    if (bioChecked) msg += " • Bật Sinh trắc học";
-                    if (twoFaChecked) msg += " • Bật 2FA";
+                    if (!newPass.isEmpty()) {
+                        Map<String, String> payload = new HashMap<>();
+                        payload.put("oldPassword", oldPass);
+                        payload.put("newPassword", newPass);
 
-                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                        RetrofitClient.getApiService().changePassword(currentUserId, payload).enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                if (response.isSuccessful()) {
+                                    Toast.makeText(ProfileSettingsActivity.this, "✔ Đã cập nhật mật khẩu và bảo mật thành công!", Toast.LENGTH_LONG).show();
+                                } else {
+                                    Toast.makeText(ProfileSettingsActivity.this, "⚠️ Mật khẩu hiện tại không đúng!", Toast.LENGTH_LONG).show();
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                                Toast.makeText(ProfileSettingsActivity.this, "❌ Không thể kết nối máy chủ để đổi mật khẩu!", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } else {
+                        String msg = "✔ Đã cập nhật bảo mật!";
+                        if (bioChecked) msg += " • Bật Sinh trắc học";
+                        if (twoFaChecked) msg += " • Bật 2FA";
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                    }
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
     }
 
     private void loadUserDataFromApi(int userId) {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        ApiService apiService = retrofit.create(ApiService.class);
+        ApiService apiService = RetrofitClient.getApiService();
         apiService.getUserProfile(userId).enqueue(new Callback<User>() {
             @Override
             public void onResponse(Call<User> call, Response<User> response) {
@@ -417,6 +483,16 @@ public class ProfileSettingsActivity extends AppCompatActivity {
                     if (tvFocusHours != null) {
                         tvFocusHours.setText(user.getFocusHours() + " Giờ");
                     }
+
+                    SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    if (user.getPhone() != null && !user.getPhone().isEmpty()) {
+                        editor.putString("USER_PHONE", user.getPhone());
+                    }
+                    if (user.getBio() != null && !user.getBio().isEmpty()) {
+                        editor.putString("USER_BIO", user.getBio());
+                    }
+                    editor.apply();
                 }
             }
 

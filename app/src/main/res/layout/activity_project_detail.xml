@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F5F8"> <!-- Màu nền xám nhạt -->
+    android:background="@color/bg_main">
 
     <!-- Thanh Top Bar -->
     <LinearLayout
@@ -17,23 +17,24 @@
 
         <ImageView
             android:id="@+id/btnBack"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_pill_light"
+            android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
-            app:tint="#333333" />
+            app:tint="@color/brand_primary" />
 
         <!-- Tag Trạng thái -->
         <TextView
             android:id="@+id/tvTaskDetailStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:background="@drawable/bg_rounded_24dp"
-            android:backgroundTint="#E8F5E9"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_pill_light"
             android:paddingHorizontal="12dp"
             android:paddingVertical="6dp"
             android:text="● Đang xử lý"
-            android:textColor="#2E7D32"
+            android:textColor="@color/brand_primary"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -42,26 +43,18 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Cụm Icon góc phải -->
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginEnd="14dp"
             android:src="@android:drawable/btn_star_big_on"
-            app:tint="#FFA000" />
+            app:tint="@color/brand_warning" />
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginEnd="16dp"
             android:src="@android:drawable/ic_menu_share"
-            app:tint="#888888" />
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_more"
-            app:tint="#888888" />
+            app:tint="@color/text_secondary" />
     </LinearLayout>
 
     <!-- Khu vực cuộn chứa nội dung chính -->
@@ -84,10 +77,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -95,7 +89,6 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- Tags -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -105,12 +98,11 @@
                             android:id="@+id/tvProjectTag"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@drawable/bg_rounded_24dp"
-                            android:backgroundTint="#FDECE8"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="4dp"
+                            android:background="@drawable/bg_pill_light"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="5dp"
                             android:text="• Công việc"
-                            android:textColor="#D84315"
+                            android:textColor="@color/brand_primary"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -120,11 +112,11 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
                             android:background="@drawable/bg_rounded_24dp"
-                            android:backgroundTint="#FDECE8"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="4dp"
+                            android:backgroundTint="#FFF1F2"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="5dp"
                             android:text="! ƯU TIÊN CAO"
-                            android:textColor="#D84315"
+                            android:textColor="@color/brand_danger"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -135,7 +127,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:text="Chưa có tiêu đề"
-                        android:textColor="#111111"
+                        android:textColor="@color/text_primary"
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
@@ -146,108 +138,99 @@
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="4dp"
                         android:text="Không có mô tả chi tiết."
-                        android:textColor="#666666"
-                        android:textSize="13sp" />
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- CARD 2: LỊCH HỌP (Màu xanh đậm) -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- CARD 2: CHẾ ĐỘ TẬP TRUNG POMODORO (MODERN INDIGO HERO GRADIENT) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                app:cardBackgroundColor="#004D40"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp">
+                android:background="@drawable/bg_hero_gradient"
+                android:orientation="vertical"
+                android:padding="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:background="@drawable/bg_circle_brown"
+                        android:backgroundTint="#1E40AF">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@android:drawable/ic_menu_recent_history"
+                            app:tint="#FFFFFF" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_marginStart="12dp"
+                        android:orientation="vertical">
 
-                        <!-- Icon Đồng hồ nền xanh nhạt -->
-                        <FrameLayout
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:background="@drawable/bg_circle_brown"
-                            android:backgroundTint="#00695C">
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:layout_gravity="center"
-                                android:src="@android:drawable/ic_menu_recent_history"
-                                app:tint="#80CBC4" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:orientation="vertical">
+                            android:text="⏱ CHẾ ĐỘ TẬP TRUNG • POMODORO FOCUS"
+                            android:textColor="#BAE6FD"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="⏱ CHẾ ĐỘ TẬP TRUNG • Pomodoro Focus"
-                                android:textColor="#80CBC4"
-                                android:textSize="11sp"
-                                android:textStyle="bold" />
-
-                            <!-- Thời gian -->
-                            <TextView
-                                android:id="@+id/tvTaskDetailTime"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Chưa hẹn giờ"
-                                android:textColor="#FFFFFF"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/tvTaskDetailTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:text="Chưa hẹn giờ"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
-
-                    <!-- Địa điểm / Mục tiêu -->
-                    <TextView
-                        android:id="@+id/tvTaskDetailLocation"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="🎯 Mục tiêu: 25 phút/phiên • Giữ tập trung tối đa"
-                        android:textColor="#A7FFEB"
-                        android:textSize="12sp" />
-
-                    <!-- Nút Bắt đầu bấm giờ Pomodoro -->
-                    <TextView
-                        android:id="@+id/btnStartPomodoro"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="16dp"
-                        android:background="@drawable/bg_rounded_24dp"
-                        android:backgroundTint="#64FFDA"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center"
-                        android:text="▶ Bắt đầu bấm giờ làm task"
-                        android:textColor="#004D40"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:id="@+id/tvTaskDetailLocation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="🎯 Mục tiêu: 25 phút/phiên • Giữ tập trung tối đa"
+                    android:textColor="#E0F2FE"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/btnStartPomodoro"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_rounded_24dp"
+                    android:backgroundTint="#0F172A"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="▶ Bắt đầu bấm giờ làm task"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <!-- CARD 3: NHIỆM VỤ PHỤ & TIẾN ĐỘ -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="24dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -265,20 +248,19 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_sort_by_size"
-                            app:tint="#333333" />
+                            app:tint="@color/brand_primary" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:layout_marginStart="10dp"
                             android:layout_weight="1"
-                            android:text="Nhiệm vụ phụ &amp;\nTiến độ"
-                            android:textColor="#111111"
-                            android:textSize="15sp"
+                            android:text="Nhiệm vụ phụ &amp; Tiến độ (Checklist)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- CONTAINER CHỨA CÁC NHIỆM VỤ PHỤ (SUBTASKS / CHECKLIST) -->
                     <LinearLayout
                         android:id="@+id/layoutSubtasksContainer"
                         android:layout_width="match_parent"
@@ -286,17 +268,15 @@
                         android:layout_marginTop="12dp"
                         android:orientation="vertical" />
 
-                    <!-- Nút Thêm Subtask -->
                     <TextView
                         android:id="@+id/btnAddSubtask"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="24dp"
-                        android:background="@drawable/bg_rounded_24dp"
-                        android:backgroundTint="#F4F5F8"
+                        android:layout_height="46dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@drawable/bg_pill_light"
                         android:gravity="center"
                         android:text="⊕ Thêm nhiệm vụ phụ"
-                        android:textColor="#004D40"
+                        android:textColor="@color/brand_primary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -306,11 +286,10 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="22dp"
                 android:orientation="horizontal"
                 android:weightSum="3">
 
-                <!-- Nút Xóa (Đỏ) -->
                 <TextView
                     android:id="@+id/btnDeleteTask"
                     android:layout_width="0dp"
@@ -318,37 +297,33 @@
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
                     android:background="@drawable/bg_rounded_24dp"
-                    android:backgroundTint="#FFEBEE"
+                    android:backgroundTint="#FFF1F2"
                     android:gravity="center"
                     android:text="Xóa"
-                    android:textColor="#C62828"
+                    android:textColor="@color/brand_danger"
                     android:textStyle="bold" />
 
-                <!-- Nút Sửa (Vàng/Cam) -->
                 <TextView
                     android:id="@+id/btnEditTask"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:background="@drawable/bg_rounded_24dp"
-                    android:backgroundTint="#FFF3E0"
+                    android:background="@drawable/bg_pill_light"
                     android:gravity="center"
                     android:text="Sửa"
-                    android:textColor="#E65100"
+                    android:textColor="@color/brand_primary"
                     android:textStyle="bold" />
 
-                <!-- Nút Hoàn thành (Xanh) -->
                 <TextView
                     android:id="@+id/btnCompleteTask"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:background="@drawable/bg_rounded_24dp"
-                    android:backgroundTint="#E8F5E9"
+                    android:background="@drawable/bg_pill_brown"
                     android:gravity="center"
                     android:text="Xong ✔"
-                    android:textColor="#2E7D32"
+                    android:textColor="#FFFFFF"
                     android:textStyle="bold" />
             </LinearLayout>
 

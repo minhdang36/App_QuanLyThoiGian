@@ -5,33 +5,33 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFC"
+    android:background="@color/bg_main"
     tools:context=".ui.ai.AiAutoScheduleActivity">
 
     <!-- 1. TOP HEADER -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:paddingHorizontal="16dp"
+        android:layout_height="60dp"
+        android:paddingHorizontal="18dp"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="@drawable/bg_pill_light"
             android:src="@android:drawable/ic_menu_revert"
-            app:tint="#333333"
+            app:tint="@color/brand_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/imgAvatar"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="@drawable/bg_circle_teal"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_circle_brown"
             android:padding="2dp"
             android:src="@android:drawable/ic_menu_myplaces"
             app:tint="#FFFFFF"
@@ -60,7 +60,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -73,8 +73,8 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⚡ FLOWAI ENGINE"
-                        android:textColor="#10B981"
+                        android:text="✨ FLOWAI ENGINE"
+                        android:textColor="@color/brand_primary"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -83,8 +83,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="AI Xếp lịch tự động"
-                        android:textColor="#222222"
-                        android:textSize="22sp"
+                        android:textColor="@color/text_primary"
+                        android:textSize="24sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -92,21 +92,21 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="Lịch trình tối ưu hóa thông minh theo năng lượng..."
-                        android:textColor="#888888"
+                        android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
 
                 <Button
                     android:id="@+id/btnReOptimize"
                     android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:backgroundTint="#362C2A"
+                    android:layout_height="42dp"
+                    android:backgroundTint="@color/brand_primary"
                     android:paddingHorizontal="16dp"
                     android:text="⚡ Tối ưu lại"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    app:cornerRadius="20dp" />
+                    app:cornerRadius="21dp" />
             </LinearLayout>
 
             <!-- HORIZONTAL DAYS STRIP -->
@@ -117,7 +117,6 @@
                 android:gravity="center"
                 android:orientation="horizontal">
 
-                <!-- T2 14 -->
                 <LinearLayout
                     android:id="@+id/day14"
                     android:layout_width="0dp"
@@ -127,12 +126,10 @@
                     android:focusable="true"
                     android:gravity="center"
                     android:orientation="vertical">
-
-                    <TextView android:id="@+id/tvDay14Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T2" android:textColor="#888888" android:textSize="11sp" />
-                    <TextView android:id="@+id/tvDay14Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="14" android:textColor="#222222" android:textSize="15sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvDay14Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T2" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <TextView android:id="@+id/tvDay14Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="14" android:textColor="@color/text_primary" android:textSize="15sp" android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- T3 15 -->
                 <LinearLayout
                     android:id="@+id/day15"
                     android:layout_width="0dp"
@@ -142,12 +139,10 @@
                     android:focusable="true"
                     android:gravity="center"
                     android:orientation="vertical">
-
-                    <TextView android:id="@+id/tvDay15Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T3" android:textColor="#888888" android:textSize="11sp" />
-                    <TextView android:id="@+id/tvDay15Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="15" android:textColor="#222222" android:textSize="15sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvDay15Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T3" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <TextView android:id="@+id/tvDay15Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="15" android:textColor="@color/text_primary" android:textSize="15sp" android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- H.NAY 16 (ACTIVE SELECTED CAPSULE) -->
                 <LinearLayout
                     android:id="@+id/day16"
                     android:layout_width="0dp"
@@ -158,12 +153,10 @@
                     android:focusable="true"
                     android:gravity="center"
                     android:orientation="vertical">
-
-                    <TextView android:id="@+id/tvDay16Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="H.NAY" android:textColor="#CCCCCC" android:textSize="10sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvDay16Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="H.NAY" android:textColor="#BAE6FD" android:textSize="10sp" android:textStyle="bold" />
                     <TextView android:id="@+id/tvDay16Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="16" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- T5 17 -->
                 <LinearLayout
                     android:id="@+id/day17"
                     android:layout_width="0dp"
@@ -173,12 +166,10 @@
                     android:focusable="true"
                     android:gravity="center"
                     android:orientation="vertical">
-
-                    <TextView android:id="@+id/tvDay17Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T5" android:textColor="#888888" android:textSize="11sp" />
-                    <TextView android:id="@+id/tvDay17Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="17" android:textColor="#222222" android:textSize="15sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvDay17Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T5" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <TextView android:id="@+id/tvDay17Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="17" android:textColor="@color/text_primary" android:textSize="15sp" android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- T6 18 -->
                 <LinearLayout
                     android:id="@+id/day18"
                     android:layout_width="0dp"
@@ -188,12 +179,10 @@
                     android:focusable="true"
                     android:gravity="center"
                     android:orientation="vertical">
-
-                    <TextView android:id="@+id/tvDay18Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T6" android:textColor="#888888" android:textSize="11sp" />
-                    <TextView android:id="@+id/tvDay18Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="18" android:textColor="#222222" android:textSize="15sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvDay18Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T6" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <TextView android:id="@+id/tvDay18Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="18" android:textColor="@color/text_primary" android:textSize="15sp" android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- T7 19 -->
                 <LinearLayout
                     android:id="@+id/day19"
                     android:layout_width="0dp"
@@ -203,108 +192,100 @@
                     android:focusable="true"
                     android:gravity="center"
                     android:orientation="vertical">
-
-                    <TextView android:id="@+id/tvDay19Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T7" android:textColor="#888888" android:textSize="11sp" />
-                    <TextView android:id="@+id/tvDay19Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="19" android:textColor="#222222" android:textSize="15sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvDay19Label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="T7" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <TextView android:id="@+id/tvDay19Num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="19" android:textColor="@color/text_primary" android:textSize="15sp" android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- AI EFFICIENCY SUMMARY CARD ("AI Flow v2.4") -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- AI EFFICIENCY SUMMARY CARD (MODERN INDIGO HERO) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                app:cardBackgroundColor="#212529"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="2dp">
+                android:background="@drawable/bg_hero_gradient"
+                android:orientation="vertical"
+                android:padding="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="24dp"
-                            android:background="#343A40"
-                            android:gravity="center"
-                            android:paddingHorizontal="10dp"
-                            android:text="⚡ AI Flow v2.4"
-                            android:textColor="#10B981"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="0dp"
-                            android:layout_weight="1" />
-
-                        <TextView
-                            android:id="@+id/tvEfficiencyPercent"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="92% Hiệu suất"
-                            android:textColor="#10B981"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/tvOptimizedCount"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Đã xếp các công việc vào khung giờ trống"
+                        android:layout_width="wrap_content"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_pill_brown"
+                        android:gravity="center"
+                        android:paddingHorizontal="10dp"
+                        android:text="⚡ AI Flow v3.0"
                         android:textColor="#FFFFFF"
-                        android:textSize="17sp"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
 
-                    <TextView
-                        android:id="@+id/tvOptimizedSummary"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Tận dụng tối đa các khoảng thời gian rảnh trong ngày"
-                        android:textColor="#AAAAAA"
-                        android:textSize="12sp" />
-
                     <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="14dp"
-                        android:background="#343A40" />
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/tvEfficiencyPercent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="● Tránh xung đột ca học/làm"
-                            android:textColor="#CCCCCC"
-                            android:textSize="11sp" />
-
-                        <TextView
-                            android:id="@+id/tvPeakFocus"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="● Đỉnh năng lượng: 09:30 - 11:30"
-                            android:textColor="#10B981"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                        android:text="92% Hiệu suất"
+                        android:textColor="#BAE6FD"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:id="@+id/tvOptimizedCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Đã xếp các công việc vào khung giờ trống"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvOptimizedSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Tận dụng tối đa các khoảng thời gian rảnh trong ngày"
+                    android:textColor="#E0F2FE"
+                    android:textSize="12sp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="14dp"
+                    android:background="#60A5FA" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="● Tránh xung đột ca học/làm"
+                        android:textColor="#E0F2FE"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvPeakFocus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="● Đỉnh năng lượng: 09:30 - 11:30"
+                        android:textColor="#BAE6FD"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
 
             <!-- TIMELINE SECTION HEADER -->
             <LinearLayout
@@ -318,8 +299,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Dòng thời gian"
-                    android:textColor="#222222"
+                    android:text="Dòng thời gian thông minh"
+                    android:textColor="@color/text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -327,12 +308,15 @@
                     android:id="@+id/tvEventCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_pill_light"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp"
                     android:text="● 0 Sự kiện"
-                    android:textColor="#777777"
-                    android:textSize="12sp" />
+                    android:textColor="@color/brand_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- RECYCLERVIEW DÒNG THỜI GIAN THỰC TẾ (TẮT SCROLL RỜI) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTimeline"
                 android:layout_width="match_parent"

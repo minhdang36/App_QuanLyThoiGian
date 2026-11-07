@@ -29,6 +29,7 @@ import com.example.myapplication.R;
 import com.example.myapplication.model.Project;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.ai.AiTaskBreakdownActivity;
 import com.example.myapplication.ui.main.MainActivity;
 import com.example.myapplication.ui.project.AddProjectActivity;
@@ -41,8 +42,6 @@ import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class AddTaskActivity extends AppCompatActivity {
 
@@ -61,11 +60,13 @@ public class AddTaskActivity extends AppCompatActivity {
     private SpeechRecognizer speechRecognizer;
     private boolean isListening = false;
     private int voiceTimerSeconds = 0;
-    private Handler timerHandler = new Handler();
+    private final Handler timerHandler = new Handler();
     private Runnable timerRunnable;
 
     private List<Project> currentProjects;
     private int taskId = -1;
+    private int initialProjectId = -1;
+    private String initialStatus = "PENDING";
     private int selectedChipIndex = 0;
 
     @Override
@@ -102,7 +103,8 @@ public class AddTaskActivity extends AppCompatActivity {
         Calendar today = Calendar.getInstance();
         int currentDay = today.get(Calendar.DAY_OF_MONTH);
         int currentMonth = today.get(Calendar.MONTH) + 1;
-        String currentDateStr = "📅 Hôm nay, " + currentDay + "/" + currentMonth;
+        int currentYear = today.get(Calendar.YEAR);
+        String currentDateStr = "📅 " + currentDay + "/" + currentMonth + "/" + currentYear;
         tvSelectDate.setText(currentDateStr);
 
         int currentHour = today.get(Calendar.HOUR_OF_DAY);
@@ -122,6 +124,12 @@ public class AddTaskActivity extends AppCompatActivity {
         }
 
         taskId = getIntent().getIntExtra("TASK_ID", -1);
+        initialProjectId = getIntent().getIntExtra("PROJECT_ID", -1);
+        String statusExtra = getIntent().getStringExtra("TASK_STATUS");
+        if (statusExtra != null && !statusExtra.isEmpty()) {
+            initialStatus = statusExtra;
+        }
+
         if (taskId != -1) {
             edtTaskTitle.setText(getIntent().getStringExtra("TASK_TITLE"));
             edtDescription.setText(getIntent().getStringExtra("TASK_DESC"));
@@ -132,7 +140,14 @@ public class AddTaskActivity extends AppCompatActivity {
                 String[] timeParts = taskTime.split("\\|");
                 if (timeParts.length >= 2) {
                     tvSelectDate.setText(timeParts[0].trim());
-                    tvSelectTime.setText(timeParts[1].trim());
+                    String rightPart = timeParts[1].trim();
+                    if (rightPart.contains("•")) {
+                        String[] subParts = rightPart.split("•");
+                        tvSelectTime.setText(subParts[0].trim());
+                        applyPriorityText(subParts[1].trim());
+                    } else {
+                        tvSelectTime.setText(rightPart);
+                    }
                 }
             } else if (taskTime != null && !taskTime.isEmpty()) {
                 tvSelectDate.setText(taskTime);
@@ -140,13 +155,32 @@ public class AddTaskActivity extends AppCompatActivity {
             btnSave.setText("Cập nhật công việc");
         }
 
-        loadCategoriesForSpinner();
-
         setupCategoryChips();
         setupPickers();
         setupSpeechRecognition();
 
         btnSave.setOnClickListener(v -> saveTaskData());
+    }
+
+    private void applyPriorityText(String rawPriority) {
+        if (tvPriority == null || rawPriority == null) return;
+        String upper = rawPriority.toUpperCase();
+        if (upper.contains("2") || upper.contains("MEDIUM") || upper.contains("TRUNG BÌNH")) {
+            tvPriority.setText("🚩 Ưu 2");
+            tvPriority.setTextColor(0xFFFF9800);
+        } else if (upper.contains("3") || upper.contains("LOW") || upper.contains("THẤP")) {
+            tvPriority.setText("🚩 Ưu 3");
+            tvPriority.setTextColor(0xFF4CAF50);
+        } else {
+            tvPriority.setText("🚩 Ưu 1");
+            tvPriority.setTextColor(0xFFE53935);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadCategoriesForSpinner();
     }
 
     private void setupCategoryChips() {
@@ -162,12 +196,13 @@ public class AddTaskActivity extends AppCompatActivity {
 
     private void selectCategoryChip(TextView selectedChip, int position) {
         selectedChipIndex = position;
+        int inactiveChipText = ContextCompat.getColor(this, R.color.brand_primary);
         chipCatWork.setBackgroundResource(R.drawable.bg_pill_light);
-        chipCatWork.setTextColor(0xFF555555);
+        chipCatWork.setTextColor(inactiveChipText);
         chipCatStudy.setBackgroundResource(R.drawable.bg_pill_light);
-        chipCatStudy.setTextColor(0xFF555555);
+        chipCatStudy.setTextColor(inactiveChipText);
         chipCatPersonal.setBackgroundResource(R.drawable.bg_pill_light);
-        chipCatPersonal.setTextColor(0xFF555555);
+        chipCatPersonal.setTextColor(inactiveChipText);
 
         selectedChip.setBackgroundResource(R.drawable.bg_pill_brown);
         selectedChip.setTextColor(0xFFFFFFFF);
@@ -338,7 +373,9 @@ public class AddTaskActivity extends AppCompatActivity {
     }
 
     private void stopVoiceTimer() {
-        timerHandler.removeCallbacks(timerRunnable);
+        if (timerRunnable != null) {
+            timerHandler.removeCallbacks(timerRunnable);
+        }
     }
 
     @Override
@@ -349,37 +386,52 @@ public class AddTaskActivity extends AppCompatActivity {
         }
     }
 
+    private void bindProjectsToSpinner(List<Project> projects) {
+        currentProjects = projects;
+        List<String> projectNames = new ArrayList<>(projects.size());
+        int matchedIndex = -1;
+
+        for (int i = 0; i < currentProjects.size(); i++) {
+            Project p = currentProjects.get(i);
+            projectNames.add(p.getName());
+            if (initialProjectId != -1 && p.getId() == initialProjectId) {
+                matchedIndex = i;
+            }
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                AddTaskActivity.this,
+                android.R.layout.simple_spinner_dropdown_item,
+                projectNames
+        );
+        spinnerCategory.setAdapter(adapter);
+
+        if (matchedIndex != -1) {
+            spinnerCategory.setSelection(matchedIndex);
+        } else if (currentProjects.size() > selectedChipIndex) {
+            spinnerCategory.setSelection(selectedChipIndex);
+        }
+    }
+
     private void loadCategoriesForSpinner() {
         SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
         int currentUserId = sharedPref.getInt("USER_ID", -1);
         if (currentUserId == -1) return;
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        ApiService apiService = retrofit.create(ApiService.class);
+        List<Project> cached = RetrofitClient.getCachedProjects();
+        if (!cached.isEmpty() && (currentProjects == null || currentProjects.isEmpty())) {
+            bindProjectsToSpinner(cached);
+        }
+
+        ApiService apiService = RetrofitClient.getApiService();
 
         apiService.getProjectsByUser(currentUserId).enqueue(new Callback<List<Project>>() {
             @Override
             public void onResponse(Call<List<Project>> call, Response<List<Project>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    currentProjects = response.body();
-                    List<String> projectNames = new ArrayList<>();
-                    for (Project p : currentProjects) {
-                        projectNames.add(p.getName());
-                    }
-
-                    ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                            AddTaskActivity.this,
-                            android.R.layout.simple_spinner_dropdown_item,
-                            projectNames
-                    );
-                    spinnerCategory.setAdapter(adapter);
-
-                    if (currentProjects.size() > selectedChipIndex) {
-                        spinnerCategory.setSelection(selectedChipIndex);
-                    }
+                    List<Project> body = response.body();
+                    RetrofitClient.setCachedProjects(body);
+                    bindProjectsToSpinner(body);
                 }
             }
 
@@ -411,15 +463,19 @@ public class AddTaskActivity extends AppCompatActivity {
             return;
         }
 
-        int selectedProjectId = 1;
+        int selectedProjectId = initialProjectId != -1 ? initialProjectId : 1;
+        String selectedCategoryName = "Công việc";
         if (currentProjects != null && !currentProjects.isEmpty()) {
             int selectedPosition = spinnerCategory.getSelectedItemPosition();
             if (selectedPosition >= 0 && selectedPosition < currentProjects.size()) {
                 selectedProjectId = currentProjects.get(selectedPosition).getId();
+                selectedCategoryName = currentProjects.get(selectedPosition).getName();
             } else if (selectedChipIndex >= 0 && selectedChipIndex < currentProjects.size()) {
                 selectedProjectId = currentProjects.get(selectedChipIndex).getId();
+                selectedCategoryName = currentProjects.get(selectedChipIndex).getName();
             } else {
                 selectedProjectId = currentProjects.get(0).getId();
+                selectedCategoryName = currentProjects.get(0).getName();
             }
         }
 
@@ -428,16 +484,13 @@ public class AddTaskActivity extends AppCompatActivity {
         taskData.setDescription(description);
         taskData.setLocation(location);
         taskData.setTime(fullDateTime);
+        taskData.setPriority(selectedPriority);
+        taskData.setCategory(selectedCategoryName);
         taskData.setProjectId(selectedProjectId);
-        taskData.setStatus("PENDING");
+        taskData.setStatus(initialStatus);
         taskData.setUserId(currentUserId);
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        ApiService apiService = retrofit.create(ApiService.class);
+        ApiService apiService = RetrofitClient.getApiService();
         Call<Task> call = (taskId != -1) ? apiService.updateTask(taskId, taskData) : apiService.addTask(taskData);
 
         btnSave.setEnabled(false);
@@ -446,20 +499,30 @@ public class AddTaskActivity extends AppCompatActivity {
         call.enqueue(new Callback<Task>() {
             @Override
             public void onResponse(Call<Task> call, Response<Task> response) {
-                Toast.makeText(AddTaskActivity.this, "✔ Đã lưu công việc thành công!", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(AddTaskActivity.this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                finish();
+                btnSave.setEnabled(true);
+                btnSave.setText(taskId != -1 ? "Cập nhật công việc" : "Lưu công việc");
+
+                if (response.isSuccessful()) {
+                    RetrofitClient.invalidateCache();
+                    Toast.makeText(AddTaskActivity.this, "✔ Đã lưu công việc thành công!", Toast.LENGTH_SHORT).show();
+                    if (taskId != -1) {
+                        finish();
+                    } else {
+                        Intent intent = new Intent(AddTaskActivity.this, MainActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        startActivity(intent);
+                        finish();
+                    }
+                } else {
+                    Toast.makeText(AddTaskActivity.this, "⚠️ Lỗi khi lưu công việc (Mã: " + response.code() + ")", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
             public void onFailure(Call<Task> call, Throwable t) {
-                Toast.makeText(AddTaskActivity.this, "✔ Đã lưu công việc thành công!", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(AddTaskActivity.this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                finish();
+                btnSave.setEnabled(true);
+                btnSave.setText(taskId != -1 ? "Cập nhật công việc" : "Lưu công việc");
+                Toast.makeText(AddTaskActivity.this, "❌ Không thể kết nối máy chủ! Vui lòng kiểm tra Server.", Toast.LENGTH_LONG).show();
             }
         });
     }

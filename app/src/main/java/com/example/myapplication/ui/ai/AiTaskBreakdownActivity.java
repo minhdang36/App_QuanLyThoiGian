@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -24,8 +25,8 @@ import com.example.myapplication.model.Project;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.model.WbsTask;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.project.ProjectsActivity;
-import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -38,7 +39,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -48,8 +48,6 @@ import java.util.Scanner;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class AiTaskBreakdownActivity extends AppCompatActivity {
 
@@ -65,6 +63,11 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
 
     private final List<WbsTask> wbsTaskList = new ArrayList<>();
     private final List<PhaseGroup> phaseGroupList = new ArrayList<>();
+    private int existingProjectId = -1;
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,10 +102,19 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
 
         // Tự động điền thông tin mặc định từ Intent
         Intent intent = getIntent();
-        if (intent != null && intent.hasExtra("MAIN_TASK_TITLE")) {
-            String titleExtra = intent.getStringExtra("MAIN_TASK_TITLE");
-            if (titleExtra != null && !titleExtra.isEmpty()) {
-                edtProjectName.setText(titleExtra);
+        if (intent != null) {
+            existingProjectId = intent.getIntExtra("CREATED_PROJECT_ID", -1);
+            if (intent.hasExtra("MAIN_TASK_TITLE")) {
+                String titleExtra = intent.getStringExtra("MAIN_TASK_TITLE");
+                if (titleExtra != null && !titleExtra.isEmpty()) {
+                    edtProjectName.setText(titleExtra);
+                }
+            }
+            if (intent.hasExtra("MAIN_TASK_GOAL")) {
+                String goalExtra = intent.getStringExtra("MAIN_TASK_GOAL");
+                if (goalExtra != null && !goalExtra.isEmpty() && edtProjectGoal != null) {
+                    edtProjectGoal.setText(goalExtra);
+                }
             }
         }
 
@@ -183,12 +195,12 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 10);
+        layout.setPadding(dpToPx(20), dpToPx(12), dpToPx(20), dpToPx(4));
 
         TextView tvGuide = new TextView(this);
         tvGuide.setText("Dán API Key Gemini của bạn (AIzaSy...) để kích hoạt AI cao cấp nhất từ Google.\n(Lấy Key miễn phí 100% tại aistudio.google.com)");
         tvGuide.setTextSize(13);
-        tvGuide.setTextColor(0xFF555555);
+        tvGuide.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
         layout.addView(tvGuide);
 
         final EditText edtKey = new EditText(this);
@@ -197,6 +209,7 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
             edtKey.setText(activeKey);
         }
         edtKey.setTextSize(13);
+        edtKey.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
         layout.addView(edtKey);
 
         builder.setView(layout);
@@ -488,6 +501,8 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                     t.setTitle(wTask.getTaskTitle());
                     t.setDescription(wTask.getDescription() + " • 🍅 " + wTask.getPomodoroCount() + " Pomodoro");
                     t.setTime("📅 " + wTask.getScheduledDate() + " | 🕒 " + wTask.getEstimatedHours() + "h • 🚩 " + wTask.getPriority());
+                    t.setPriority(wTask.getPriority());
+                    t.setTotalPomodoros(wTask.getPomodoroCount());
                     t.setLocation("Dự án lớn");
                     group.getSubTaskList().add(t);
                 }
@@ -524,22 +539,22 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
             return;
         }
 
+        ApiService apiService = RetrofitClient.getApiService();
+
+        btnApplyBreakdown.setEnabled(false);
+        btnApplyBreakdown.setText("Đang đồng bộ vào cơ sở dữ liệu...");
+
+        if (existingProjectId > 0) {
+            saveWbsTasksToApi(apiService, currentUserId, existingProjectId);
+            return;
+        }
+
         String formattedProjectName = pName.startsWith("🚀") ? pName : "🚀 " + pName;
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        ApiService apiService = retrofit.create(ApiService.class);
 
         Project projectObj = new Project();
         projectObj.setName(formattedProjectName);
         projectObj.setDescription(pGoal);
         projectObj.setUserId(currentUserId);
-
-        btnApplyBreakdown.setEnabled(false);
-        btnApplyBreakdown.setText("Đang đồng bộ vào cơ sở dữ liệu...");
 
         apiService.addProject(projectObj).enqueue(new Callback<Project>() {
             @Override
@@ -547,48 +562,68 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
                 int savedProjectId = 1;
                 if (response.isSuccessful() && response.body() != null) {
                     savedProjectId = response.body().getId();
+                    existingProjectId = savedProjectId;
                 }
-
                 saveWbsTasksToApi(apiService, currentUserId, savedProjectId);
             }
 
             @Override
             public void onFailure(Call<Project> call, Throwable t) {
-                saveWbsTasksToApi(apiService, currentUserId, 1);
+                btnApplyBreakdown.setEnabled(true);
+                btnApplyBreakdown.setText("✔ Áp Dụng & Đồng Bộ Lộ Trình");
+                Toast.makeText(AiTaskBreakdownActivity.this, "❌ Lỗi kết nối máy chủ khi tạo dự án!", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void saveWbsTasksToApi(ApiService apiService, int userId, int projectId) {
-        List<WbsTask> selectedTasks = new ArrayList<>();
+        List<Task> tasksToSave = new ArrayList<>();
         for (WbsTask wTask : wbsTaskList) {
             if (wTask.isSelected()) {
-                selectedTasks.add(wTask);
+                Task t = new Task();
+                t.setTitle("[" + wTask.getPhaseName() + "] " + wTask.getTaskTitle());
+                t.setDescription(wTask.getDescription() + " • 🍅 " + wTask.getPomodoroCount() + " Pomodoro");
+                t.setTime("📅 " + wTask.getScheduledDate() + " | 🕒 " + wTask.getEstimatedHours() + "h • 🚩 " + wTask.getPriority());
+                t.setPriority(wTask.getPriority());
+                t.setTotalPomodoros(wTask.getPomodoroCount());
+                t.setLocation("Dự án lớn");
+                t.setProjectId(projectId);
+                t.setStatus("PENDING");
+                t.setUserId(userId);
+                tasksToSave.add(t);
             }
         }
 
-        if (selectedTasks.isEmpty()) {
+        if (tasksToSave.isEmpty()) {
             Toast.makeText(AiTaskBreakdownActivity.this, "✔ Đã đồng bộ Dự án lớn!", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(AiTaskBreakdownActivity.this, ProjectsActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            finish();
+            navigateToProjects();
             return;
         }
 
-        final int totalCount = selectedTasks.size();
+        // Ưu tiên đồng bộ hàng loạt qua API /api/tasks/batch
+        apiService.addTasksBatch(tasksToSave).enqueue(new Callback<List<Task>>() {
+            @Override
+            public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(AiTaskBreakdownActivity.this, "✔ Đã đồng bộ thành công Dự án lớn và " + tasksToSave.size() + " công việc!", Toast.LENGTH_LONG).show();
+                    navigateToProjects();
+                } else {
+                    fallbackIndividualSave(apiService, tasksToSave);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Task>> call, Throwable t) {
+                fallbackIndividualSave(apiService, tasksToSave);
+            }
+        });
+    }
+
+    private void fallbackIndividualSave(ApiService apiService, List<Task> tasksToSave) {
+        final int totalCount = tasksToSave.size();
         final int[] completedCount = new int[]{0};
 
-        for (WbsTask wTask : selectedTasks) {
-            Task t = new Task();
-            t.setTitle("[" + wTask.getPhaseName() + "] " + wTask.getTaskTitle());
-            t.setDescription(wTask.getDescription() + " • 🍅 " + wTask.getPomodoroCount() + " Pomodoro");
-            t.setTime("📅 " + wTask.getScheduledDate() + " | 🕒 " + wTask.getEstimatedHours() + "h • 🚩 " + wTask.getPriority());
-            t.setLocation("Dự án lớn");
-            t.setProjectId(projectId);
-            t.setStatus("PENDING");
-            t.setUserId(userId);
-
+        for (Task t : tasksToSave) {
             apiService.addTask(t).enqueue(new Callback<Task>() {
                 @Override
                 public void onResponse(Call<Task> call, Response<Task> response) {
@@ -608,12 +643,15 @@ public class AiTaskBreakdownActivity extends AppCompatActivity {
         if (completedCount[0] >= totalCount) {
             new Handler(Looper.getMainLooper()).post(() -> {
                 Toast.makeText(AiTaskBreakdownActivity.this, "✔ Đã đồng bộ thành công Dự án lớn và " + totalCount + " công việc!", Toast.LENGTH_LONG).show();
-
-                Intent intent = new Intent(AiTaskBreakdownActivity.this, ProjectsActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                finish();
+                navigateToProjects();
             });
         }
+    }
+
+    private void navigateToProjects() {
+        Intent intent = new Intent(AiTaskBreakdownActivity.this, ProjectsActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 }

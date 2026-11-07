@@ -16,6 +16,7 @@ import com.example.myapplication.adapter.ProjectAdapter;
 import com.example.myapplication.model.Project;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.main.ProfileSettingsActivity;
 
 import java.util.ArrayList;
@@ -24,8 +25,6 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ProjectsActivity extends AppCompatActivity {
 
@@ -74,6 +73,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
         rvProjects = findViewById(R.id.rvProjects);
         rvProjects.setLayoutManager(new LinearLayoutManager(this));
+        rvProjects.setItemViewCacheSize(10);
 
         tvTotalTasks = findViewById(R.id.tvTotalTasks);
         tvCompletionRate = findViewById(R.id.tvCompletionRate);
@@ -90,17 +90,43 @@ public class ProjectsActivity extends AppCompatActivity {
         fetchDataFromApi();
     }
 
+    private void computeProjectTaskStats(List<Project> projects, List<Task> tasks) {
+        if (projects == null || tasks == null || tasks.isEmpty()) return;
+        for (Project p : projects) {
+            int total = 0;
+            int finished = 0;
+            for (Task t : tasks) {
+                if (t.getProjectId() == p.getId()) {
+                    total++;
+                    String status = t.getStatus() != null ? t.getStatus().toUpperCase() : "";
+                    if ("DONE".equals(status) || "COMPLETED".equals(status) || "HOÀN THÀNH".equals(status)) {
+                        finished++;
+                    }
+                }
+            }
+            p.setTotalTasks(total);
+            p.setFinishedTasks(finished);
+        }
+    }
+
     private void fetchDataFromApi() {
         SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
         int currentUserId = sharedPref.getInt("USER_ID", -1);
 
         if (currentUserId == -1) return;
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        ApiService apiService = retrofit.create(ApiService.class);
+        // 1. Hiển thị ngay lập tức từ bộ nhớ đệm RAM nếu có
+        List<Project> cachedProjects = RetrofitClient.getCachedProjects();
+        List<Task> cachedTasks = RetrofitClient.getCachedTasks();
+        if (!cachedProjects.isEmpty() && projectList.isEmpty()) {
+            projectList.clear();
+            projectList.addAll(cachedProjects);
+            computeProjectTaskStats(projectList, cachedTasks);
+            projectAdapter.notifyDataSetChanged();
+            updateSummaryData(projectList);
+        }
+
+        ApiService apiService = RetrofitClient.getApiService();
 
         apiService.getProjectsByUser(currentUserId).enqueue(new Callback<List<Project>>() {
             @Override
@@ -108,28 +134,23 @@ public class ProjectsActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     projectList.clear();
                     projectList.addAll(response.body());
+                    RetrofitClient.setCachedProjects(projectList);
 
-                    // Tải danh sách công việc của user để tự động tính tổng số task và số task đã hoàn thành cho từng dự án
+                    // Nếu cache task vừa được tải gần đây (< 5 giây), dùng ngay không cần đợi vòng mạng thứ 2
+                    if (RetrofitClient.isTasksCacheFresh(5000)) {
+                        computeProjectTaskStats(projectList, RetrofitClient.getCachedTasks());
+                        projectAdapter.notifyDataSetChanged();
+                        updateSummaryData(projectList);
+                        return;
+                    }
+
                     apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
                         @Override
                         public void onResponse(Call<List<Task>> taskCall, Response<List<Task>> taskResponse) {
                             if (taskResponse.isSuccessful() && taskResponse.body() != null) {
                                 List<Task> userTasks = taskResponse.body();
-                                for (Project p : projectList) {
-                                    int total = 0;
-                                    int finished = 0;
-                                    for (Task t : userTasks) {
-                                        if (t.getProjectId() == p.getId()) {
-                                            total++;
-                                            String status = t.getStatus() != null ? t.getStatus().toUpperCase() : "";
-                                            if ("DONE".equals(status) || "COMPLETED".equals(status)) {
-                                                finished++;
-                                            }
-                                        }
-                                    }
-                                    p.setTotalTasks(total);
-                                    p.setFinishedTasks(finished);
-                                }
+                                RetrofitClient.setCachedTasks(userTasks);
+                                computeProjectTaskStats(projectList, userTasks);
                             }
                             projectAdapter.notifyDataSetChanged();
                             updateSummaryData(projectList);
@@ -146,7 +167,9 @@ public class ProjectsActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<Project>> call, Throwable t) {
-                Toast.makeText(ProjectsActivity.this, "Lỗi tải dữ liệu dự án", Toast.LENGTH_SHORT).show();
+                if (projectList.isEmpty()) {
+                    Toast.makeText(ProjectsActivity.this, "Lỗi tải dữ liệu dự án", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

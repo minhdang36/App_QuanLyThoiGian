@@ -18,11 +18,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.myapplication.R;
 import com.example.myapplication.model.Project;
 import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -33,14 +35,18 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ProjectDetailActivity extends AppCompatActivity {
 
     private int taskId = -1;
+    private int projectId = 1;
+    private String currentStatus = "PENDING";
     private LinearLayout layoutSubtasksContainer;
     private TextView tvTitle;
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,11 +69,13 @@ public class ProjectDetailActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent != null) {
             taskId = intent.getIntExtra("TASK_ID", -1);
+            projectId = intent.getIntExtra("PROJECT_ID", 1);
             String title = intent.getStringExtra("TASK_TITLE");
             String desc = intent.getStringExtra("TASK_DESC");
             String time = intent.getStringExtra("TASK_TIME");
             String location = intent.getStringExtra("TASK_LOC");
             String status = intent.getStringExtra("TASK_STATUS");
+            if (status != null) currentStatus = status;
 
             if (tvTitle != null) tvTitle.setText((title != null && !title.trim().isEmpty()) ? title : "Chưa có tiêu đề");
             if (tvDesc != null) tvDesc.setText((desc != null && !desc.trim().isEmpty()) ? desc : "Không có mô tả chi tiết.");
@@ -102,6 +110,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
                                     @Override
                                     public void onResponse(Call<Void> call, Response<Void> response) {
                                         if (response.isSuccessful()) {
+                                            RetrofitClient.invalidateCache();
                                             Toast.makeText(ProjectDetailActivity.this, "Đã xóa công việc!", Toast.LENGTH_SHORT).show();
                                             finish();
                                         }
@@ -123,6 +132,8 @@ public class ProjectDetailActivity extends AppCompatActivity {
             btnEditTask.setOnClickListener(v -> {
                 Intent editIntent = new Intent(ProjectDetailActivity.this, AddTaskActivity.class);
                 editIntent.putExtra("TASK_ID", taskId);
+                editIntent.putExtra("PROJECT_ID", projectId);
+                editIntent.putExtra("TASK_STATUS", currentStatus);
                 if (tvTitle != null) editIntent.putExtra("TASK_TITLE", tvTitle.getText().toString());
                 if (tvDesc != null) editIntent.putExtra("TASK_DESC", tvDesc.getText().toString());
                 if (tvTime != null) editIntent.putExtra("TASK_TIME", tvTime.getText().toString());
@@ -134,6 +145,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
         if (btnCompleteTask != null) {
             btnCompleteTask.setOnClickListener(v -> {
                 if (taskId != -1) {
+                    currentStatus = "DONE";
                     if (tvStatus != null) {
                         tvStatus.setText("● ĐÃ HOÀN THÀNH");
                         tvStatus.setTextColor(Color.parseColor("#2E7D32"));
@@ -142,6 +154,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
 
                     Task updatedTask = new Task();
                     updatedTask.setStatus("DONE");
+                    RetrofitClient.invalidateCache();
 
                     getApiService().updateTask(taskId, updatedTask).enqueue(new Callback<Task>() {
                         @Override
@@ -159,6 +172,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
         if (btnStartPomodoro != null) {
             btnStartPomodoro.setOnClickListener(v -> {
                 Intent pomodoroIntent = new Intent(ProjectDetailActivity.this, com.example.myapplication.ui.pomodoro.PomodoroActivity.class);
+                pomodoroIntent.putExtra("ACTIVE_TASK_ID", taskId);
                 if (tvTitle != null) {
                     pomodoroIntent.putExtra("ACTIVE_TASK_TITLE", tvTitle.getText().toString());
                 }
@@ -212,22 +226,20 @@ public class ProjectDetailActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
-        // Nếu chưa có subtasks người dùng chủ động tích chọn thêm vào, hiển thị hướng dẫn thân thiện
         if (subTasks.isEmpty()) {
             TextView tvEmptyHint = new TextView(this);
             tvEmptyHint.setText("💡 Chưa có nhiệm vụ phụ. Bạn có thể mở trang Chi tiết Giai đoạn, tích chọn các đầu việc và bấm nút 'Thêm vào Nhiệm vụ phụ' hoặc bấm '⊕ Thêm nhiệm vụ phụ' ở bên dưới.");
-            tvEmptyHint.setTextColor(Color.parseColor("#9E9E9E"));
+            tvEmptyHint.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
             tvEmptyHint.setTextSize(12);
-            tvEmptyHint.setPadding(10, 10, 10, 10);
+            int pad = dpToPx(6);
+            tvEmptyHint.setPadding(pad, pad, pad, pad);
             layoutSubtasksContainer.addView(tvEmptyHint);
             return;
         }
 
         SharedPreferences checkPref = getSharedPreferences("SubTaskCheckedState", MODE_PRIVATE);
-
         final String finalCleanTitle = cleanTitle;
 
-        // Hiển thị từng nhiệm vụ phụ đầy đủ tính năng: Tích hoàn thành, Sửa, Xóa
         for (int i = 0; i < subTasks.size(); i++) {
             final int itemIndex = i;
             String st = subTasks.get(i);
@@ -240,10 +252,9 @@ public class ProjectDetailActivity extends AppCompatActivity {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            rowLp.setMargins(0, 8, 0, 8);
+            rowLp.setMargins(0, dpToPx(4), 0, dpToPx(4));
             itemRow.setLayoutParams(rowLp);
 
-            // CheckBox tích chọn hoàn thành
             CheckBox checkBox = new CheckBox(this);
             LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(
                     0,
@@ -253,7 +264,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
             checkBox.setLayoutParams(cbLp);
             checkBox.setText(st);
             checkBox.setTextSize(13);
-            checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
+            checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
 
             boolean isChecked = checkPref.getBoolean(checkKey, false);
             checkBox.setChecked(isChecked);
@@ -266,13 +277,15 @@ public class ProjectDetailActivity extends AppCompatActivity {
 
             itemRow.addView(checkBox);
 
+            int iconBtnSize = dpToPx(32);
+
             // Nút SỬA nhiệm vụ phụ
             ImageButton btnEditSub = new ImageButton(this);
             btnEditSub.setImageResource(android.R.drawable.ic_menu_edit);
             btnEditSub.setBackgroundResource(android.R.color.transparent);
             btnEditSub.setImageTintList(ColorStateList.valueOf(Color.parseColor("#888888")));
-            LinearLayout.LayoutParams btnEditLp = new LinearLayout.LayoutParams(72, 72);
-            btnEditLp.setMargins(8, 0, 0, 0);
+            LinearLayout.LayoutParams btnEditLp = new LinearLayout.LayoutParams(iconBtnSize, iconBtnSize);
+            btnEditLp.setMargins(dpToPx(4), 0, 0, 0);
             btnEditSub.setLayoutParams(btnEditLp);
             btnEditSub.setOnClickListener(v -> showEditSubtaskDialog(itemIndex, st, finalCleanTitle, subTasks));
             itemRow.addView(btnEditSub);
@@ -282,8 +295,8 @@ public class ProjectDetailActivity extends AppCompatActivity {
             btnDeleteSub.setImageResource(android.R.drawable.ic_menu_delete);
             btnDeleteSub.setBackgroundResource(android.R.color.transparent);
             btnDeleteSub.setImageTintList(ColorStateList.valueOf(Color.parseColor("#C62828")));
-            LinearLayout.LayoutParams btnDeleteLp = new LinearLayout.LayoutParams(72, 72);
-            btnDeleteLp.setMargins(4, 0, 0, 0);
+            LinearLayout.LayoutParams btnDeleteLp = new LinearLayout.LayoutParams(iconBtnSize, iconBtnSize);
+            btnDeleteLp.setMargins(dpToPx(2), 0, 0, 0);
             btnDeleteSub.setLayoutParams(btnDeleteLp);
             btnDeleteSub.setOnClickListener(v -> showDeleteSubtaskDialog(itemIndex, finalCleanTitle, subTasks));
             itemRow.addView(btnDeleteSub);
@@ -295,10 +308,10 @@ public class ProjectDetailActivity extends AppCompatActivity {
     private void updateCheckboxStyle(CheckBox checkBox, boolean isChecked) {
         if (isChecked) {
             checkBox.setPaintFlags(checkBox.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-            checkBox.setTextColor(Color.parseColor("#888888"));
+            checkBox.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
         } else {
             checkBox.setPaintFlags(checkBox.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
-            checkBox.setTextColor(Color.parseColor("#222222"));
+            checkBox.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
         }
     }
 
@@ -308,7 +321,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
 
         final EditText edtInput = new EditText(this);
         edtInput.setText(currentText);
-        edtInput.setPadding(40, 30, 40, 30);
+        edtInput.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
         builder.setView(edtInput);
 
         builder.setPositiveButton("Lưu", (dialog, which) -> {
@@ -355,7 +368,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
 
         final EditText edtInput = new EditText(this);
         edtInput.setHint("Nhập nội dung nhiệm vụ phụ...");
-        edtInput.setPadding(40, 30, 40, 30);
+        edtInput.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
         builder.setView(edtInput);
 
         builder.setPositiveButton("Thêm", (dialog, which) -> {
@@ -412,6 +425,11 @@ public class ProjectDetailActivity extends AppCompatActivity {
                     }
 
                     if (currentTask != null) {
+                        projectId = currentTask.getProjectId();
+                        if (currentTask.getStatus() != null) {
+                            currentStatus = currentTask.getStatus();
+                        }
+
                         TextView tvTitle = findViewById(R.id.tvTaskDetailTitle);
                         TextView tvDesc = findViewById(R.id.tvTaskDetailDesc);
                         TextView tvTime = findViewById(R.id.tvTaskDetailTime);
@@ -434,9 +452,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
                             }
                         }
 
-                        // Cập nhật mức độ ưu tiên thực tế
                         updatePriorityTag(currentTask.getPriority(), currentTask.getTime());
-
                         renderSubtasksForCurrentTask();
 
                         int realProjectId = currentTask.getProjectId();
@@ -495,10 +511,6 @@ public class ProjectDetailActivity extends AppCompatActivity {
     }
 
     private ApiService getApiService() {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        return retrofit.create(ApiService.class);
+        return RetrofitClient.getApiService();
     }
 }

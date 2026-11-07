@@ -5,24 +5,24 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFC"
+    android:background="@color/bg_main"
     tools:context=".ui.task.AddTaskActivity">
 
     <!-- 1. HEADER BAR -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:paddingHorizontal="16dp"
+        android:layout_height="60dp"
+        android:paddingHorizontal="18dp"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="@drawable/bg_pill_light"
             android:src="@android:drawable/ic_menu_revert"
-            app:tint="#333333"
+            app:tint="@color/brand_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -32,7 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Tạo công việc mới"
-            android:textColor="#222222"
+            android:textColor="@color/text_primary"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -42,11 +42,11 @@
 
         <ImageButton
             android:id="@+id/btnAiAssist"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="@drawable/bg_pill_light"
             android:src="@android:drawable/ic_menu_edit"
-            app:tint="#8D6E63"
+            app:tint="@color/brand_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -59,7 +59,7 @@
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:paddingHorizontal="20dp"
-        android:paddingBottom="20dp"
+        android:paddingBottom="24dp"
         app:layout_constraintBottom_toTopOf="@id/bottomActionsLayout"
         app:layout_constraintTop_toBottomOf="@id/headerLayout">
 
@@ -72,11 +72,11 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="#FFFFFF"
+                android:layout_marginTop="12dp"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
-                app:strokeColor="#EEF0F4"
+                app:strokeColor="@color/card_stroke"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -85,17 +85,15 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- LABEL: TIÊU ĐỀ CÔNG VIỆC -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="TIÊU ĐỀ CÔNG VIỆC"
-                        android:textColor="#9E9E9E"
+                        android:textColor="@color/brand_primary"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05" />
 
-                    <!-- TITLE INPUT ROW WITH MIC BUTTON -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -109,11 +107,11 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:background="@null"
-                            android:hint="Hoàn thành báo cáo đồ án"
+                            android:hint="Nhập tên công việc cần thực hiện..."
                             android:inputType="text|textNoSuggestions"
                             android:imeOptions="actionNext"
-                            android:textColor="#222222"
-                            android:textColorHint="#CCCCCC"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_muted"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
@@ -122,7 +120,7 @@
                             android:layout_width="44dp"
                             android:layout_height="44dp"
                             android:layout_marginStart="12dp"
-                            android:background="@drawable/bg_circle_teal"
+                            android:background="@drawable/bg_circle_brown"
                             android:src="@android:drawable/ic_btn_speak_now"
                             app:tint="#FFFFFF" />
                     </LinearLayout>
@@ -131,14 +129,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginVertical="16dp"
-                        android:background="#F0F0F0" />
+                        android:background="@color/card_stroke" />
 
-                    <!-- LABEL: MÔ TẢ CHI TIẾT -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="MÔ TẢ CHI TIẾT"
-                        android:textColor="#9E9E9E"
+                        android:text="MÔ TẢ CHI TIẾT &amp; GHI CHÚ"
+                        android:textColor="@color/text_secondary"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05" />
@@ -149,12 +146,12 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:background="@null"
-                        android:hint="Soạn 12 slide thuyết trình tóm tắt kết quả phân tích dữ liệu và kiến trúc hệ thống."
+                        android:hint="Ghi chú nội dung, tài liệu hoặc đường dẫn liên quan..."
                         android:inputType="textMultiLine|textNoSuggestions"
                         android:gravity="top|start"
                         android:minLines="3"
-                        android:textColor="#444444"
-                        android:textColorHint="#CCCCCC"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_muted"
                         android:textSize="14sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -164,13 +161,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:text="DANH MỤC"
-                android:textColor="#9E9E9E"
+                android:text="DANH MỤC DỰ ÁN"
+                android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.05" />
 
-            <!-- CATEGORY CHIPS HORIZONTAL SCROLL -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -184,7 +180,6 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <!-- Category 1 (Selected default) -->
                     <TextView
                         android:id="@+id/chipCatWork"
                         android:layout_width="wrap_content"
@@ -197,7 +192,6 @@
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
-                    <!-- Category 2 -->
                     <TextView
                         android:id="@+id/chipCatStudy"
                         android:layout_width="wrap_content"
@@ -207,10 +201,9 @@
                         android:gravity="center"
                         android:paddingHorizontal="18dp"
                         android:text="●  Học tập"
-                        android:textColor="#555555"
+                        android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
-                    <!-- Category 3 -->
                     <TextView
                         android:id="@+id/chipCatPersonal"
                         android:layout_width="wrap_content"
@@ -220,10 +213,9 @@
                         android:gravity="center"
                         android:paddingHorizontal="18dp"
                         android:text="👤  Cá nhân"
-                        android:textColor="#555555"
+                        android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
-                    <!-- Category Add New -->
                     <TextView
                         android:id="@+id/chipCatAdd"
                         android:layout_width="38dp"
@@ -232,13 +224,12 @@
                         android:background="@drawable/bg_pill_light"
                         android:gravity="center"
                         android:text="+"
-                        android:textColor="#555555"
+                        android:textColor="@color/brand_primary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </HorizontalScrollView>
 
-            <!-- HIDDEN SPINNER FOR BACKEND SYNC -->
             <Spinner
                 android:id="@+id/spinnerCategory"
                 android:layout_width="match_parent"
@@ -257,7 +248,6 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <!-- Date & Time Button -->
                     <TextView
                         android:id="@+id/tvSelectDate"
                         android:layout_width="wrap_content"
@@ -266,11 +256,10 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="📅 Hôm nay, 15:00"
-                        android:textColor="#333333"
+                        android:textColor="@color/brand_primary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
-                    <!-- Reminder Button -->
                     <TextView
                         android:id="@+id/tvSelectTime"
                         android:layout_width="wrap_content"
@@ -280,10 +269,9 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="🔔 Nhắc nhở 15 phút"
-                        android:textColor="#333333"
+                        android:textColor="@color/text_primary"
                         android:textSize="13sp" />
 
-                    <!-- Priority Button -->
                     <TextView
                         android:id="@+id/tvPriority"
                         android:layout_width="wrap_content"
@@ -293,22 +281,22 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="🚩 Ưu 1"
-                        android:textColor="#E53935"
+                        android:textColor="@color/brand_danger"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </HorizontalScrollView>
 
-            <!-- VOICE RECORDING & AI TRANSCRIPTION BOX ("ĐANG LẮNG NGHE...") -->
+            <!-- VOICE RECORDING & AI TRANSCRIPTION BOX -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardVoiceBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="24dp"
-                app:cardElevation="2dp"
-                app:strokeColor="#EAEAEA"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_stroke"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -317,7 +305,6 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- VOICE HEADER STATUS & TIMER -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -329,8 +316,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="● ĐANG LẮNG NGHE..."
-                            android:textColor="#10B981"
+                            android:text="● TRỢ LÝ GIỌNG NÓI AI"
+                            android:textColor="@color/brand_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -338,47 +325,43 @@
                             android:id="@+id/tvVoiceTimer"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="⏱ 07:04"
-                            android:textColor="#10B981"
+                            android:text="⏱ 00:00"
+                            android:textColor="@color/brand_accent"
                             android:textSize="13sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- TRANSCRIPTION TEXT BUBBLE -->
                     <TextView
                         android:id="@+id/tvTranscribedText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="14dp"
                         android:background="@drawable/bg_voice_card"
                         android:padding="16dp"
-                        android:text="“Hoàn thành báo cáo đồ án lúc 15:00 và chuẩn bị tài liệu thuyết trình cho hội đồng...”"
-                        android:textColor="#333333"
+                        android:text="“Hoàn thành báo cáo đồ án lúc 15:00 và chuẩn bị tài liệu thuyết trình...”"
+                        android:textColor="@color/text_primary"
                         android:textSize="14sp"
                         android:textStyle="italic" />
 
-                    <!-- WAVEFORM VISUALIZER BARS -->
                     <LinearLayout
                         android:id="@+id/layoutWaveform"
                         android:layout_width="match_parent"
                         android:layout_height="28dp"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="14dp"
                         android:gravity="center"
                         android:orientation="horizontal">
 
-                        <!-- Simulated equalizer bars -->
-                        <View android:layout_width="3dp" android:layout_height="12dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="22dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="16dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="28dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="18dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="24dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="10dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="20dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
-                        <View android:layout_width="3dp" android:layout_height="14dp" android:layout_marginHorizontal="2dp" android:background="#10B981" />
+                        <View android:layout_width="3dp" android:layout_height="12dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_primary" />
+                        <View android:layout_width="3dp" android:layout_height="22dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_primary" />
+                        <View android:layout_width="3dp" android:layout_height="16dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_primary" />
+                        <View android:layout_width="3dp" android:layout_height="28dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_accent" />
+                        <View android:layout_width="3dp" android:layout_height="18dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_accent" />
+                        <View android:layout_width="3dp" android:layout_height="24dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_primary" />
+                        <View android:layout_width="3dp" android:layout_height="10dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_primary" />
+                        <View android:layout_width="3dp" android:layout_height="20dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_primary" />
+                        <View android:layout_width="3dp" android:layout_height="14dp" android:layout_marginHorizontal="2dp" android:background="@color/brand_primary" />
                     </LinearLayout>
 
-                    <!-- BOTTOM VOICE CONTROLS: DELETE, PAUSE/RECORD, APPLY -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -394,7 +377,7 @@
                             android:background="@drawable/bg_pill_light"
                             android:gravity="center"
                             android:text="🗑 Xóa"
-                            android:textColor="#777777"
+                            android:textColor="@color/text_secondary"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -403,7 +386,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:layout_marginHorizontal="16dp"
-                            android:background="@drawable/bg_circle_teal"
+                            android:background="@drawable/bg_circle_brown"
                             android:src="@android:drawable/ic_media_pause"
                             app:tint="#FFFFFF" />
 
@@ -415,14 +398,13 @@
                             android:background="@drawable/bg_pill_light"
                             android:gravity="center"
                             android:text="✓ Áp dụng"
-                            android:textColor="#10B981"
+                            android:textColor="@color/brand_accent"
                             android:textSize="13sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Hidden location field to maintain backend compatibility -->
             <EditText
                 android:id="@+id/edtLocation"
                 android:layout_width="match_parent"
@@ -432,13 +414,13 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- BOTTOM ACTIONS LAYOUT: CANCEL & SAVE -->
+    <!-- BOTTOM ACTIONS LAYOUT -->
     <LinearLayout
         android:id="@+id/bottomActionsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        android:elevation="8dp"
+        android:background="@color/card_bg"
+        android:elevation="12dp"
         android:orientation="horizontal"
         android:paddingHorizontal="20dp"
         android:paddingVertical="16dp"
@@ -452,7 +434,7 @@
             android:background="@drawable/bg_pill_light"
             android:gravity="center"
             android:text="Hủy"
-            android:textColor="#555555"
+            android:textColor="@color/text_primary"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -460,9 +442,9 @@
             android:id="@+id/btnSave"
             android:layout_width="0dp"
             android:layout_height="52dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="14dp"
             android:layout_weight="1.8"
-            android:backgroundTint="#362C2A"
+            android:backgroundTint="@color/brand_primary"
             android:text="✔ Lưu công việc"
             android:textColor="#FFFFFF"
             android:textSize="15sp"

@@ -17,6 +17,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.myapplication.R;
 import com.example.myapplication.model.Task;
@@ -50,6 +51,10 @@ public class PhaseDetailActivity extends AppCompatActivity {
     private String phaseName = "📂 Giai đoạn 1: Lập kế hoạch & Khảo sát";
     private final List<Task> taskList = new ArrayList<>();
     private final Map<Integer, List<String>> taskSubTasksMap = new HashMap<>();
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,7 +103,6 @@ public class PhaseDetailActivity extends AppCompatActivity {
             tvPhaseTaskCount.setText("● " + taskList.size() + " Công việc");
         }
 
-        // Tự động khởi tạo danh sách đầu việc phân tách riêng biệt cho từng task ngay ban đầu
         for (int i = 0; i < taskList.size(); i++) {
             taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
         }
@@ -114,6 +118,10 @@ public class PhaseDetailActivity extends AppCompatActivity {
         if (layoutTasksContainer == null) return;
         layoutTasksContainer.removeAllViews();
 
+        int cardBgColor = ContextCompat.getColor(this, R.color.card_bg);
+        int textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary);
+        int textSecondaryColor = ContextCompat.getColor(this, R.color.text_secondary);
+
         for (int i = 0; i < taskList.size(); i++) {
             Task task = taskList.get(i);
 
@@ -122,19 +130,20 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            cardParams.setMargins(0, 0, 0, 32);
+            cardParams.setMargins(0, 0, 0, dpToPx(16));
             cardView.setLayoutParams(cardParams);
-            cardView.setCardBackgroundColor(0xFFFFFFFF);
-            cardView.setRadius(40);
+            cardView.setCardBackgroundColor(cardBgColor);
+            cardView.setRadius(dpToPx(20));
             cardView.setCardElevation(0);
 
             LinearLayout cardContent = new LinearLayout(this);
             cardContent.setOrientation(LinearLayout.VERTICAL);
-            cardContent.setPadding(40, 40, 40, 40);
+            int pad = dpToPx(18);
+            cardContent.setPadding(pad, pad, pad, pad);
 
             TextView tvTitle = new TextView(this);
             tvTitle.setText("📌 " + (task.getTitle() != null ? task.getTitle() : "Công việc"));
-            tvTitle.setTextColor(0xFF222222);
+            tvTitle.setTextColor(textPrimaryColor);
             tvTitle.setTextSize(16);
             tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
             cardContent.addView(tvTitle);
@@ -142,34 +151,34 @@ public class PhaseDetailActivity extends AppCompatActivity {
             if (task.getTime() != null && !task.getTime().isEmpty()) {
                 TextView tvTime = new TextView(this);
                 tvTime.setText(task.getTime());
-                tvTime.setTextColor(0xFF10B981);
+                tvTime.setTextColor(0xFF2563EB);
                 tvTime.setTextSize(12);
-                tvTime.setPadding(0, 8, 0, 0);
+                tvTime.setPadding(0, dpToPx(4), 0, 0);
                 cardContent.addView(tvTime);
             }
 
             if (task.getDescription() != null && !task.getDescription().isEmpty()) {
                 TextView tvDesc = new TextView(this);
                 tvDesc.setText(task.getDescription());
-                tvDesc.setTextColor(0xFF666666);
+                tvDesc.setTextColor(textSecondaryColor);
                 tvDesc.setTextSize(13);
-                tvDesc.setPadding(0, 12, 0, 0);
+                tvDesc.setPadding(0, dpToPx(6), 0, 0);
                 cardContent.addView(tvDesc);
             }
 
             LinearLayout layoutChecklist = new LinearLayout(this);
             layoutChecklist.setOrientation(LinearLayout.VERTICAL);
             layoutChecklist.setTag("checklist_" + i);
-            layoutChecklist.setPadding(0, 16, 0, 0);
+            layoutChecklist.setPadding(0, dpToPx(8), 0, 0);
 
             List<String> subTasks = taskSubTasksMap.get(i);
             if (subTasks != null && !subTasks.isEmpty()) {
                 TextView tvHeaderChecklist = new TextView(this);
                 tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Tích chọn để thêm vào task):");
-                tvHeaderChecklist.setTextColor(0xFF362C2A);
+                tvHeaderChecklist.setTextColor(textPrimaryColor);
                 tvHeaderChecklist.setTextSize(12);
                 tvHeaderChecklist.setTypeface(null, android.graphics.Typeface.BOLD);
-                tvHeaderChecklist.setPadding(0, 8, 0, 12);
+                tvHeaderChecklist.setPadding(0, dpToPx(4), 0, dpToPx(6));
                 layoutChecklist.addView(tvHeaderChecklist);
 
                 List<CheckBox> checkBoxesList = new ArrayList<>();
@@ -177,9 +186,9 @@ public class PhaseDetailActivity extends AppCompatActivity {
                     CheckBox checkBox = new CheckBox(this);
                     checkBox.setText(st);
                     checkBox.setChecked(true);
-                    checkBox.setTextColor(0xFF333333);
+                    checkBox.setTextColor(textPrimaryColor);
                     checkBox.setTextSize(13);
-                    checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
+                    checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
                     checkBoxesList.add(checkBox);
                     layoutChecklist.addView(checkBox);
                 }
@@ -188,12 +197,12 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 btnAddSelected.setText("➕ Thêm các đầu việc đã chọn vào Nhiệm vụ phụ");
                 btnAddSelected.setTextColor(0xFFFFFFFF);
                 btnAddSelected.setTextSize(12);
-                btnAddSelected.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#004D40")));
+                btnAddSelected.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
                 LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
                 );
-                btnLp.setMargins(0, 20, 0, 0);
+                btnLp.setMargins(0, dpToPx(10), 0, 0);
                 btnAddSelected.setLayoutParams(btnLp);
 
                 btnAddSelected.setOnClickListener(v -> {
@@ -217,9 +226,9 @@ public class PhaseDetailActivity extends AppCompatActivity {
             } else {
                 TextView tvHint = new TextView(this);
                 tvHint.setText("💡 Bấm nút 'AI Phân Tách' ở trên để Gemini AI đào sâu phân tách danh sách đầu việc chi tiết cho công việc này.");
-                tvHint.setTextColor(0xFF9E9E9E);
+                tvHint.setTextColor(textSecondaryColor);
                 tvHint.setTextSize(11);
-                tvHint.setPadding(0, 8, 0, 0);
+                tvHint.setPadding(0, dpToPx(4), 0, 0);
                 layoutChecklist.addView(tvHint);
             }
 
@@ -276,12 +285,12 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 10);
+        layout.setPadding(dpToPx(20), dpToPx(12), dpToPx(20), dpToPx(4));
 
         TextView tvGuide = new TextView(this);
         tvGuide.setText("Dán API Key Gemini của bạn (AIzaSy...) để kích hoạt AI cao cấp nhất từ Google.\n(Lấy Key miễn phí 100% tại aistudio.google.com)");
         tvGuide.setTextSize(13);
-        tvGuide.setTextColor(0xFF555555);
+        tvGuide.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
         layout.addView(tvGuide);
 
         final EditText edtKey = new EditText(this);
@@ -290,6 +299,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
             edtKey.setText(activeKey);
         }
         edtKey.setTextSize(13);
+        edtKey.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
         layout.addView(edtKey);
 
         builder.setView(layout);
@@ -374,6 +384,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 requestBody.put("generationConfig", genConfig);
 
                 String[] targetUrls = new String[]{
+                        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey,
                         "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey,
                         "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + apiKey,
                         "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + apiKey

@@ -6,26 +6,24 @@
     android:layout_marginBottom="12dp"
     android:orientation="horizontal">
 
-    <!-- Thời gian bên trái (VD: 07:00 \n 09:30) -->
     <TextView
         android:id="@+id/tvTimelineTime"
         android:layout_width="56dp"
         android:layout_height="wrap_content"
         android:text="08:30\n09:30"
-        android:textColor="#888888"
+        android:textColor="@color/brand_primary"
         android:textSize="12sp"
         android:textStyle="bold" />
 
-    <!-- Thẻ nội dung công việc / lịch học -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_weight="1"
-        app:cardBackgroundColor="#FFFFFF"
+        app:cardBackgroundColor="@color/card_bg"
         app:cardCornerRadius="20dp"
         app:cardElevation="0dp"
-        app:strokeColor="#EEF0F4"
+        app:strokeColor="@color/card_stroke"
         app:strokeWidth="1dp">
 
         <LinearLayout
@@ -61,8 +59,9 @@
                     android:gravity="center"
                     android:paddingHorizontal="10dp"
                     android:text="🏷 Học tập"
-                    android:textColor="#555555"
-                    android:textSize="10sp" />
+                    android:textColor="@color/brand_primary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
 
                 <View
                     android:layout_width="0dp"
@@ -74,7 +73,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="60 phút"
-                    android:textColor="#888888"
+                    android:textColor="@color/text_secondary"
                     android:textSize="11sp" />
             </LinearLayout>
 
@@ -84,7 +83,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="Thực hành Lập trình di động"
-                android:textColor="#222222"
+                android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -94,7 +93,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="Phòng máy tính 13/H • GV: Trần Thị Huệ"
-                android:textColor="#777777"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 
             <LinearLayout
@@ -110,7 +109,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="📍 Hoàn thành công việc"
-                    android:textColor="#10B981"
+                    android:textColor="@color/brand_accent"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -118,7 +117,7 @@
                     android:id="@+id/cbTimelineStatus"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:buttonTint="#10B981" />
+                    android:buttonTint="@color/brand_primary" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

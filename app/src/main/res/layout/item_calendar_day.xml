@@ -1,43 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/layoutDay"
-    android:layout_width="50dp"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:layout_marginEnd="10dp"
     android:gravity="center"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp"
-    android:layout_marginEnd="8dp">
+    android:orientation="vertical"
+    android:paddingVertical="4dp">
 
-    <!-- Hiển thị Thứ (T2, T3...) -->
-    <TextView
-        android:id="@+id/tvDayOfWeek"
+    <!-- Capsule chứa Thứ & Ngày (Chuẩn Figma MeetEase Scheduler) -->
+    <LinearLayout
+        android:id="@+id/layoutDay"
+        android:layout_width="48dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_day_capsule_unselected"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvDayOfWeek"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thu"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvDateNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="07"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Bộ 3 chấm màu báo hiệu sự kiện bên dưới Capsule -->
+    <LinearLayout
+        android:id="@+id/viewEventDot"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="T2"
-        android:textColor="#888888"
-        android:textSize="12sp" />
-
-    <!-- Hiển thị Ngày (01, 02...) -->
-    <TextView
-        android:id="@+id/tvDateNumber"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:gravity="center"
-        android:text="02"
-        android:textColor="#222222"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:background="@drawable/bg_circle_brown" />
+        android:orientation="horizontal"
+        android:visibility="invisible">
 
-    <!-- Chấm đỏ báo hiệu có lịch -->
-    <View
-        android:id="@+id/viewEventDot"
-        android:layout_width="6dp"
-        android:layout_height="6dp"
-        android:layout_marginTop="4dp"
-        android:background="@drawable/bg_circle_teal"
-        android:backgroundTint="#E53935"
-        android:visibility="invisible" />
+        <View
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:background="@drawable/bg_circle_teal"
+            android:backgroundTint="#2563EB" />
+
+        <View
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:layout_marginHorizontal="3dp"
+            android:background="@drawable/bg_circle_teal"
+            android:backgroundTint="#38BDF8" />
+
+        <View
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:background="@drawable/bg_circle_teal"
+            android:backgroundTint="#F59E0B" />
+    </LinearLayout>
+
 </LinearLayout>
