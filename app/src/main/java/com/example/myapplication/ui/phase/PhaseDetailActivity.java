@@ -50,6 +50,7 @@ public class PhaseDetailActivity extends AppCompatActivity {
     private LinearLayout layoutTasksContainer;
 
     private String phaseName = "📂 Giai đoạn 1: Lập kế hoạch & Khảo sát";
+    private boolean showAiFeatures = false;
     private final List<Task> taskList = new ArrayList<>();
     private final Map<Integer, List<String>> taskSubTasksMap = new HashMap<>();
 
@@ -98,23 +99,21 @@ public class PhaseDetailActivity extends AppCompatActivity {
             }
         }
 
+        boolean isDefaultOrDaily = phaseName.contains("Các công việc chung") ||
+                                   phaseName.contains("hàng ngày") ||
+                                   phaseName.contains("Hàng ngày") ||
+                                   phaseName.contains("hôm nay") ||
+                                   phaseName.contains("Hôm nay") ||
+                                   phaseName.contains("Công việc") ||
+                                   phaseName.contains("Học tập") ||
+                                   phaseName.contains("Cá nhân") ||
+                                   phaseName.contains("Sức khỏe");
+
+        showAiFeatures = isAiProject && !isDefaultOrDaily;
+
         View layoutAiDecomposeBanner = findViewById(R.id.layoutAiDecomposeBanner);
         if (layoutAiDecomposeBanner != null) {
-            boolean isDefaultOrDaily = phaseName.contains("Các công việc chung") ||
-                                       phaseName.contains("hàng ngày") ||
-                                       phaseName.contains("Hàng ngày") ||
-                                       phaseName.contains("hôm nay") ||
-                                       phaseName.contains("Hôm nay") ||
-                                       phaseName.contains("Công việc") ||
-                                       phaseName.contains("Học tập") ||
-                                       phaseName.contains("Cá nhân") ||
-                                       phaseName.contains("Sức khỏe");
-
-            if (isAiProject && !isDefaultOrDaily) {
-                layoutAiDecomposeBanner.setVisibility(View.VISIBLE);
-            } else {
-                layoutAiDecomposeBanner.setVisibility(View.GONE);
-            }
+            layoutAiDecomposeBanner.setVisibility(showAiFeatures ? View.VISIBLE : View.GONE);
         }
 
         if (tvPhaseDetailTitle != null) {
@@ -125,8 +124,12 @@ public class PhaseDetailActivity extends AppCompatActivity {
             tvPhaseTaskCount.setText("● " + taskList.size() + " Công việc");
         }
 
-        for (int i = 0; i < taskList.size(); i++) {
-            taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
+        if (showAiFeatures) {
+            for (int i = 0; i < taskList.size(); i++) {
+                taskSubTasksMap.put(i, generateContextualSubTasks(taskList.get(i)));
+            }
+        } else {
+            taskSubTasksMap.clear();
         }
 
         renderTaskCards();
@@ -188,73 +191,75 @@ public class PhaseDetailActivity extends AppCompatActivity {
                 cardContent.addView(tvDesc);
             }
 
-            LinearLayout layoutChecklist = new LinearLayout(this);
-            layoutChecklist.setOrientation(LinearLayout.VERTICAL);
-            layoutChecklist.setTag("checklist_" + i);
-            layoutChecklist.setPadding(0, dpToPx(8), 0, 0);
+            if (showAiFeatures) {
+                LinearLayout layoutChecklist = new LinearLayout(this);
+                layoutChecklist.setOrientation(LinearLayout.VERTICAL);
+                layoutChecklist.setTag("checklist_" + i);
+                layoutChecklist.setPadding(0, dpToPx(8), 0, 0);
 
-            List<String> subTasks = taskSubTasksMap.get(i);
-            if (subTasks != null && !subTasks.isEmpty()) {
-                TextView tvHeaderChecklist = new TextView(this);
-                tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Tích chọn để thêm vào task):");
-                tvHeaderChecklist.setTextColor(textPrimaryColor);
-                tvHeaderChecklist.setTextSize(12);
-                tvHeaderChecklist.setTypeface(null, android.graphics.Typeface.BOLD);
-                tvHeaderChecklist.setPadding(0, dpToPx(4), 0, dpToPx(6));
-                layoutChecklist.addView(tvHeaderChecklist);
+                List<String> subTasks = taskSubTasksMap.get(i);
+                if (subTasks != null && !subTasks.isEmpty()) {
+                    TextView tvHeaderChecklist = new TextView(this);
+                    tvHeaderChecklist.setText("📋 Các đầu việc cần làm (Tích chọn để thêm vào task):");
+                    tvHeaderChecklist.setTextColor(textPrimaryColor);
+                    tvHeaderChecklist.setTextSize(12);
+                    tvHeaderChecklist.setTypeface(null, android.graphics.Typeface.BOLD);
+                    tvHeaderChecklist.setPadding(0, dpToPx(4), 0, dpToPx(6));
+                    layoutChecklist.addView(tvHeaderChecklist);
 
-                List<CheckBox> checkBoxesList = new ArrayList<>();
-                for (String st : subTasks) {
-                    CheckBox checkBox = new CheckBox(this);
-                    checkBox.setText(st);
-                    checkBox.setChecked(true);
-                    checkBox.setTextColor(textPrimaryColor);
-                    checkBox.setTextSize(13);
-                    checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
-                    checkBoxesList.add(checkBox);
-                    layoutChecklist.addView(checkBox);
+                    List<CheckBox> checkBoxesList = new ArrayList<>();
+                    for (String st : subTasks) {
+                        CheckBox checkBox = new CheckBox(this);
+                        checkBox.setText(st);
+                        checkBox.setChecked(true);
+                        checkBox.setTextColor(textPrimaryColor);
+                        checkBox.setTextSize(13);
+                        checkBox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
+                        checkBoxesList.add(checkBox);
+                        layoutChecklist.addView(checkBox);
+                    }
+
+                    Button btnAddSelected = new Button(this);
+                    btnAddSelected.setText("➕ Thêm các đầu việc đã chọn vào Nhiệm vụ phụ");
+                    btnAddSelected.setTextColor(0xFFFFFFFF);
+                    btnAddSelected.setTextSize(12);
+                    btnAddSelected.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
+                    LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                    );
+                    btnLp.setMargins(0, dpToPx(10), 0, 0);
+                    btnAddSelected.setLayoutParams(btnLp);
+
+                    btnAddSelected.setOnClickListener(v -> {
+                        List<String> selectedSubtasks = new ArrayList<>();
+                        for (CheckBox cb : checkBoxesList) {
+                            if (cb.isChecked()) {
+                                selectedSubtasks.add(cb.getText().toString());
+                            }
+                        }
+
+                        if (selectedSubtasks.isEmpty()) {
+                            Toast.makeText(this, "Vui lòng tích chọn ít nhất 1 đầu việc!", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        saveSelectedSubTasksToTask(task.getTitle(), selectedSubtasks);
+                        Toast.makeText(this, "✔ Đã thêm " + selectedSubtasks.size() + " đầu việc vào Nhiệm vụ phụ của task!", Toast.LENGTH_SHORT).show();
+                    });
+
+                    layoutChecklist.addView(btnAddSelected);
+                } else {
+                    TextView tvHint = new TextView(this);
+                    tvHint.setText("💡 Bấm nút 'AI Phân Tách' ở trên để Gemini AI đào sâu phân tách danh sách đầu việc chi tiết cho công việc này.");
+                    tvHint.setTextColor(textSecondaryColor);
+                    tvHint.setTextSize(11);
+                    tvHint.setPadding(0, dpToPx(4), 0, 0);
+                    layoutChecklist.addView(tvHint);
                 }
 
-                Button btnAddSelected = new Button(this);
-                btnAddSelected.setText("➕ Thêm các đầu việc đã chọn vào Nhiệm vụ phụ");
-                btnAddSelected.setTextColor(0xFFFFFFFF);
-                btnAddSelected.setTextSize(12);
-                btnAddSelected.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
-                LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
-                btnLp.setMargins(0, dpToPx(10), 0, 0);
-                btnAddSelected.setLayoutParams(btnLp);
-
-                btnAddSelected.setOnClickListener(v -> {
-                    List<String> selectedSubtasks = new ArrayList<>();
-                    for (CheckBox cb : checkBoxesList) {
-                        if (cb.isChecked()) {
-                            selectedSubtasks.add(cb.getText().toString());
-                        }
-                    }
-
-                    if (selectedSubtasks.isEmpty()) {
-                        Toast.makeText(this, "Vui lòng tích chọn ít nhất 1 đầu việc!", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    saveSelectedSubTasksToTask(task.getTitle(), selectedSubtasks);
-                    Toast.makeText(this, "✔ Đã thêm " + selectedSubtasks.size() + " đầu việc vào Nhiệm vụ phụ của task!", Toast.LENGTH_SHORT).show();
-                });
-
-                layoutChecklist.addView(btnAddSelected);
-            } else {
-                TextView tvHint = new TextView(this);
-                tvHint.setText("💡 Bấm nút 'AI Phân Tách' ở trên để Gemini AI đào sâu phân tách danh sách đầu việc chi tiết cho công việc này.");
-                tvHint.setTextColor(textSecondaryColor);
-                tvHint.setTextSize(11);
-                tvHint.setPadding(0, dpToPx(4), 0, 0);
-                layoutChecklist.addView(tvHint);
+                cardContent.addView(layoutChecklist);
             }
-
-            cardContent.addView(layoutChecklist);
             cardView.addView(cardContent);
             layoutTasksContainer.addView(cardView);
         }
