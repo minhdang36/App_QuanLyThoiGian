@@ -23,6 +23,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -339,47 +340,146 @@ public class PomodoroActivity extends AppCompatActivity {
 
     private void showTaskDetailAndSwitchDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("📋 Chi Tiết Công Việc Đang Tập Trung");
 
-        String msg = "📌 Tên đầy đủ công việc:\n" + activeTaskTitle + "\n\n⏱ Mục tiêu thời gian task này: " + String.format(Locale.getDefault(), "%.1f", goalHours) + " giờ";
-        builder.setMessage(msg);
+        LinearLayout dialogCard = new LinearLayout(this);
+        dialogCard.setOrientation(LinearLayout.VERTICAL);
+        dialogCard.setBackgroundResource(R.drawable.bg_rounded_24dp);
+        dialogCard.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.card_bg)));
+        dialogCard.setPadding(dpToPx(24), dpToPx(24), dpToPx(24), dpToPx(24));
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("📋 Chi Tiết Công Việc Đang Tập Trung");
+        tvTitle.setTextSize(18);
+        tvTitle.setTypeface(null, Typeface.BOLD);
+        tvTitle.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        dialogCard.addView(tvTitle);
+
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setPadding(0, dpToPx(12), 0, dpToPx(12));
+        scrollView.setVerticalScrollBarEnabled(false);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        scrollView.addView(layout);
+
+        LinearLayout cardTitleBox = new LinearLayout(this);
+        cardTitleBox.setOrientation(LinearLayout.VERTICAL);
+        cardTitleBox.setBackgroundResource(R.drawable.bg_search_bar);
+        cardTitleBox.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        LinearLayout.LayoutParams lp1 = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp1.setMargins(0, 0, 0, dpToPx(10));
+        cardTitleBox.setLayoutParams(lp1);
+
+        TextView tvSub1 = new TextView(this);
+        tvSub1.setText("📌 TÊN ĐẦY ĐỦ CÔNG VIỆC");
+        tvSub1.setTextSize(11);
+        tvSub1.setTypeface(null, Typeface.BOLD);
+        tvSub1.setTextColor(ContextCompat.getColor(this, R.color.brand_primary));
+
+        TextView tvVal1 = new TextView(this);
+        tvVal1.setText(activeTaskTitle != null && !activeTaskTitle.isEmpty() ? activeTaskTitle : "Chưa chọn công việc");
+        tvVal1.setTextSize(14);
+        tvVal1.setTypeface(null, Typeface.BOLD);
+        tvVal1.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        tvVal1.setPadding(0, dpToPx(4), 0, 0);
+
+        cardTitleBox.addView(tvSub1);
+        cardTitleBox.addView(tvVal1);
+        layout.addView(cardTitleBox);
+
+        LinearLayout cardGoalBox = new LinearLayout(this);
+        cardGoalBox.setOrientation(LinearLayout.VERTICAL);
+        cardGoalBox.setBackgroundResource(R.drawable.bg_search_bar);
+        cardGoalBox.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp2.setMargins(0, 0, 0, dpToPx(12));
+        cardGoalBox.setLayoutParams(lp2);
+
+        TextView tvSub2 = new TextView(this);
+        tvSub2.setText("⏱ MỤC TIÊU THỜI GIAN TASK NÀY");
+        tvSub2.setTextSize(11);
+        tvSub2.setTypeface(null, Typeface.BOLD);
+        tvSub2.setTextColor(ContextCompat.getColor(this, R.color.brand_primary));
+
+        TextView tvVal2 = new TextView(this);
+        tvVal2.setText(String.format(Locale.getDefault(), "%.1f giờ tập trung", goalHours));
+        tvVal2.setTextSize(14);
+        tvVal2.setTypeface(null, Typeface.BOLD);
+        tvVal2.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        tvVal2.setPadding(0, dpToPx(4), 0, 0);
+
+        cardGoalBox.addView(tvSub2);
+        cardGoalBox.addView(tvVal2);
+        layout.addView(cardGoalBox);
+
+        builder.setView(dialogCard);
+        AlertDialog dialog = builder.create();
 
         if (!userTaskList.isEmpty()) {
-            String[] taskTitles = new String[userTaskList.size()];
-            for (int i = 0; i < userTaskList.size(); i++) {
-                taskTitles[i] = userTaskList.get(i).getTitle() != null ? userTaskList.get(i).getTitle() : "Task " + (i + 1);
-            }
+            TextView tvSwitchHeader = new TextView(this);
+            tvSwitchHeader.setText("🔄 ĐỔI SANG CÔNG VIỆC KHÁC TRONG NGÀY:");
+            tvSwitchHeader.setTextSize(11);
+            tvSwitchHeader.setTypeface(null, Typeface.BOLD);
+            tvSwitchHeader.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+            tvSwitchHeader.setPadding(0, dpToPx(4), 0, dpToPx(8));
+            layout.addView(tvSwitchHeader);
 
-            builder.setSingleChoiceItems(taskTitles, -1, (dialog, which) -> {
-                Task selected = userTaskList.get(which);
-                if (selected != null && selected.getTitle() != null) {
-                    activeTaskId = selected.getId();
-                    activeTaskTitle = selected.getTitle();
+            for (Task t : userTaskList) {
+                if (t != null && t.getTitle() != null) {
+                    TextView item = new TextView(this);
+                    item.setText("• " + t.getTitle());
+                    item.setTextSize(13);
+                    item.setTypeface(null, Typeface.BOLD);
+                    item.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+                    item.setBackgroundResource(R.drawable.bg_search_bar);
+                    item.setPadding(dpToPx(14), dpToPx(10), dpToPx(14), dpToPx(10));
+                    LinearLayout.LayoutParams lpItem = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    lpItem.setMargins(0, 0, 0, dpToPx(6));
+                    item.setLayoutParams(lpItem);
 
-                    SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
-                    float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
-                    if (savedGoal > 0) {
-                        goalHours = savedGoal;
-                    } else {
-                        goalHours = parseHoursFromTimeStr(selected.getTime());
-                    }
+                    item.setOnClickListener(v -> {
+                        activeTaskId = t.getId();
+                        activeTaskTitle = t.getTitle();
 
-                    if (tvActiveTaskTitle != null) {
-                        tvActiveTaskTitle.setText(activeTaskTitle);
-                    }
-                    if (cardActiveTask != null) {
-                        cardActiveTask.setVisibility(View.VISIBLE);
-                    }
+                        SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                        float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
+                        if (savedGoal > 0) {
+                            goalHours = savedGoal;
+                        } else {
+                            goalHours = parseHoursFromTimeStr(t.getTime());
+                        }
 
-                    loadAccFocusMinutesForCurrentTask();
-                    Toast.makeText(PomodoroActivity.this, "Đã chuyển sang: " + activeTaskTitle, Toast.LENGTH_SHORT).show();
+                        if (tvActiveTaskTitle != null) tvActiveTaskTitle.setText(activeTaskTitle);
+                        if (cardActiveTask != null) cardActiveTask.setVisibility(View.VISIBLE);
+
+                        loadAccFocusMinutesForCurrentTask();
+                        Toast.makeText(PomodoroActivity.this, "Đã chuyển sang: " + activeTaskTitle, Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    });
+
+                    layout.addView(item);
                 }
-                dialog.dismiss();
-            });
+            }
         }
 
-        builder.setPositiveButton("Đóng", null);
-        builder.show();
+        dialogCard.addView(scrollView);
+
+        TextView btnClose = new TextView(this);
+        btnClose.setText("ĐÓNG");
+        btnClose.setTextSize(13);
+        btnClose.setTypeface(null, Typeface.BOLD);
+        btnClose.setGravity(Gravity.CENTER);
+        btnClose.setTextColor(Color.WHITE);
+        btnClose.setBackgroundResource(R.drawable.bg_pill_brown);
+        LinearLayout.LayoutParams lpClose = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(48));
+        btnClose.setLayoutParams(lpClose);
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        dialogCard.addView(btnClose);
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        dialog.show();
     }
 
     private double parseHoursFromTimeStr(String timeStr) {

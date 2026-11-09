@@ -100,8 +100,17 @@ public class PhaseDetailActivity extends AppCompatActivity {
 
         View layoutAiDecomposeBanner = findViewById(R.id.layoutAiDecomposeBanner);
         if (layoutAiDecomposeBanner != null) {
-            boolean isDailyOrGeneralTask = phaseName.contains("Các công việc chung") || phaseName.contains("hàng ngày") || phaseName.contains("Hàng ngày");
-            if (isAiProject && !isDailyOrGeneralTask) {
+            boolean isDefaultOrDaily = phaseName.contains("Các công việc chung") ||
+                                       phaseName.contains("hàng ngày") ||
+                                       phaseName.contains("Hàng ngày") ||
+                                       phaseName.contains("hôm nay") ||
+                                       phaseName.contains("Hôm nay") ||
+                                       phaseName.contains("Công việc") ||
+                                       phaseName.contains("Học tập") ||
+                                       phaseName.contains("Cá nhân") ||
+                                       phaseName.contains("Sức khỏe");
+
+            if (isAiProject && !isDefaultOrDaily) {
                 layoutAiDecomposeBanner.setVisibility(View.VISIBLE);
             } else {
                 layoutAiDecomposeBanner.setVisibility(View.GONE);

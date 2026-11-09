@@ -83,10 +83,14 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
         });
 
         holder.layoutPhaseHeader.setOnClickListener(v -> {
+            boolean isDefaultPhase = phase.getPhaseName().contains("Công việc hôm nay") ||
+                                     phase.getPhaseName().contains("Các công việc chung") ||
+                                     phase.getPhaseName().contains("Hôm nay") ||
+                                     phase.getPhaseName().contains("hàng ngày");
             Intent intent = new Intent(v.getContext(), PhaseDetailActivity.class);
             intent.putExtra("PHASE_NAME", phase.getPhaseName());
             intent.putExtra("SUB_TASKS_JSON", GSON.toJson(phase.getSubTaskList()));
-            intent.putExtra("IS_AI_PROJECT", true);
+            intent.putExtra("IS_AI_PROJECT", !isDefaultPhase);
             v.getContext().startActivity(intent);
         });
     }

@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -177,31 +178,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
         if (holder.btnEditTask != null) {
             holder.btnEditTask.setOnClickListener(v -> {
-                android.widget.PopupMenu popup = new android.widget.PopupMenu(v.getContext(), v);
-                popup.getMenu().add(0, 1, 0, "✏️ Chỉnh sửa công việc");
-                popup.getMenu().add(0, 2, 1, "🗑️ Xóa công việc");
-                popup.setOnMenuItemClickListener(item -> {
-                    if (item.getItemId() == 1) {
-                        Intent intent = new Intent(v.getContext(), AddTaskActivity.class);
-                        intent.putExtra("TASK_ID", currentTask.getId());
-                        intent.putExtra("PROJECT_ID", currentTask.getProjectId());
-                        intent.putExtra("TASK_STATUS", currentTask.getStatus());
-                        intent.putExtra("TASK_TITLE", currentTask.getTitle());
-                        intent.putExtra("TASK_DESC", currentTask.getDescription());
-                        intent.putExtra("TASK_LOC", currentTask.getLocation());
-                        intent.putExtra("TASK_TIME", currentTask.getTime());
-                        v.getContext().startActivity(intent);
-                        return true;
-                    } else if (item.getItemId() == 2) {
-                        int currentPos = holder.getBindingAdapterPosition();
-                        if (currentPos != RecyclerView.NO_POSITION) {
-                            deleteTaskOnServer(holder.itemView.getContext(), currentTask, currentPos);
-                        }
-                        return true;
-                    }
-                    return false;
-                });
-                popup.show();
+                int currentPos = holder.getBindingAdapterPosition();
+                showTaskOptionsDialog(v.getContext(), currentTask, currentPos);
             });
         }
 
@@ -310,6 +288,124 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
                 Toast.makeText(context, "Lỗi kết nối xóa công việc!", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void showTaskOptionsDialog(android.content.Context context, Task currentTask, int currentPos) {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(context);
+
+        LinearLayout dialogCard = new LinearLayout(context);
+        dialogCard.setOrientation(LinearLayout.VERTICAL);
+        dialogCard.setBackgroundResource(R.drawable.bg_rounded_24dp);
+        dialogCard.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.card_bg)));
+        float density = context.getResources().getDisplayMetrics().density;
+        int padding = Math.round(24 * density);
+        int margin8 = Math.round(8 * density);
+        int margin12 = Math.round(12 * density);
+        int dp48 = Math.round(48 * density);
+        int dp50 = Math.round(50 * density);
+        int dp16 = Math.round(16 * density);
+
+        dialogCard.setPadding(padding, padding, padding, padding);
+
+        TextView tvTitle = new TextView(context);
+        tvTitle.setText("⚙️ Tùy chọn công việc");
+        tvTitle.setTextSize(18);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvTitle.setTextColor(ContextCompat.getColor(context, R.color.text_primary));
+        dialogCard.addView(tvTitle);
+
+        TextView tvSub = new TextView(context);
+        tvSub.setText(currentTask.getTitle() != null ? currentTask.getTitle() : "Công việc");
+        tvSub.setTextSize(13);
+        tvSub.setSingleLine(true);
+        tvSub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        tvSub.setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
+        tvSub.setPadding(0, Math.round(4 * density), 0, margin12);
+        dialogCard.addView(tvSub);
+
+        builder.setView(dialogCard);
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+
+        LinearLayout btnEdit = new LinearLayout(context);
+        btnEdit.setOrientation(LinearLayout.HORIZONTAL);
+        btnEdit.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        btnEdit.setBackgroundResource(R.drawable.bg_search_bar);
+        btnEdit.setPadding(dp16, 0, dp16, 0);
+        LinearLayout.LayoutParams lpEdit = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp50);
+        lpEdit.setMargins(0, 0, 0, margin8);
+        btnEdit.setLayoutParams(lpEdit);
+
+        TextView tvEditIcon = new TextView(context);
+        tvEditIcon.setText("✏️ ");
+        tvEditIcon.setTextSize(16);
+
+        TextView tvEditText = new TextView(context);
+        tvEditText.setText("Chỉnh sửa công việc");
+        tvEditText.setTextSize(14);
+        tvEditText.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvEditText.setTextColor(ContextCompat.getColor(context, R.color.text_primary));
+
+        btnEdit.addView(tvEditIcon);
+        btnEdit.addView(tvEditText);
+        btnEdit.setOnClickListener(v -> {
+            dialog.dismiss();
+            Intent intent = new Intent(context, AddTaskActivity.class);
+            intent.putExtra("TASK_ID", currentTask.getId());
+            intent.putExtra("PROJECT_ID", currentTask.getProjectId());
+            intent.putExtra("TASK_STATUS", currentTask.getStatus());
+            intent.putExtra("TASK_TITLE", currentTask.getTitle());
+            intent.putExtra("TASK_DESC", currentTask.getDescription());
+            intent.putExtra("TASK_LOC", currentTask.getLocation());
+            intent.putExtra("TASK_TIME", currentTask.getTime());
+            context.startActivity(intent);
+        });
+        dialogCard.addView(btnEdit);
+
+        LinearLayout btnDelete = new LinearLayout(context);
+        btnDelete.setOrientation(LinearLayout.HORIZONTAL);
+        btnDelete.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        btnDelete.setBackgroundResource(R.drawable.bg_search_bar);
+        btnDelete.setPadding(dp16, 0, dp16, 0);
+        LinearLayout.LayoutParams lpDelete = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp50);
+        lpDelete.setMargins(0, 0, 0, margin12);
+        btnDelete.setLayoutParams(lpDelete);
+
+        TextView tvDelIcon = new TextView(context);
+        tvDelIcon.setText("🗑️ ");
+        tvDelIcon.setTextSize(16);
+
+        TextView tvDelText = new TextView(context);
+        tvDelText.setText("Xóa công việc");
+        tvDelText.setTextSize(14);
+        tvDelText.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvDelText.setTextColor(ContextCompat.getColor(context, R.color.brand_danger));
+
+        btnDelete.addView(tvDelIcon);
+        btnDelete.addView(tvDelText);
+        btnDelete.setOnClickListener(v -> {
+            dialog.dismiss();
+            if (currentPos != RecyclerView.NO_POSITION) {
+                deleteTaskOnServer(context, currentTask, currentPos);
+            }
+        });
+        dialogCard.addView(btnDelete);
+
+        TextView btnCancel = new TextView(context);
+        btnCancel.setText("HỦY");
+        btnCancel.setTextSize(13);
+        btnCancel.setTypeface(null, android.graphics.Typeface.BOLD);
+        btnCancel.setGravity(android.view.Gravity.CENTER);
+        btnCancel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
+        btnCancel.setBackgroundResource(R.drawable.bg_pill_light);
+        LinearLayout.LayoutParams lpCancel = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp48);
+        btnCancel.setLayoutParams(lpCancel);
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        dialogCard.addView(btnCancel);
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        dialog.show();
     }
 
     @Override
