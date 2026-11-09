@@ -58,7 +58,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_voice_card"
+        android:background="@drawable/bg_day_capsule_selected"
         android:orientation="vertical"
         android:padding="18dp"
         android:layout_marginBottom="32dp">
