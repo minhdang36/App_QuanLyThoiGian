@@ -84,7 +84,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
 
             if (tvStatus != null) {
                 if ("DONE".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status) || "HOÀN THÀNH".equalsIgnoreCase(status)) {
-                    tvStatus.setText("● ĐÃ HOÀN THÀNH");
+                    tvStatus.setText(formatCompletedStatusText(taskId));
                     tvStatus.setTextColor(Color.parseColor("#2E7D32"));
                 } else {
                     tvStatus.setText("● ĐANG XỬ LÝ");
@@ -147,7 +147,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
                 if (taskId != -1) {
                     currentStatus = "DONE";
                     if (tvStatus != null) {
-                        tvStatus.setText("● ĐÃ HOÀN THÀNH");
+                        tvStatus.setText(formatCompletedStatusText(taskId));
                         tvStatus.setTextColor(Color.parseColor("#2E7D32"));
                     }
                     Toast.makeText(this, "Đã đánh dấu hoàn thành!", Toast.LENGTH_SHORT).show();
@@ -444,7 +444,7 @@ public class ProjectDetailActivity extends AppCompatActivity {
                         if (tvStatus != null) {
                             String s = currentTask.getStatus();
                             if ("DONE".equalsIgnoreCase(s) || "COMPLETED".equalsIgnoreCase(s) || "HOÀN THÀNH".equalsIgnoreCase(s)) {
-                                tvStatus.setText("● ĐÃ HOÀN THÀNH");
+                                tvStatus.setText(formatCompletedStatusText(currentTask.getId()));
                                 tvStatus.setTextColor(Color.parseColor("#2E7D32"));
                             } else {
                                 tvStatus.setText("● ĐANG XỬ LÝ");
@@ -508,6 +508,19 @@ public class ProjectDetailActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<Project>> call, Throwable t) {}
         });
+    }
+
+    private String formatCompletedStatusText(int tId) {
+        SharedPreferences pref = getSharedPreferences("TaskCompletionTimes", MODE_PRIVATE);
+        String completedTime = pref.getString("TASK_COMPLETED_TIME_" + tId, "");
+        if (completedTime.isEmpty()) {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            completedTime = sdf.format(new java.util.Date());
+            if (tId > 0) {
+                pref.edit().putString("TASK_COMPLETED_TIME_" + tId, completedTime).apply();
+            }
+        }
+        return "● ĐÃ HOÀN THÀNH (LÚC " + completedTime + ")";
     }
 
     private ApiService getApiService() {
