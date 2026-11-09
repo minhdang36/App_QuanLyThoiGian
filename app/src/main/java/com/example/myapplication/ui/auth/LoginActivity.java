@@ -3,6 +3,7 @@ package com.example.myapplication.ui.auth;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -76,7 +77,22 @@ public class LoginActivity extends AppCompatActivity {
 
         EditText etEmail = findViewById(R.id.etLoginEmail);
         EditText etPassword = findViewById(R.id.etLoginPassword);
+        ImageView imgTogglePassword = findViewById(R.id.imgTogglePassword);
         TextView btnLogin = findViewById(R.id.btnLogin);
+
+        if (imgTogglePassword != null && etPassword != null) {
+            imgTogglePassword.setOnClickListener(v -> {
+                int inputType = etPassword.getInputType();
+                if ((inputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == InputType.TYPE_TEXT_VARIATION_PASSWORD) {
+                    etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                    imgTogglePassword.setAlpha(1.0f);
+                } else {
+                    etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                    imgTogglePassword.setAlpha(0.5f);
+                }
+                etPassword.setSelection(etPassword.getText().length());
+            });
+        }
 
         if (btnLogin != null) {
             btnLogin.setOnClickListener(v -> {
@@ -121,67 +137,86 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    private void saveSessionAndNavigate(User loggedInUser) {
-        SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt("USER_ID", loggedInUser.getId());
-        if (loggedInUser.getEmail() != null) editor.putString("USER_EMAIL", loggedInUser.getEmail());
-        if (loggedInUser.getFullName() != null) editor.putString("USER_NAME", loggedInUser.getFullName());
-        if (loggedInUser.getPhone() != null) editor.putString("USER_PHONE", loggedInUser.getPhone());
-        if (loggedInUser.getBio() != null) editor.putString("USER_BIO", loggedInUser.getBio());
-        if (loggedInUser.getAvatarUrl() != null && !loggedInUser.getAvatarUrl().isEmpty()) {
-            editor.putString("USER_AVATAR_URI", loggedInUser.getAvatarUrl());
-        }
-        editor.apply();
-
-        String name = (loggedInUser.getFullName() != null && !loggedInUser.getFullName().isEmpty())
-                ? loggedInUser.getFullName()
-                : loggedInUser.getEmail();
-        Toast.makeText(LoginActivity.this, "Chào mừng " + name + "!", Toast.LENGTH_SHORT).show();
-
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-        startActivity(intent);
-        finish();
-    }
-
     private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getData() != null) {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
-                    try {
-                        GoogleSignInAccount account = task.getResult(ApiException.class);
-                        if (account != null) {
-                            String email = account.getEmail();
-                            String name = account.getDisplayName();
-                            proceedWithGoogleLogin(name, email);
-                        }
-                    } catch (ApiException e) {
-                        Log.e("GOOGLE_LOGIN", "Mã lỗi Google: " + e.getStatusCode());
-                        if (e.getStatusCode() == 10 || e.getStatusCode() == 12500) {
-                            // Cấu hình SHA-1 trên máy ảo chưa khớp Google Console -> hỗ trợ tài khoản Google Demo
-                            proceedWithGoogleLogin("Google User", "googleuser@gmail.com");
-                        } else {
-                            Toast.makeText(this, "Đã hủy hoặc lỗi đăng nhập Google (Mã " + e.getStatusCode() + ")", Toast.LENGTH_SHORT).show();
-                        }
-                    }
+                    handleGoogleSignInResult(task);
                 }
             }
     );
 
-    private void proceedWithGoogleLogin(String name, String email) {
-        SharedPreferences sharedPref = getSharedPreferences("UserSession", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt("USER_ID", 1);
-        if (email != null) editor.putString("USER_EMAIL", email);
-        if (name != null) editor.putString("USER_NAME", name);
+    private void handleGoogleSignInResult(Task<GoogleSignInAccount> completedTask) {
+        try {
+            GoogleSignInAccount account = completedTask.getResult(ApiException.class);
+            if (account != null) {
+                String googleId = account.getId();
+                String email = account.getEmail();
+                String displayName = account.getDisplayName();
+
+                User googleUser = new User();
+                googleUser.setEmail(email);
+                googleUser.setFullName(displayName != null ? displayName : "Google User");
+                googleUser.setPassword("GOOGLE_AUTH_" + googleId);
+
+                ApiService apiService = RetrofitClient.getApiService();
+                apiService.loginUser(googleUser).enqueue(new Callback<User>() {
+                    @Override
+                    public void onResponse(Call<User> call, Response<User> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            saveSessionAndNavigate(response.body());
+                        } else {
+                            registerGoogleUser(apiService, googleUser);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<User> call, Throwable t) {
+                        registerGoogleUser(apiService, googleUser);
+                    }
+                });
+            }
+        } catch (ApiException e) {
+            Log.w("GOOGLE_LOGIN", "signInResult:failed code=" + e.getStatusCode());
+            Toast.makeText(this, "Đăng nhập Google thất bại!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void registerGoogleUser(ApiService apiService, User googleUser) {
+        apiService.registerUser(googleUser).enqueue(new Callback<User>() {
+            @Override
+            public void onResponse(Call<User> call, Response<User> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    saveSessionAndNavigate(response.body());
+                } else {
+                    saveSessionAndNavigate(googleUser);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<User> call, Throwable t) {
+                saveSessionAndNavigate(googleUser);
+            }
+        });
+    }
+
+    private void saveSessionAndNavigate(User user) {
+        SharedPreferences pref = getSharedPreferences("UserSession", MODE_PRIVATE);
+        SharedPreferences.Editor editor = pref.edit();
+        if (user.getId() > 0) {
+            editor.putInt("USER_ID", user.getId());
+        } else {
+            editor.putInt("USER_ID", 1);
+        }
+        editor.putString("USER_NAME", user.getFullName() != null ? user.getFullName() : "Người dùng");
+        editor.putString("USER_EMAIL", user.getEmail() != null ? user.getEmail() : "");
         editor.apply();
 
-        String displayName = (name != null && !name.isEmpty()) ? name : "Google User";
-        Toast.makeText(this, "Chào mừng " + displayName + "!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "✔ Đăng nhập thành công! Chào mừng " + (user.getFullName() != null ? user.getFullName() : ""), Toast.LENGTH_SHORT).show();
 
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }

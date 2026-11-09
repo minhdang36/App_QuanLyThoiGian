@@ -5,6 +5,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
@@ -50,7 +51,22 @@ public class SignUpActivity extends AppCompatActivity {
         EditText etFullName = findViewById(R.id.etFullName);
         EditText etSignUpEmail = findViewById(R.id.etSignUpEmail);
         EditText etSignUpPassword = findViewById(R.id.etSignUpPassword);
+        ImageView imgTogglePassword = findViewById(R.id.imgTogglePassword);
         TextView btnSubmitSignUp = findViewById(R.id.btnSubmitSignUp);
+
+        if (imgTogglePassword != null && etSignUpPassword != null) {
+            imgTogglePassword.setOnClickListener(v -> {
+                int inputType = etSignUpPassword.getInputType();
+                if ((inputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == InputType.TYPE_TEXT_VARIATION_PASSWORD) {
+                    etSignUpPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                    imgTogglePassword.setAlpha(1.0f);
+                } else {
+                    etSignUpPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                    imgTogglePassword.setAlpha(0.5f);
+                }
+                etSignUpPassword.setSelection(etSignUpPassword.getText().length());
+            });
+        }
 
         setupPasswordStrengthWatcher(etSignUpPassword);
 
@@ -115,16 +131,9 @@ public class SignUpActivity extends AppCompatActivity {
 
         int score = 0;
 
-        // 1. Độ dài >= 6 ký tự (+1 điểm)
         if (password.length() >= 6) score++;
-
-        // 2. Độ dài >= 8 ký tự hoặc chứa chữ hoa + chữ thường (+1 điểm)
         if (password.length() >= 8 || (password.matches(".*[a-z].*") && password.matches(".*[A-Z].*"))) score++;
-
-        // 3. Chứa chữ số (0-9) (+1 điểm)
         if (password.matches(".*[0-9].*")) score++;
-
-        // 4. Chứa ký tự đặc biệt (!@#$%^&*...) (+1 điểm)
         if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) score++;
 
         if (score == 0) score = 1;

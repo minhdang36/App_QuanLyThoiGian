@@ -261,7 +261,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:background="@drawable/bg_voice_card"
+            android:background="@drawable/bg_day_capsule_selected"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="16dp">

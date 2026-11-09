@@ -78,6 +78,7 @@ public class PomodoroActivity extends AppCompatActivity {
     private String activeTaskTitle = "";
     private boolean isIntentTaskProvided = false;
     private double goalHours = 2.0;
+    private int totalFocusSecondsAcc = 0;
     private int totalFocusMinutesAcc = 0;
 
     private final List<Task> userTaskList = new ArrayList<>();
@@ -207,7 +208,11 @@ public class PomodoroActivity extends AppCompatActivity {
     private void loadAccFocusMinutesForCurrentTask() {
         if (activeTaskTitle == null || activeTaskTitle.trim().isEmpty()) return;
         SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
-        totalFocusMinutesAcc = pref.getInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), 0);
+        totalFocusSecondsAcc = pref.getInt("ACC_SECONDS_" + activeTaskTitle.hashCode(), 0);
+        if (totalFocusSecondsAcc == 0) {
+            int oldMins = pref.getInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), 0);
+            totalFocusSecondsAcc = oldMins * 60;
+        }
 
         float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
         if (savedGoal > 0) {
@@ -390,14 +395,24 @@ public class PomodoroActivity extends AppCompatActivity {
     }
 
     private void updateTaskFocusStats() {
-        double totalHoursAcc = totalFocusMinutesAcc / 60.0;
+        double totalHoursAcc = totalFocusSecondsAcc / 3600.0;
 
         double remainingGoalHours = Math.max(0.0, goalHours - totalHoursAcc);
         int percent = goalHours > 0 ? (int) Math.round((totalHoursAcc / goalHours) * 100) : 0;
         percent = Math.min(percent, 100);
 
         if (tvTotalFocusHours != null) {
-            tvTotalFocusHours.setText(String.format(Locale.getDefault(), "%.1f Giờ", totalHoursAcc));
+            int hrs = totalFocusSecondsAcc / 3600;
+            int mins = (totalFocusSecondsAcc % 3600) / 60;
+            int secs = totalFocusSecondsAcc % 60;
+
+            if (hrs > 0) {
+                tvTotalFocusHours.setText(String.format(Locale.getDefault(), "%dh %dm %ds", hrs, mins, secs));
+            } else if (mins > 0) {
+                tvTotalFocusHours.setText(String.format(Locale.getDefault(), "0h %dm %ds", mins, secs));
+            } else {
+                tvTotalFocusHours.setText(String.format(Locale.getDefault(), "0h 0m %ds", secs));
+            }
         }
 
         if (tvGoalProgress != null) {
@@ -677,6 +692,13 @@ public class PomodoroActivity extends AppCompatActivity {
             public void onTick(long millisUntilFinished) {
                 timeRemainingInMillis = millisUntilFinished;
                 updateTimerText();
+
+                if (activeTaskTitle != null && !activeTaskTitle.isEmpty()) {
+                    totalFocusSecondsAcc++;
+                    SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                    pref.edit().putInt("ACC_SECONDS_" + activeTaskTitle.hashCode(), totalFocusSecondsAcc).apply();
+                    updateTaskFocusStats();
+                }
             }
 
             @Override
@@ -687,13 +709,6 @@ public class PomodoroActivity extends AppCompatActivity {
                 int sessionMinutesCompleted = (int) (timerDurationInMillis / 60000);
                 if (sessionMinutesCompleted <= 0) sessionMinutesCompleted = 25;
 
-                if (activeTaskTitle != null && !activeTaskTitle.isEmpty()) {
-                    totalFocusMinutesAcc += sessionMinutesCompleted;
-                    SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
-                    pref.edit().putInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), totalFocusMinutesAcc).apply();
-                }
-
-                // Đồng bộ số phiên Pomodoro và giờ tập trung lên Server MySQL
                 if (activeTaskId > 0) {
                     RetrofitClient.getApiService().completePomodoro(activeTaskId, sessionMinutesCompleted).enqueue(new Callback<Task>() {
                         @Override
