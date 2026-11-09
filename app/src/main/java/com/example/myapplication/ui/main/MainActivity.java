@@ -495,6 +495,8 @@ public class MainActivity extends AppCompatActivity {
         if (bottomSheet == null) return;
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        int pxPeek = (int) (110 * getResources().getDisplayMetrics().density);
+        bottomSheetBehavior.setPeekHeight(pxPeek);
         int pxOffset = (int) (210 * getResources().getDisplayMetrics().density);
         bottomSheetBehavior.setExpandedOffset(pxOffset);
 

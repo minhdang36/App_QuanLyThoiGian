@@ -15,7 +15,7 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingBottom="240dp">
+        android:paddingBottom="120dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -125,7 +125,7 @@
                 android:paddingBottom="10dp"
                 app:layout_constraintTop_toBottomOf="@id/dividerHeader">
 
-                <!-- 1A. Header Tháng/Năm khi ở chế độ Lịch đầy đủ (Màn hình bên phải Figma) -->
+                <!-- 1A. Header Tháng/Năm khi ở chế độ Lịch đầy đủ -->
                 <ImageButton
                     android:id="@+id/btnPrevMonth"
                     android:layout_width="36dp"
@@ -186,7 +186,7 @@
                     app:layout_constraintTop_toTopOf="@id/layoutMonthTitleCenter"
                     app:tint="@color/text_primary" />
 
-                <!-- 1B. Lịch ngang thu gọn (Hiện khi kéo Bottom Sheet lên - Màn hình bên trái Figma) -->
+                <!-- 1B. Lịch ngang thu gọn (Hiện khi kéo Bottom Sheet lên) -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvHorizontalCalendar"
                     android:layout_width="match_parent"
@@ -198,7 +198,7 @@
                     android:visibility="invisible"
                     app:layout_constraintTop_toBottomOf="@id/layoutMonthTitleCenter" />
 
-                <!-- 1C. Lịch lưới đầy đủ (Hiện khi đóng Bottom Sheet - Màn hình bên phải Figma) -->
+                <!-- 1C. Lịch lưới đầy đủ (Hiện khi đóng Bottom Sheet xuống) -->
                 <LinearLayout
                     android:id="@+id/layoutFullCalendar"
                     android:layout_width="match_parent"
@@ -232,7 +232,7 @@
                         android:nestedScrollingEnabled="false"
                         android:overScrollMode="never" />
 
-                    <!-- Thanh gạch nhỏ phía dưới lịch chuẩn Figma -->
+                    <!-- Thanh gạch nhỏ phía dưới lịch -->
                     <View
                         android:id="@+id/dragHandle"
                         android:layout_width="32dp"
@@ -248,9 +248,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- 2. BOTTOM SHEET 2 LỚP CHUẨN FIGMA MEETEASE:
-         Lớp ngoài: Vòm Đen Nâu (#383333) hiển thị Thứ/Ngày/Tháng
-         Lớp trong: Khung Trắng (#FFFFFF) bo góc trên 28dp chứa các thẻ công việc -->
+    <!-- 2. BOTTOM SHEET (Kéo hết xuống peekHeight = 110dp để xem toàn bộ lịch tháng) -->
     <LinearLayout
         android:id="@+id/layoutAgendaBottomSheet"
         android:layout_width="match_parent"
@@ -260,7 +258,8 @@
         android:focusable="true"
         android:orientation="vertical"
         app:behavior_hideable="false"
-        app:behavior_peekHeight="300dp"
+        app:behavior_peekHeight="110dp"
+        app:behavior_expandedOffset="210dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <!-- Thanh tiêu đề ngày trên nền tối (#383333): ● Thursday, 05 Jan, 2024 -->
@@ -300,7 +299,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Khung nền Trắng (#FFFFFF) bo góc trên 28dp lồng bên trong tạo hiệu ứng vòm kép chuẩn Figma -->
+        <!-- Khung nền Trắng (#FFFFFF) bo góc trên 28dp lồng bên trong -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -319,7 +318,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 3. FLOATING BOTTOM NAVIGATION BAR (Phiên bản cũ 5 mục cân đối: Lịch trình | Tập trung | (+) | Dự án | Trợ lý AI) -->
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR -->
     <LinearLayout
         android:id="@+id/cardBottomNav"
         android:layout_width="match_parent"
