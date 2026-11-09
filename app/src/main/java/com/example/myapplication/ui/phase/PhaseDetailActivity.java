@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -71,8 +72,10 @@ public class PhaseDetailActivity extends AppCompatActivity {
         if (btnBack != null) btnBack.setOnClickListener(v -> finish());
         if (tvConfigureApiKey != null) tvConfigureApiKey.setOnClickListener(v -> showApiKeyDialog(null));
 
+        boolean isAiProject = false;
         Intent intent = getIntent();
         if (intent != null) {
+            isAiProject = intent.getBooleanExtra("IS_AI_PROJECT", false);
             if (intent.hasExtra("PHASE_NAME")) {
                 String pName = intent.getStringExtra("PHASE_NAME");
                 if (pName != null && !pName.trim().isEmpty()) {
@@ -92,6 +95,16 @@ public class PhaseDetailActivity extends AppCompatActivity {
                         }
                     } catch (Exception ignored) {}
                 }
+            }
+        }
+
+        View layoutAiDecomposeBanner = findViewById(R.id.layoutAiDecomposeBanner);
+        if (layoutAiDecomposeBanner != null) {
+            boolean isDailyOrGeneralTask = phaseName.contains("Các công việc chung") || phaseName.contains("hàng ngày") || phaseName.contains("Hàng ngày");
+            if (isAiProject && !isDailyOrGeneralTask) {
+                layoutAiDecomposeBanner.setVisibility(View.VISIBLE);
+            } else {
+                layoutAiDecomposeBanner.setVisibility(View.GONE);
             }
         }
 

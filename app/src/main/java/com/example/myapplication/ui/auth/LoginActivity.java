@@ -2,8 +2,10 @@ package com.example.myapplication.ui.auth;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.text.InputType;
+import android.text.method.HideReturnsTransformationMethod;
+import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -82,15 +84,18 @@ public class LoginActivity extends AppCompatActivity {
 
         if (imgTogglePassword != null && etPassword != null) {
             imgTogglePassword.setOnClickListener(v -> {
-                int inputType = etPassword.getInputType();
-                if ((inputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == InputType.TYPE_TEXT_VARIATION_PASSWORD) {
-                    etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-                    imgTogglePassword.setAlpha(1.0f);
+                if (etPassword.getTransformationMethod() instanceof PasswordTransformationMethod) {
+                    // Bấm 1 lần ➔ Hiện mật khẩu rõ
+                    etPassword.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                    imgTogglePassword.setColorFilter(Color.parseColor("#10B981"));
                 } else {
-                    etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                    imgTogglePassword.setAlpha(0.5f);
+                    // Bấm lần tiếp theo ➔ Đóng hiện (Ẩn mật khẩu)
+                    etPassword.setTransformationMethod(PasswordTransformationMethod.getInstance());
+                    imgTogglePassword.setColorFilter(Color.parseColor("#888888"));
                 }
-                etPassword.setSelection(etPassword.getText().length());
+                if (etPassword.getText() != null) {
+                    etPassword.setSelection(etPassword.getText().length());
+                }
             });
         }
 

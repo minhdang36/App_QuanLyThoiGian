@@ -70,6 +70,7 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
             Intent intent = new Intent(v.getContext(), PhaseDetailActivity.class);
             intent.putExtra("PHASE_NAME", phase.getPhaseName());
             intent.putExtra("SUB_TASKS_JSON", GSON.toJson(phase.getSubTaskList()));
+            intent.putExtra("IS_AI_PROJECT", true);
             v.getContext().startActivity(intent);
         });
     }

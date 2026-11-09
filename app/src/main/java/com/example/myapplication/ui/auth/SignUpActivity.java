@@ -5,8 +5,9 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
-import android.text.InputType;
 import android.text.TextWatcher;
+import android.text.method.HideReturnsTransformationMethod;
+import android.text.method.PasswordTransformationMethod;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -56,15 +57,18 @@ public class SignUpActivity extends AppCompatActivity {
 
         if (imgTogglePassword != null && etSignUpPassword != null) {
             imgTogglePassword.setOnClickListener(v -> {
-                int inputType = etSignUpPassword.getInputType();
-                if ((inputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == InputType.TYPE_TEXT_VARIATION_PASSWORD) {
-                    etSignUpPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-                    imgTogglePassword.setAlpha(1.0f);
+                if (etSignUpPassword.getTransformationMethod() instanceof PasswordTransformationMethod) {
+                    // Bấm 1 lần ➔ Hiện mật khẩu rõ
+                    etSignUpPassword.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                    imgTogglePassword.setColorFilter(Color.parseColor("#10B981"));
                 } else {
-                    etSignUpPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                    imgTogglePassword.setAlpha(0.5f);
+                    // Bấm lần tiếp theo ➔ Đóng ẩn mật khẩu dạng dấu chấm
+                    etSignUpPassword.setTransformationMethod(PasswordTransformationMethod.getInstance());
+                    imgTogglePassword.setColorFilter(Color.parseColor("#888888"));
                 }
-                etSignUpPassword.setSelection(etSignUpPassword.getText().length());
+                if (etSignUpPassword.getText() != null) {
+                    etSignUpPassword.setSelection(etSignUpPassword.getText().length());
+                }
             });
         }
 

@@ -205,7 +205,6 @@
                 android:layout_height="250dp"
                 android:layout_marginTop="24dp">
 
-                <!-- Vòng tròn xanh đếm lùi rút ngắn dần theo thời gian còn lại -->
                 <com.example.myapplication.ui.pomodoro.CircularTimerView
                     android:id="@+id/circularTimerView"
                     android:layout_width="match_parent"
@@ -304,6 +303,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvFocusLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Tổng tập trung"
@@ -334,6 +334,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvGoalLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="🎯 Mục tiêu ngày"

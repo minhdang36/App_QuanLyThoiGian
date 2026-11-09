@@ -336,7 +336,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:background="@drawable/bg_voice_card"
+                        android:background="@drawable/bg_search_bar"
                         android:padding="16dp"
                         android:text="“Hoàn thành báo cáo đồ án lúc 15:00 và chuẩn bị tài liệu thuyết trình...”"
                         android:textColor="@color/text_primary"

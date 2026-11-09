@@ -70,8 +70,9 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- BANNER AI PHÂN TÁCH ĐẦU VIỆC CẦN LÀM -->
+            <!-- BANNER AI PHÂN TÁCH ĐẦU VIỆC (CHỈ HIỂN THỊ TRONG DỰ ÁN LỚN ĐÃ ĐƯỢC PHÂN RÃ BỞI AI) -->
             <LinearLayout
+                android:id="@+id/layoutAiDecomposeBanner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"

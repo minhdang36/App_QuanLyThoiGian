@@ -4,13 +4,18 @@ import android.app.AlertDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.text.InputType;
+import android.view.Gravity;
 import android.view.View;
+import androidx.core.content.ContextCompat;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -52,9 +57,21 @@ public class PomodoroActivity extends AppCompatActivity {
     private TextView tvSoundTitle, tvSoundSubtitle;
     private ImageView btnPlayPauseSound;
 
-    private TextView tvActiveTaskTitle, tvTotalFocusHours, tvGoalProgress;
+    private TextView tvActiveTaskTitle, tvTotalFocusHours, tvGoalProgress, tvFocusLabel, tvGoalLabel;
     private ProgressBar progressTask;
     private CircularTimerView circularTimerView;
+
+    private static final int MODE_FOCUS = 0;
+    private static final int MODE_SHORT_BREAK = 1;
+    private static final int MODE_LONG_BREAK = 2;
+    private int currentTimerMode = MODE_FOCUS;
+
+    private int totalFocusSecondsAcc = 0;
+    private int totalShortBreakSecondsAcc = 0;
+    private int totalLongBreakSecondsAcc = 0;
+
+    private double shortBreakGoalHours = 0.5;
+    private double longBreakGoalHours = 1.0;
 
     private TextView chipSound1, chipSound2, chipSound3, chipSound4, chipSound5, chipSound6;
 
@@ -78,7 +95,6 @@ public class PomodoroActivity extends AppCompatActivity {
     private String activeTaskTitle = "";
     private boolean isIntentTaskProvided = false;
     private double goalHours = 2.0;
-    private int totalFocusSecondsAcc = 0;
     private int totalFocusMinutesAcc = 0;
 
     private final List<Task> userTaskList = new ArrayList<>();
@@ -129,6 +145,8 @@ public class PomodoroActivity extends AppCompatActivity {
         tvActiveTaskTitle = findViewById(R.id.tvActiveTaskTitle);
         tvTotalFocusHours = findViewById(R.id.tvTotalFocusHours);
         tvGoalProgress = findViewById(R.id.tvGoalProgress);
+        tvFocusLabel = findViewById(R.id.tvFocusLabel);
+        tvGoalLabel = findViewById(R.id.tvGoalLabel);
         progressTask = findViewById(R.id.progressTask);
 
         if (tvGoalProgress != null) {
@@ -208,13 +226,18 @@ public class PomodoroActivity extends AppCompatActivity {
     private void loadAccFocusMinutesForCurrentTask() {
         if (activeTaskTitle == null || activeTaskTitle.trim().isEmpty()) return;
         SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
-        totalFocusSecondsAcc = pref.getInt("ACC_SECONDS_" + activeTaskTitle.hashCode(), 0);
+        String taskHash = String.valueOf(activeTaskTitle.hashCode());
+
+        totalFocusSecondsAcc = pref.getInt("ACC_SECONDS_" + taskHash, 0);
+        totalShortBreakSecondsAcc = pref.getInt("ACC_SHORT_BREAK_SECONDS_" + taskHash, 0);
+        totalLongBreakSecondsAcc = pref.getInt("ACC_LONG_BREAK_SECONDS_" + taskHash, 0);
+
         if (totalFocusSecondsAcc == 0) {
-            int oldMins = pref.getInt("ACC_MINUTES_" + activeTaskTitle.hashCode(), 0);
+            int oldMins = pref.getInt("ACC_MINUTES_" + taskHash, 0);
             totalFocusSecondsAcc = oldMins * 60;
         }
 
-        float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
+        float savedGoal = pref.getFloat("CUSTOM_GOAL_" + taskHash, -1f);
         if (savedGoal > 0) {
             goalHours = savedGoal;
         }
@@ -395,16 +418,35 @@ public class PomodoroActivity extends AppCompatActivity {
     }
 
     private void updateTaskFocusStats() {
-        double totalHoursAcc = totalFocusSecondsAcc / 3600.0;
+        int currentSecs = totalFocusSecondsAcc;
+        double currentGoal = goalHours;
+        String labelFocus = "Tổng tập trung";
+        String labelGoal = "🎯 Mục tiêu ngày";
 
-        double remainingGoalHours = Math.max(0.0, goalHours - totalHoursAcc);
-        int percent = goalHours > 0 ? (int) Math.round((totalHoursAcc / goalHours) * 100) : 0;
+        if (currentTimerMode == MODE_SHORT_BREAK) {
+            currentSecs = totalShortBreakSecondsAcc;
+            currentGoal = shortBreakGoalHours;
+            labelFocus = "Tổng nghỉ ngắn";
+            labelGoal = "☕ Mục tiêu nghỉ ngắn";
+        } else if (currentTimerMode == MODE_LONG_BREAK) {
+            currentSecs = totalLongBreakSecondsAcc;
+            currentGoal = longBreakGoalHours;
+            labelFocus = "Tổng nghỉ dài";
+            labelGoal = "🌿 Mục tiêu nghỉ dài";
+        }
+
+        if (tvFocusLabel != null) tvFocusLabel.setText(labelFocus);
+        if (tvGoalLabel != null) tvGoalLabel.setText(labelGoal);
+
+        double totalHoursAcc = currentSecs / 3600.0;
+        double remainingGoalHours = Math.max(0.0, currentGoal - totalHoursAcc);
+        int percent = currentGoal > 0 ? (int) Math.round((totalHoursAcc / currentGoal) * 100) : 0;
         percent = Math.min(percent, 100);
 
         if (tvTotalFocusHours != null) {
-            int hrs = totalFocusSecondsAcc / 3600;
-            int mins = (totalFocusSecondsAcc % 3600) / 60;
-            int secs = totalFocusSecondsAcc % 60;
+            int hrs = currentSecs / 3600;
+            int mins = (currentSecs % 3600) / 60;
+            int secs = currentSecs % 60;
 
             if (hrs > 0) {
                 tvTotalFocusHours.setText(String.format(Locale.getDefault(), "%dh %dm %ds", hrs, mins, secs));
@@ -429,9 +471,18 @@ public class PomodoroActivity extends AppCompatActivity {
     }
 
     private void setupTabs() {
-        tabFocus.setOnClickListener(v -> setTimerMode(25, tabFocus));
-        tabShortBreak.setOnClickListener(v -> setTimerMode(5, tabShortBreak));
-        tabLongBreak.setOnClickListener(v -> setTimerMode(15, tabLongBreak));
+        tabFocus.setOnClickListener(v -> {
+            currentTimerMode = MODE_FOCUS;
+            setTimerMode(25, tabFocus);
+        });
+        tabShortBreak.setOnClickListener(v -> {
+            currentTimerMode = MODE_SHORT_BREAK;
+            setTimerMode(5, tabShortBreak);
+        });
+        tabLongBreak.setOnClickListener(v -> {
+            currentTimerMode = MODE_LONG_BREAK;
+            setTimerMode(15, tabLongBreak);
+        });
     }
 
     private void setTimerMode(int minutes, TextView selectedTab) {
@@ -453,6 +504,8 @@ public class PomodoroActivity extends AppCompatActivity {
         timerDurationInMillis = minutes * 60 * 1000L;
         timeRemainingInMillis = timerDurationInMillis;
         updateTimerText();
+
+        loadAccFocusMinutesForCurrentTask();
     }
 
     private void setupTimerControls() {
@@ -471,22 +524,36 @@ public class PomodoroActivity extends AppCompatActivity {
         if (circularTimerView != null) circularTimerView.setOnClickListener(editTimerClick);
     }
 
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
     private void showCustomTimerDurationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("⏱ Đặt Thời Gian Bấm Giờ (Phút)");
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 20);
+        LinearLayout dialogCard = new LinearLayout(this);
+        dialogCard.setOrientation(LinearLayout.VERTICAL);
+        dialogCard.setBackgroundResource(R.drawable.bg_rounded_24dp);
+        dialogCard.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.card_bg)));
+        dialogCard.setPadding(dpToPx(24), dpToPx(24), dpToPx(24), dpToPx(24));
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("⏱ Đặt Thời Gian Bấm Giờ (Phút)");
+        tvTitle.setTextSize(18);
+        tvTitle.setTypeface(null, Typeface.BOLD);
+        tvTitle.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        dialogCard.addView(tvTitle);
 
         TextView tvSub = new TextView(this);
         tvSub.setText("Chọn nhanh hoặc nhập số phút tập trung mong muốn:");
         tvSub.setTextSize(13);
-        tvSub.setTextColor(0xFF666666);
-        layout.addView(tvSub);
+        tvSub.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        tvSub.setPadding(0, dpToPx(6), 0, dpToPx(14));
+        dialogCard.addView(tvSub);
 
         android.widget.HorizontalScrollView hsv = new android.widget.HorizontalScrollView(this);
-        hsv.setPadding(0, 16, 0, 16);
+        hsv.setPadding(0, 0, 0, dpToPx(14));
+        hsv.setHorizontalScrollBarEnabled(false);
 
         LinearLayout layoutMinPresets = new LinearLayout(this);
         layoutMinPresets.setOrientation(LinearLayout.HORIZONTAL);
@@ -497,34 +564,83 @@ public class PomodoroActivity extends AppCompatActivity {
         final EditText edtValue = new EditText(this);
         edtValue.setInputType(InputType.TYPE_CLASS_NUMBER);
         edtValue.setText(String.valueOf(currentMinutes));
-        edtValue.setTextSize(16);
-        edtValue.setHint("Nhập số phút (VD: 25)");
 
         int[] minPresets = {15, 25, 30, 45, 60, 90, 120};
         for (int p : minPresets) {
             TextView btn = new TextView(this);
             btn.setText(p + " phút");
             btn.setTextSize(12);
+            btn.setTypeface(null, Typeface.BOLD);
             btn.setTextColor(0xFFFFFFFF);
             btn.setBackgroundResource(R.drawable.bg_pill_brown);
-            btn.setPadding(24, 12, 24, 12);
+            btn.setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            lp.setMargins(0, 0, 12, 0);
+            lp.setMargins(0, 0, dpToPx(8), 0);
             btn.setLayoutParams(lp);
-            btn.setOnClickListener(v -> edtValue.setText(String.valueOf(p)));
+            btn.setOnClickListener(v -> {
+                edtValue.setText(String.valueOf(p));
+                edtValue.setSelection(edtValue.getText().length());
+            });
             layoutMinPresets.addView(btn);
         }
         hsv.addView(layoutMinPresets);
-        layout.addView(hsv);
+        dialogCard.addView(hsv);
 
-        layout.addView(edtValue);
+        LinearLayout inputContainer = new LinearLayout(this);
+        inputContainer.setOrientation(LinearLayout.HORIZONTAL);
+        inputContainer.setGravity(Gravity.CENTER_VERTICAL);
+        inputContainer.setBackgroundResource(R.drawable.bg_search_bar);
+        inputContainer.setPadding(dpToPx(16), 0, dpToPx(16), 0);
+        LinearLayout.LayoutParams lpInput = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(50)
+        );
+        lpInput.setMargins(0, 0, 0, dpToPx(16));
+        inputContainer.setLayoutParams(lpInput);
 
-        builder.setView(layout);
+        ImageView imgClock = new ImageView(this);
+        imgClock.setImageResource(android.R.drawable.ic_menu_recent_history);
+        imgClock.setColorFilter(ContextCompat.getColor(this, R.color.brand_primary));
+        inputContainer.addView(imgClock, new LinearLayout.LayoutParams(dpToPx(20), dpToPx(20)));
 
-        builder.setPositiveButton("Bắt đầu đếm", (dialog, which) -> {
+        edtValue.setBackground(null);
+        edtValue.setTextSize(16);
+        edtValue.setTypeface(null, Typeface.BOLD);
+        edtValue.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        edtValue.setHintTextColor(ContextCompat.getColor(this, R.color.text_muted));
+        LinearLayout.LayoutParams lpEt = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+        lpEt.setMargins(dpToPx(12), 0, 0, 0);
+        inputContainer.addView(edtValue, lpEt);
+        dialogCard.addView(inputContainer);
+
+        builder.setView(dialogCard);
+        AlertDialog dialog = builder.create();
+
+        LinearLayout btnLayout = new LinearLayout(this);
+        btnLayout.setOrientation(LinearLayout.HORIZONTAL);
+        btnLayout.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView btnCancel = new TextView(this);
+        btnCancel.setText("HỦY");
+        btnCancel.setTextSize(13);
+        btnCancel.setTypeface(null, Typeface.BOLD);
+        btnCancel.setGravity(Gravity.CENTER);
+        btnCancel.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        btnCancel.setBackgroundResource(R.drawable.bg_pill_light);
+        btnCancel.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        TextView btnStart = new TextView(this);
+        btnStart.setText("BẮT ĐẦU ĐẾM");
+        btnStart.setTextSize(13);
+        btnStart.setTypeface(null, Typeface.BOLD);
+        btnStart.setGravity(Gravity.CENTER);
+        btnStart.setTextColor(Color.WHITE);
+        btnStart.setBackgroundResource(R.drawable.bg_pill_brown);
+        btnStart.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        btnStart.setOnClickListener(v -> {
             String input = edtValue.getText().toString().trim();
             if (!input.isEmpty()) {
                 try {
@@ -539,6 +655,7 @@ public class PomodoroActivity extends AppCompatActivity {
                         updateTimerText();
 
                         Toast.makeText(this, "⏱ Đã thiết lập thời gian tập trung: " + min + " phút!", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
                     } else {
                         Toast.makeText(this, "Vui lòng nhập số phút lớn hơn 0!", Toast.LENGTH_SHORT).show();
                     }
@@ -546,8 +663,22 @@ public class PomodoroActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton("Hủy", null);
-        builder.show();
+        LinearLayout.LayoutParams lpCancel = new LinearLayout.LayoutParams(0, dpToPx(48), 1f);
+        lpCancel.setMargins(0, 0, dpToPx(8), 0);
+        btnCancel.setLayoutParams(lpCancel);
+
+        LinearLayout.LayoutParams lpStart = new LinearLayout.LayoutParams(0, dpToPx(48), 1.5f);
+        lpStart.setMargins(dpToPx(8), 0, 0, 0);
+        btnStart.setLayoutParams(lpStart);
+
+        btnLayout.addView(btnCancel);
+        btnLayout.addView(btnStart);
+        dialogCard.addView(btnLayout);
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        dialog.show();
     }
 
     private void setupAmbientSoundControls() {
@@ -694,9 +825,20 @@ public class PomodoroActivity extends AppCompatActivity {
                 updateTimerText();
 
                 if (activeTaskTitle != null && !activeTaskTitle.isEmpty()) {
-                    totalFocusSecondsAcc++;
                     SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
-                    pref.edit().putInt("ACC_SECONDS_" + activeTaskTitle.hashCode(), totalFocusSecondsAcc).apply();
+                    String taskHash = String.valueOf(activeTaskTitle.hashCode());
+
+                    if (currentTimerMode == MODE_FOCUS) {
+                        totalFocusSecondsAcc++;
+                        pref.edit().putInt("ACC_SECONDS_" + taskHash, totalFocusSecondsAcc).apply();
+                    } else if (currentTimerMode == MODE_SHORT_BREAK) {
+                        totalShortBreakSecondsAcc++;
+                        pref.edit().putInt("ACC_SHORT_BREAK_SECONDS_" + taskHash, totalShortBreakSecondsAcc).apply();
+                    } else if (currentTimerMode == MODE_LONG_BREAK) {
+                        totalLongBreakSecondsAcc++;
+                        pref.edit().putInt("ACC_LONG_BREAK_SECONDS_" + taskHash, totalLongBreakSecondsAcc).apply();
+                    }
+
                     updateTaskFocusStats();
                 }
             }
