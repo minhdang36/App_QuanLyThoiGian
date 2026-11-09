@@ -29,6 +29,7 @@ public class Task {
     private String location;
     private int userId;
     private String category;
+    private String completedAtTime;
     private int totalPomodoros = 4;
     private int completedPomodoros = 0;
     private int totalFocusTimeMinutes = 0;
@@ -55,6 +56,7 @@ public class Task {
     public String getLocation() { return location; }
     public int getUserId() { return userId; }
     public String getCategory() { return category; }
+    public String getCompletedAtTime() { return completedAtTime; }
     public int getPriorityLevel() { return priorityLevel; }
     public int getTotalPomodoros() { return totalPomodoros; }
     public int getCompletedPomodoros() { return completedPomodoros; }
@@ -94,6 +96,7 @@ public class Task {
     public void setLocation(String location) { this.location = location; }
     public void setUserId(int userId) { this.userId = userId; }
     public void setCategory(String category) { this.category = category; }
+    public void setCompletedAtTime(String completedAtTime) { this.completedAtTime = completedAtTime; }
     public void setPriorityLevel(int priorityLevel) { this.priorityLevel = priorityLevel; }
     public void setTotalPomodoros(int totalPomodoros) { this.totalPomodoros = totalPomodoros; }
     public void setCompletedPomodoros(int completedPomodoros) { this.completedPomodoros = completedPomodoros; }

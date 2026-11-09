@@ -338,6 +338,39 @@ public class PomodoroActivity extends AppCompatActivity {
         });
     }
 
+    private boolean isTaskForToday(Task task, Calendar todayCal) {
+        if (task == null || task.getTime() == null || task.getTime().trim().isEmpty()) {
+            return false;
+        }
+
+        String taskTime = task.getTime().trim();
+
+        int todayDay = todayCal.get(Calendar.DAY_OF_MONTH);
+        int todayMonth = todayCal.get(Calendar.MONTH) + 1;
+        int todayYear = todayCal.get(Calendar.YEAR);
+
+        java.util.regex.Matcher matcherYmd = java.util.regex.Pattern.compile("(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})").matcher(taskTime);
+        if (matcherYmd.find()) {
+            try {
+                int y = Integer.parseInt(matcherYmd.group(1));
+                int m = Integer.parseInt(matcherYmd.group(2));
+                int d = Integer.parseInt(matcherYmd.group(3));
+                return (d == todayDay && m == todayMonth && y == todayYear);
+            } catch (Exception ignored) {}
+        }
+
+        java.util.regex.Matcher matcherDm = java.util.regex.Pattern.compile("(?:^|[^0-9])(\\d{1,2})[/-](\\d{1,2})(?:[^0-9]|$)").matcher(taskTime);
+        if (matcherDm.find()) {
+            try {
+                int d = Integer.parseInt(matcherDm.group(1));
+                int m = Integer.parseInt(matcherDm.group(2));
+                return (d == todayDay && m == todayMonth);
+            } catch (Exception ignored) {}
+        }
+
+        return taskTime.contains("Hôm nay") || taskTime.contains("hôm nay");
+    }
+
     private void showTaskDetailAndSwitchDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
@@ -415,7 +448,21 @@ public class PomodoroActivity extends AppCompatActivity {
         builder.setView(dialogCard);
         AlertDialog dialog = builder.create();
 
-        if (!userTaskList.isEmpty()) {
+        Calendar todayCal = Calendar.getInstance();
+        List<Task> todayTaskList = new ArrayList<>();
+        java.util.Set<String> seenTitles = new java.util.HashSet<>();
+
+        for (Task t : userTaskList) {
+            if (isTaskForToday(t, todayCal)) {
+                String cleanTitle = t.getTitle() != null ? t.getTitle().trim() : "";
+                if (!cleanTitle.isEmpty() && !seenTitles.contains(cleanTitle)) {
+                    seenTitles.add(cleanTitle);
+                    todayTaskList.add(t);
+                }
+            }
+        }
+
+        if (!todayTaskList.isEmpty()) {
             TextView tvSwitchHeader = new TextView(this);
             tvSwitchHeader.setText("🔄 ĐỔI SANG CÔNG VIỆC KHÁC TRONG NGÀY:");
             tvSwitchHeader.setTextSize(11);
@@ -424,41 +471,39 @@ public class PomodoroActivity extends AppCompatActivity {
             tvSwitchHeader.setPadding(0, dpToPx(4), 0, dpToPx(8));
             layout.addView(tvSwitchHeader);
 
-            for (Task t : userTaskList) {
-                if (t != null && t.getTitle() != null) {
-                    TextView item = new TextView(this);
-                    item.setText("• " + t.getTitle());
-                    item.setTextSize(13);
-                    item.setTypeface(null, Typeface.BOLD);
-                    item.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
-                    item.setBackgroundResource(R.drawable.bg_search_bar);
-                    item.setPadding(dpToPx(14), dpToPx(10), dpToPx(14), dpToPx(10));
-                    LinearLayout.LayoutParams lpItem = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                    lpItem.setMargins(0, 0, 0, dpToPx(6));
-                    item.setLayoutParams(lpItem);
+            for (Task t : todayTaskList) {
+                TextView item = new TextView(this);
+                item.setText("• " + t.getTitle());
+                item.setTextSize(13);
+                item.setTypeface(null, Typeface.BOLD);
+                item.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+                item.setBackgroundResource(R.drawable.bg_search_bar);
+                item.setPadding(dpToPx(14), dpToPx(10), dpToPx(14), dpToPx(10));
+                LinearLayout.LayoutParams lpItem = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                lpItem.setMargins(0, 0, 0, dpToPx(6));
+                item.setLayoutParams(lpItem);
 
-                    item.setOnClickListener(v -> {
-                        activeTaskId = t.getId();
-                        activeTaskTitle = t.getTitle();
+                item.setOnClickListener(v -> {
+                    activeTaskId = t.getId();
+                    activeTaskTitle = t.getTitle();
 
-                        SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
-                        float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
-                        if (savedGoal > 0) {
-                            goalHours = savedGoal;
-                        } else {
-                            goalHours = parseHoursFromTimeStr(t.getTime());
-                        }
+                    SharedPreferences pref = getSharedPreferences("PomodoroStats", MODE_PRIVATE);
+                    float savedGoal = pref.getFloat("CUSTOM_GOAL_" + activeTaskTitle.hashCode(), -1f);
+                    if (savedGoal > 0) {
+                        goalHours = savedGoal;
+                    } else {
+                        goalHours = parseHoursFromTimeStr(t.getTime());
+                    }
 
-                        if (tvActiveTaskTitle != null) tvActiveTaskTitle.setText(activeTaskTitle);
-                        if (cardActiveTask != null) cardActiveTask.setVisibility(View.VISIBLE);
+                    if (tvActiveTaskTitle != null) tvActiveTaskTitle.setText(activeTaskTitle);
+                    if (cardActiveTask != null) cardActiveTask.setVisibility(View.VISIBLE);
 
-                        loadAccFocusMinutesForCurrentTask();
-                        Toast.makeText(PomodoroActivity.this, "Đã chuyển sang: " + activeTaskTitle, Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                    });
+                    loadAccFocusMinutesForCurrentTask();
+                    Toast.makeText(PomodoroActivity.this, "Đã chuyển sang: " + activeTaskTitle, Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                });
 
-                    layout.addView(item);
-                }
+                layout.addView(item);
             }
         }
 

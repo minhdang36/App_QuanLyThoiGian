@@ -76,9 +76,10 @@
 
         <!-- Chữ Tiến độ & Phần trăm -->
         <TextView
+            android:id="@+id/tvProgressLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:text="Tiến độ hoàn thành"
             android:textColor="@color/text_secondary"
             android:textSize="12sp"
@@ -94,9 +95,8 @@
             android:textSize="13sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/imgProjectIcon"
-            app:layout_constraintBottom_toBottomOf="@id/imgProjectIcon"
-            app:layout_constraintVertical_bias="1.4" />
+            app:layout_constraintTop_toTopOf="@id/tvProgressLabel"
+            app:layout_constraintBottom_toBottomOf="@id/tvProgressLabel" />
 
         <!-- Thanh Progress Bar -->
         <ProgressBar
@@ -108,7 +108,7 @@
             android:progress="75"
             android:progressTint="@color/brand_primary"
             android:progressBackgroundTint="@color/card_stroke"
-            app:layout_constraintTop_toBottomOf="@+id/tvProgressPercent" />
+            app:layout_constraintTop_toBottomOf="@+id/tvProgressLabel" />
 
         <!-- Đã hoàn thành / Còn lại -->
         <TextView

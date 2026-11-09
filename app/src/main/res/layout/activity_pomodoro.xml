@@ -533,7 +533,32 @@
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- 1. FOCUS TAB (ACTIVE) -->
+        <!-- 1. AGENDA TAB -->
+        <LinearLayout
+            android:id="@+id/navAgenda"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@android:drawable/ic_menu_my_calendar"
+                app:tint="#94A3B8" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="Lịch trình"
+                android:textColor="#94A3B8"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- 2. FOCUS TAB (ACTIVE) -->
         <LinearLayout
             android:id="@+id/navFocus"
             android:layout_width="0dp"
@@ -557,31 +582,6 @@
                 android:textColor="#38BDF8"
                 android:textSize="11sp"
                 android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- 2. AGENDA TAB -->
-        <LinearLayout
-            android:id="@+id/navAgenda"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:src="@android:drawable/ic_menu_my_calendar"
-                app:tint="#94A3B8" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="Lịch trình"
-                android:textColor="#94A3B8"
-                android:textSize="11sp" />
         </LinearLayout>
 
         <!-- 3. CENTER (+) BUTTON -->

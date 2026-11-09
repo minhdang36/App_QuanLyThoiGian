@@ -114,11 +114,34 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         }
 
         String time = currentTask.getTime();
-        if (time != null && !time.trim().isEmpty()) {
-            holder.tvTaskTime.setText(formatDisplayTime(time));
+        String displayTime = (time != null && !time.trim().isEmpty()) ? formatDisplayTime(time) : "08:00 AM - 10:00 AM";
+
+        String s = currentTask.getStatus();
+        boolean isDone = "DONE".equalsIgnoreCase(s) || "COMPLETED".equalsIgnoreCase(s) || "HOÀN THÀNH".equalsIgnoreCase(s);
+
+        if (isDone) {
+            String completedTime = currentTask.getCompletedAtTime();
+            if (completedTime == null || completedTime.isEmpty()) {
+                android.content.SharedPreferences pref = holder.itemView.getContext().getSharedPreferences("TaskCompletionTimes", android.content.Context.MODE_PRIVATE);
+                completedTime = pref.getString("TASK_COMPLETED_TIME_" + currentTask.getId(), "");
+                if (completedTime.isEmpty()) {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", Locale.getDefault());
+                    completedTime = sdf.format(new java.util.Date());
+                    pref.edit().putString("TASK_COMPLETED_TIME_" + currentTask.getId(), completedTime).apply();
+                }
+                currentTask.setCompletedAtTime(completedTime);
+            }
+            if (!displayTime.contains("✔ Xong lúc")) {
+                displayTime = displayTime + " • ✔ Xong lúc " + completedTime;
+            }
         } else {
-            holder.tvTaskTime.setText("08:00 AM - 10:00 AM");
+            if (displayTime.contains(" • ✔ Xong lúc")) {
+                int idx = displayTime.indexOf(" • ✔ Xong lúc");
+                displayTime = displayTime.substring(0, idx);
+            }
         }
+
+        holder.tvTaskTime.setText(displayTime);
 
         if (holder.tvCategoryPill != null) {
             String cat = currentTask.getCategory();
@@ -148,8 +171,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
         if (holder.cbTaskStatus != null) {
             holder.cbTaskStatus.setOnCheckedChangeListener(null);
-            String s = currentTask.getStatus();
-            boolean isDone = "DONE".equalsIgnoreCase(s) || "COMPLETED".equalsIgnoreCase(s) || "HOÀN THÀNH".equalsIgnoreCase(s);
             holder.cbTaskStatus.setChecked(isDone);
 
             if (isDone) {
@@ -162,12 +183,33 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
             holder.cbTaskStatus.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 currentTask.setStatus(isChecked ? "DONE" : "PENDING");
+                android.content.SharedPreferences pref = holder.itemView.getContext().getSharedPreferences("TaskCompletionTimes", android.content.Context.MODE_PRIVATE);
+
                 if (isChecked) {
                     holder.tvTaskTitle.setPaintFlags(holder.tvTaskTitle.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
                     holder.tvTaskTitle.setTextColor(secondaryTextColor);
+
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", Locale.getDefault());
+                    String nowTime = sdf.format(new java.util.Date());
+                    currentTask.setCompletedAtTime(nowTime);
+                    pref.edit().putString("TASK_COMPLETED_TIME_" + currentTask.getId(), nowTime).apply();
+
+                    String curDisplay = holder.tvTaskTime.getText().toString();
+                    if (!curDisplay.contains("✔ Xong lúc")) {
+                        holder.tvTaskTime.setText(curDisplay + " • ✔ Xong lúc " + nowTime);
+                    }
                 } else {
                     holder.tvTaskTitle.setPaintFlags(holder.tvTaskTitle.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
                     holder.tvTaskTitle.setTextColor(primaryTextColor);
+
+                    pref.edit().remove("TASK_COMPLETED_TIME_" + currentTask.getId()).apply();
+                    currentTask.setCompletedAtTime(null);
+
+                    String curDisplay = holder.tvTaskTime.getText().toString();
+                    if (curDisplay.contains(" • ✔ Xong lúc")) {
+                        int idx = curDisplay.indexOf(" • ✔ Xong lúc");
+                        holder.tvTaskTime.setText(curDisplay.substring(0, idx));
+                    }
                 }
                 updateTaskStatusOnServer(holder.itemView.getContext(), currentTask);
                 if (onTaskStatusChangeListener != null) {
