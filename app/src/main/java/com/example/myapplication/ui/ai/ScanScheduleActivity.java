@@ -307,6 +307,26 @@ public class ScanScheduleActivity extends AppCompatActivity {
             return;
         }
 
+        btnImportSchedule.setEnabled(false);
+        btnImportSchedule.setText("Đang kiểm tra lịch trình trùng lặp...");
+
+        ApiService apiService = RetrofitClient.getApiService();
+
+        apiService.getTasksByUser(currentUserId).enqueue(new Callback<List<Task>>() {
+            @Override
+            public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
+                List<Task> existingTasks = (response.isSuccessful() && response.body() != null) ? response.body() : new ArrayList<>();
+                processAndImportNonDuplicateTasks(apiService, currentUserId, existingTasks);
+            }
+
+            @Override
+            public void onFailure(Call<List<Task>> call, Throwable t) {
+                processAndImportNonDuplicateTasks(apiService, currentUserId, new ArrayList<>());
+            }
+        });
+    }
+
+    private void processAndImportNonDuplicateTasks(ApiService apiService, int currentUserId, List<Task> existingTasks) {
         String pStart = edtStartDate != null ? edtStartDate.getText().toString().trim() : "";
         String pEnd = edtEndDate != null ? edtEndDate.getText().toString().trim() : "";
 
@@ -319,57 +339,93 @@ public class ScanScheduleActivity extends AppCompatActivity {
             if (!pEnd.isEmpty()) endCal.setTime(sdfDate.parse(pEnd));
         } catch (Exception ignored) {}
 
-        // Sinh các buổi học lặp hàng tuần cho toàn bộ học kỳ từ pStart đến pEnd
-        List<Task> recurringTasks = new ArrayList<>();
+        java.util.Set<String> existingKeys = new java.util.HashSet<>();
+        for (Task t : existingTasks) {
+            if (t != null && t.getTitle() != null && t.getTime() != null) {
+                String cleanTitle = cleanTaskTitleForMatching(t.getTitle());
+                String datePart = extractDateFromTimeStr(t.getTime());
+                if (!cleanTitle.isEmpty() && !datePart.isEmpty()) {
+                    existingKeys.add(cleanTitle + "_" + datePart);
+                }
+            }
+        }
+
+        List<Task> newNonDuplicateTasks = new ArrayList<>();
+        int skippedCount = 0;
 
         for (Task baseTask : scannedTasks) {
             Calendar loopCal = (Calendar) startCal.clone();
 
             while (!loopCal.after(endCal)) {
                 String dateStr = sdfDate.format(loopCal.getTime());
+                String cleanTitle = cleanTaskTitleForMatching(baseTask.getTitle());
+                String key = cleanTitle + "_" + dateStr;
 
-                Task newTask = new Task();
-                newTask.setTitle(baseTask.getTitle());
-                newTask.setDescription(baseTask.getDescription());
-                newTask.setTime("📅 " + dateStr + " | " + baseTask.getTime());
-                newTask.setLocation(baseTask.getLocation());
-                newTask.setCategory("Học tập");
-                newTask.setProjectId(2); // Category "Học tập"
-                newTask.setStatus("PENDING");
-                newTask.setUserId(currentUserId);
+                if (existingKeys.contains(key)) {
+                    skippedCount++;
+                } else {
+                    Task newTask = new Task();
+                    newTask.setTitle(baseTask.getTitle());
+                    newTask.setDescription(baseTask.getDescription());
+                    newTask.setTime("📅 " + dateStr + " | " + baseTask.getTime());
+                    newTask.setLocation(baseTask.getLocation());
+                    newTask.setCategory("Học tập");
+                    newTask.setProjectId(2); // Category "Học tập"
+                    newTask.setStatus("PENDING");
+                    newTask.setUserId(currentUserId);
 
-                recurringTasks.add(newTask);
+                    newNonDuplicateTasks.add(newTask);
+                    existingKeys.add(key);
+                }
 
                 loopCal.add(Calendar.DAY_OF_MONTH, 7);
             }
         }
 
-        ApiService apiService = RetrofitClient.getApiService();
+        if (newNonDuplicateTasks.isEmpty()) {
+            btnImportSchedule.setEnabled(true);
+            btnImportSchedule.setText("✔ Đồng bộ tất cả vào Lịch trình & Công việc");
+            Toast.makeText(this, "⚠️ Tất cả " + skippedCount + " buổi học trong khoảng thời gian này đã có sẵn trong lịch trình! Không thêm trùng lặp.", Toast.LENGTH_LONG).show();
+            navigateToMain();
+            return;
+        }
 
-        btnImportSchedule.setEnabled(false);
-        btnImportSchedule.setText("Đang đồng bộ lịch học...");
+        btnImportSchedule.setText("Đang đồng bộ " + newNonDuplicateTasks.size() + " buổi học mới...");
 
-        final int totalRecurring = recurringTasks.size();
+        final int totalToAdd = newNonDuplicateTasks.size();
+        final int finalSkipped = skippedCount;
 
-        apiService.addTasksBatch(recurringTasks).enqueue(new Callback<List<Task>>() {
+        apiService.addTasksBatch(newNonDuplicateTasks).enqueue(new Callback<List<Task>>() {
             @Override
             public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(ScanScheduleActivity.this, "✔ Đã tự động lặp " + totalRecurring + " buổi học từ " + pStart + " đến " + pEnd + "!", Toast.LENGTH_LONG).show();
-                    navigateToMain();
-                } else {
-                    fallbackIndividualImport(apiService, recurringTasks, pStart, pEnd);
-                }
+                String msg = "✔ Đã thêm mới " + totalToAdd + " buổi học!";
+                if (finalSkipped > 0) msg += " (Đã bỏ qua " + finalSkipped + " buổi trùng lặp)";
+                Toast.makeText(ScanScheduleActivity.this, msg, Toast.LENGTH_LONG).show();
+                navigateToMain();
             }
 
             @Override
             public void onFailure(Call<List<Task>> call, Throwable t) {
-                fallbackIndividualImport(apiService, recurringTasks, pStart, pEnd);
+                fallbackIndividualImport(apiService, newNonDuplicateTasks, totalToAdd, finalSkipped);
             }
         });
     }
 
-    private void fallbackIndividualImport(ApiService apiService, List<Task> recurringTasks, String pStart, String pEnd) {
+    private String cleanTaskTitleForMatching(String title) {
+        if (title == null) return "";
+        return title.toLowerCase().replaceAll("\\[.*?\\]", "").replaceAll("[^a-z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệđìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]", "").trim();
+    }
+
+    private String extractDateFromTimeStr(String timeStr) {
+        if (timeStr == null) return "";
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\d{4}-\\d{2}-\\d{2}").matcher(timeStr);
+        if (matcher.find()) {
+            return matcher.group();
+        }
+        return "";
+    }
+
+    private void fallbackIndividualImport(ApiService apiService, List<Task> recurringTasks, int totalToAdd, int skippedCount) {
         final int totalRecurring = recurringTasks.size();
         final int[] completedCount = new int[]{0};
 
@@ -377,22 +433,24 @@ public class ScanScheduleActivity extends AppCompatActivity {
             apiService.addTask(rTask).enqueue(new Callback<Task>() {
                 @Override
                 public void onResponse(Call<Task> call, Response<Task> response) {
-                    checkAndFinishScheduleImport(completedCount, totalRecurring, pStart, pEnd);
+                    checkAndFinishScheduleImport(completedCount, totalRecurring, totalToAdd, skippedCount);
                 }
 
                 @Override
                 public void onFailure(Call<Task> call, Throwable t) {
-                    checkAndFinishScheduleImport(completedCount, totalRecurring, pStart, pEnd);
+                    checkAndFinishScheduleImport(completedCount, totalRecurring, totalToAdd, skippedCount);
                 }
             });
         }
     }
 
-    private synchronized void checkAndFinishScheduleImport(int[] completedCount, int totalRecurring, String pStart, String pEnd) {
+    private synchronized void checkAndFinishScheduleImport(int[] completedCount, int totalRecurring, int totalToAdd, int skippedCount) {
         completedCount[0]++;
         if (completedCount[0] >= totalRecurring) {
             new Handler(Looper.getMainLooper()).post(() -> {
-                Toast.makeText(ScanScheduleActivity.this, "✔ Đã tự động lặp " + totalRecurring + " buổi học từ " + pStart + " đến " + pEnd + "!", Toast.LENGTH_LONG).show();
+                String msg = "✔ Đã thêm mới " + totalToAdd + " buổi học!";
+                if (skippedCount > 0) msg += " (Đã bỏ qua " + skippedCount + " buổi trùng lặp)";
+                Toast.makeText(ScanScheduleActivity.this, msg, Toast.LENGTH_LONG).show();
                 navigateToMain();
             });
         }
