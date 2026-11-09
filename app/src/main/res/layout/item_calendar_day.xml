@@ -7,11 +7,11 @@
     android:orientation="vertical"
     android:paddingVertical="4dp">
 
-    <!-- Capsule chứa Thứ & Ngày (Chuẩn Figma MeetEase Scheduler) -->
+    <!-- Capsule chứa Thứ & Ngày -->
     <LinearLayout
         android:id="@+id/layoutDay"
-        android:layout_width="48dp"
-        android:layout_height="64dp"
+        android:layout_width="52dp"
+        android:layout_height="66dp"
         android:background="@drawable/bg_day_capsule_unselected"
         android:gravity="center"
         android:orientation="vertical">
@@ -20,22 +20,23 @@
             android:id="@+id/tvDayOfWeek"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Thu"
-            android:textColor="@color/text_muted"
-            android:textSize="12sp" />
+            android:text="Thứ 2"
+            android:textColor="@color/text_secondary"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvDateNumber"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="07"
+            android:layout_marginTop="2dp"
+            android:text="09"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Bộ 3 chấm màu báo hiệu sự kiện bên dưới Capsule -->
+    <!-- Bộ chấm màu báo hiệu sự kiện -->
     <LinearLayout
         android:id="@+id/viewEventDot"
         android:layout_width="wrap_content"

@@ -494,10 +494,11 @@ public class MainActivity extends AppCompatActivity {
     private void setupBottomSheet() {
         if (bottomSheet == null) return;
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        bottomSheetBehavior.setFitToContents(false);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         int pxPeek = (int) (110 * getResources().getDisplayMetrics().density);
         bottomSheetBehavior.setPeekHeight(pxPeek);
-        int pxOffset = (int) (210 * getResources().getDisplayMetrics().density);
+        int pxOffset = (int) (225 * getResources().getDisplayMetrics().density);
         bottomSheetBehavior.setExpandedOffset(pxOffset);
 
         if (layoutFullCalendar != null) {
@@ -530,13 +531,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    if (layoutFullCalendar != null) layoutFullCalendar.setVisibility(View.INVISIBLE);
+                    if (layoutFullCalendar != null) layoutFullCalendar.setVisibility(View.GONE);
                     if (rvHorizontalCalendar != null) {
                         rvHorizontalCalendar.setVisibility(View.VISIBLE);
                         rvHorizontalCalendar.setAlpha(1f);
                     }
                 } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    if (rvHorizontalCalendar != null) rvHorizontalCalendar.setVisibility(View.INVISIBLE);
+                    if (rvHorizontalCalendar != null) rvHorizontalCalendar.setVisibility(View.GONE);
                     if (layoutFullCalendar != null) {
                         layoutFullCalendar.setVisibility(View.VISIBLE);
                         layoutFullCalendar.setAlpha(1f);
@@ -546,16 +547,22 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                if (slideOffset >= 0 && slideOffset <= 1) {
-                    if (rvHorizontalCalendar != null && rvHorizontalCalendar.getVisibility() != View.VISIBLE) {
+                if (slideOffset > 0.2f) {
+                    if (rvHorizontalCalendar != null) {
                         rvHorizontalCalendar.setVisibility(View.VISIBLE);
+                        rvHorizontalCalendar.setAlpha(Math.min(1f, (slideOffset - 0.2f) * 1.25f));
                     }
-                    if (layoutFullCalendar != null && layoutFullCalendar.getVisibility() != View.VISIBLE) {
+                    if (layoutFullCalendar != null) {
+                        layoutFullCalendar.setVisibility(View.GONE);
+                    }
+                } else {
+                    if (layoutFullCalendar != null) {
                         layoutFullCalendar.setVisibility(View.VISIBLE);
+                        layoutFullCalendar.setAlpha(Math.max(0f, 1f - slideOffset * 3f));
                     }
-
-                    if (rvHorizontalCalendar != null) rvHorizontalCalendar.setAlpha(slideOffset);
-                    if (layoutFullCalendar != null) layoutFullCalendar.setAlpha(1f - slideOffset);
+                    if (rvHorizontalCalendar != null) {
+                        rvHorizontalCalendar.setVisibility(View.GONE);
+                    }
                 }
             }
         });
