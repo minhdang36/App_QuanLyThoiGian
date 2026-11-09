@@ -19,8 +19,11 @@ import com.example.myapplication.network.ApiService;
 import com.example.myapplication.network.RetrofitClient;
 import com.example.myapplication.ui.main.ProfileSettingsActivity;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -90,13 +93,60 @@ public class ProjectsActivity extends AppCompatActivity {
         fetchDataFromApi();
     }
 
+    private boolean isTaskForToday(Task task, Calendar todayCal) {
+        if (task == null || task.getTime() == null || task.getTime().trim().isEmpty()) {
+            return false;
+        }
+
+        String taskTime = task.getTime().trim();
+
+        int todayDay = todayCal.get(Calendar.DAY_OF_MONTH);
+        int todayMonth = todayCal.get(Calendar.MONTH) + 1;
+        int todayYear = todayCal.get(Calendar.YEAR);
+
+        java.util.regex.Matcher matcherYmd = java.util.regex.Pattern.compile("(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})").matcher(taskTime);
+        if (matcherYmd.find()) {
+            try {
+                int y = Integer.parseInt(matcherYmd.group(1));
+                int m = Integer.parseInt(matcherYmd.group(2));
+                int d = Integer.parseInt(matcherYmd.group(3));
+                return (d == todayDay && m == todayMonth && y == todayYear);
+            } catch (Exception ignored) {}
+        }
+
+        java.util.regex.Matcher matcherDm = java.util.regex.Pattern.compile("(?:^|[^0-9])(\\d{1,2})[/-](\\d{1,2})(?:[^0-9]|$)").matcher(taskTime);
+        if (matcherDm.find()) {
+            try {
+                int d = Integer.parseInt(matcherDm.group(1));
+                int m = Integer.parseInt(matcherDm.group(2));
+                return (d == todayDay && m == todayMonth);
+            } catch (Exception ignored) {}
+        }
+
+        return taskTime.contains("Hôm nay") || taskTime.contains("hôm nay");
+    }
+
     private void computeProjectTaskStats(List<Project> projects, List<Task> tasks) {
-        if (projects == null || tasks == null || tasks.isEmpty()) return;
+        if (projects == null || tasks == null) return;
+        Calendar todayCal = Calendar.getInstance();
+
         for (Project p : projects) {
+            String pName = p.getName() != null ? p.getName().trim() : "";
+            boolean isDefaultProject = pName.contains("Công việc") ||
+                                      pName.contains("Học tập") || pName.contains("Học Tập") ||
+                                      pName.contains("Cá nhân") || pName.contains("Cá Nhân") ||
+                                      pName.contains("Sức khỏe") || pName.contains("Thể thao") ||
+                                      (p.getId() >= 1 && p.getId() <= 4);
+
             int total = 0;
             int finished = 0;
+
             for (Task t : tasks) {
                 if (t.getProjectId() == p.getId()) {
+                    if (isDefaultProject && !isTaskForToday(t, todayCal)) {
+                        continue;
+                    }
+
                     total++;
                     String status = t.getStatus() != null ? t.getStatus().toUpperCase() : "";
                     if ("DONE".equals(status) || "COMPLETED".equals(status) || "HOÀN THÀNH".equals(status)) {

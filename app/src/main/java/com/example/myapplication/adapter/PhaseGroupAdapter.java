@@ -50,11 +50,17 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
         int doneSub = phase.getCompletedCount();
         holder.tvPhaseStats.setText(totalSub + " task nhỏ  •  " + doneSub + " đã xong");
 
-        if (phase.isExpanded()) {
+        if (phase.getPhaseName().contains("Công việc hôm nay") || phase.getPhaseName().contains("Nhiệm vụ trong ngày")) {
+            holder.tvExpandArrow.setVisibility(View.GONE);
+            holder.layoutSubTasksContainer.setVisibility(View.VISIBLE);
+            holder.subAdapter.updateList(phase.getSubTaskList());
+        } else if (phase.isExpanded()) {
+            holder.tvExpandArrow.setVisibility(View.VISIBLE);
             holder.tvExpandArrow.setText("▲ Thu gọn");
             holder.layoutSubTasksContainer.setVisibility(View.VISIBLE);
             holder.subAdapter.updateList(phase.getSubTaskList());
         } else {
+            holder.tvExpandArrow.setVisibility(View.VISIBLE);
             holder.tvExpandArrow.setText("▼ Mở rộng");
             holder.layoutSubTasksContainer.setVisibility(View.GONE);
         }

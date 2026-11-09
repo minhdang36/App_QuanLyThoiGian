@@ -23,9 +23,12 @@ import com.example.myapplication.model.Task;
 import com.example.myapplication.network.ApiService;
 import com.example.myapplication.network.RetrofitClient;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import retrofit2.Call;
@@ -151,13 +154,64 @@ public class ProjectTasksActivity extends AppCompatActivity {
         applyFilterAndSearch();
     }
 
+    private boolean isTaskForToday(Task task, Calendar todayCal) {
+        if (task == null || task.getTime() == null || task.getTime().trim().isEmpty()) {
+            return false;
+        }
+
+        String taskTime = task.getTime().trim();
+
+        int todayDay = todayCal.get(Calendar.DAY_OF_MONTH);
+        int todayMonth = todayCal.get(Calendar.MONTH) + 1;
+        int todayYear = todayCal.get(Calendar.YEAR);
+
+        java.util.regex.Matcher matcherYmd = java.util.regex.Pattern.compile("(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})").matcher(taskTime);
+        if (matcherYmd.find()) {
+            try {
+                int y = Integer.parseInt(matcherYmd.group(1));
+                int m = Integer.parseInt(matcherYmd.group(2));
+                int d = Integer.parseInt(matcherYmd.group(3));
+                return (d == todayDay && m == todayMonth && y == todayYear);
+            } catch (Exception ignored) {}
+        }
+
+        java.util.regex.Matcher matcherDm = java.util.regex.Pattern.compile("(?:^|[^0-9])(\\d{1,2})[/-](\\d{1,2})(?:[^0-9]|$)").matcher(taskTime);
+        if (matcherDm.find()) {
+            try {
+                int d = Integer.parseInt(matcherDm.group(1));
+                int m = Integer.parseInt(matcherDm.group(2));
+                return (d == todayDay && m == todayMonth);
+            } catch (Exception ignored) {}
+        }
+
+        return taskTime.contains("Hôm nay") || taskTime.contains("hôm nay");
+    }
+
     private void applyFilterAndSearch() {
         String searchQuery = edtSearch != null ? edtSearch.getText().toString().toLowerCase().trim() : "";
         phaseGroupList.clear();
 
         Map<String, PhaseGroup> mapPhases = new LinkedHashMap<>();
 
+        String projectName = getIntent().getStringExtra("PROJECT_NAME");
+        String pName = projectName != null ? projectName.trim() : "";
+        boolean isDefaultProject = pName.contains("Công việc") ||
+                                  pName.contains("Học tập") || pName.contains("Học Tập") ||
+                                  pName.contains("Cá nhân") || pName.contains("Cá Nhân") ||
+                                  pName.contains("Sức khỏe") || pName.contains("Thể thao") ||
+                                  (projectId >= 1 && projectId <= 4);
+
+        Calendar todayCal = Calendar.getInstance();
+        SimpleDateFormat sdfVi = new SimpleDateFormat("dd/MM/yyyy", new Locale("vi", "VN"));
+        String todayFormatted = sdfVi.format(todayCal.getTime());
+
         for (Task task : fullTaskList) {
+            if (isDefaultProject) {
+                if (!isTaskForToday(task, todayCal)) {
+                    continue;
+                }
+            }
+
             boolean matchesSearch = searchQuery.isEmpty() ||
                     (task.getTitle() != null && task.getTitle().toLowerCase().contains(searchQuery)) ||
                     (task.getDescription() != null && task.getDescription().toLowerCase().contains(searchQuery));
@@ -175,13 +229,19 @@ public class ProjectTasksActivity extends AppCompatActivity {
 
             if (matchesSearch && matchesFilter) {
                 String rawTitle = task.getTitle() != null ? task.getTitle() : "Công việc";
-                String phaseName = "📂 Các công việc chung";
+                String phaseName;
                 String cleanTitle = rawTitle;
 
                 if (rawTitle.startsWith("[") && rawTitle.contains("]")) {
                     int endBracket = rawTitle.indexOf("]");
                     phaseName = "📂 " + rawTitle.substring(1, endBracket).trim();
                     cleanTitle = rawTitle.substring(endBracket + 1).trim();
+                } else {
+                    if (isDefaultProject) {
+                        phaseName = "📅 Công việc hôm nay (" + todayFormatted + ")";
+                    } else {
+                        phaseName = "📂 Các công việc chung";
+                    }
                 }
 
                 Task displayTask = new Task();
@@ -198,6 +258,7 @@ public class ProjectTasksActivity extends AppCompatActivity {
                 PhaseGroup group = mapPhases.get(phaseName);
                 if (group == null) {
                     group = new PhaseGroup(phaseName);
+                    group.setExpanded(true);
                     mapPhases.put(phaseName, group);
                 }
                 group.getSubTaskList().add(displayTask);
@@ -211,12 +272,27 @@ public class ProjectTasksActivity extends AppCompatActivity {
     }
 
     private void updateOverviewStats() {
-        int total = fullTaskList.size();
+        String projectName = getIntent().getStringExtra("PROJECT_NAME");
+        String pName = projectName != null ? projectName.trim() : "";
+        boolean isDefaultProject = pName.contains("Công việc") ||
+                                  pName.contains("Học tập") || pName.contains("Học Tập") ||
+                                  pName.contains("Cá nhân") || pName.contains("Cá Nhân") ||
+                                  pName.contains("Sức khỏe") || pName.contains("Thể thao") ||
+                                  (projectId >= 1 && projectId <= 4);
+
+        Calendar todayCal = Calendar.getInstance();
+
+        int total = 0;
         int pending = 0;
         int inProgress = 0;
         int done = 0;
 
         for (Task t : fullTaskList) {
+            if (isDefaultProject && !isTaskForToday(t, todayCal)) {
+                continue;
+            }
+
+            total++;
             String s = t.getStatus() != null ? t.getStatus().toUpperCase() : "PENDING";
             if ("DONE".equals(s) || "COMPLETED".equals(s) || "HOÀN THÀNH".equals(s)) {
                 done++;
