@@ -102,6 +102,16 @@ public class ProjectTasksActivity extends AppCompatActivity {
         }
 
         phaseAdapter = new PhaseGroupAdapter(phaseGroupList);
+        phaseAdapter.setOnTaskStatusChangeListener((task, isChecked) -> {
+            for (Task t : fullTaskList) {
+                if (t.getId() == task.getId()) {
+                    t.setStatus(isChecked ? "DONE" : "PENDING");
+                    break;
+                }
+            }
+            updateOverviewStats();
+            applyFilterAndSearch();
+        });
         rvProjectTasks.setAdapter(phaseAdapter);
 
         setupSearch();

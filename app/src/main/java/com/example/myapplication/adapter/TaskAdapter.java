@@ -40,6 +40,16 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
     private List<Task> taskList;
 
+    public interface OnTaskStatusChangeListener {
+        void onStatusChanged(Task task, boolean isChecked);
+    }
+
+    private OnTaskStatusChangeListener onTaskStatusChangeListener;
+
+    public void setOnTaskStatusChangeListener(OnTaskStatusChangeListener listener) {
+        this.onTaskStatusChangeListener = listener;
+    }
+
     public TaskAdapter(List<Task> taskList) {
         this.taskList = taskList;
         setHasStableIds(true);
@@ -159,6 +169,9 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
                     holder.tvTaskTitle.setTextColor(primaryTextColor);
                 }
                 updateTaskStatusOnServer(holder.itemView.getContext(), currentTask);
+                if (onTaskStatusChangeListener != null) {
+                    onTaskStatusChangeListener.onStatusChanged(currentTask, isChecked);
+                }
             });
         }
 

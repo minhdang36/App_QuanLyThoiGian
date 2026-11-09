@@ -25,6 +25,16 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
     private final RecyclerView.RecycledViewPool sharedSubTaskPool = new RecyclerView.RecycledViewPool();
     private List<PhaseGroup> phaseList;
 
+    public interface OnTaskStatusChangeListener {
+        void onStatusChanged(com.example.myapplication.model.Task task, boolean isChecked);
+    }
+
+    private OnTaskStatusChangeListener onTaskStatusChangeListener;
+
+    public void setOnTaskStatusChangeListener(OnTaskStatusChangeListener listener) {
+        this.onTaskStatusChangeListener = listener;
+    }
+
     public PhaseGroupAdapter(List<PhaseGroup> phaseList) {
         this.phaseList = phaseList;
     }
@@ -86,7 +96,7 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
         return phaseList != null ? phaseList.size() : 0;
     }
 
-    public static class PhaseViewHolder extends RecyclerView.ViewHolder {
+    public class PhaseViewHolder extends RecyclerView.ViewHolder {
         final LinearLayout layoutPhaseHeader, layoutSubTasksContainer;
         final TextView tvPhaseTitle, tvPhaseStats, tvExpandArrow;
         final RecyclerView rvPhaseSubTasks;
@@ -109,6 +119,11 @@ public class PhaseGroupAdapter extends RecyclerView.Adapter<PhaseGroupAdapter.Ph
             rvPhaseSubTasks.setItemAnimator(null);
 
             subAdapter = new TaskAdapter(new ArrayList<>());
+            subAdapter.setOnTaskStatusChangeListener((task, isChecked) -> {
+                if (onTaskStatusChangeListener != null) {
+                    onTaskStatusChangeListener.onStatusChanged(task, isChecked);
+                }
+            });
             rvPhaseSubTasks.setAdapter(subAdapter);
         }
     }
