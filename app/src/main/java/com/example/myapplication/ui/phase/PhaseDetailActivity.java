@@ -4,9 +4,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -22,9 +24,15 @@ import androidx.core.content.ContextCompat;
 
 import com.example.myapplication.R;
 import com.example.myapplication.model.Task;
+import com.example.myapplication.network.ApiService;
+import com.example.myapplication.network.RetrofitClient;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -147,6 +155,8 @@ public class PhaseDetailActivity extends AppCompatActivity {
         int textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary);
         int textSecondaryColor = ContextCompat.getColor(this, R.color.text_secondary);
 
+        SharedPreferences completionPref = getSharedPreferences("TaskCompletionTimes", MODE_PRIVATE);
+
         for (int i = 0; i < taskList.size(); i++) {
             Task task = taskList.get(i);
 
@@ -166,21 +176,117 @@ public class PhaseDetailActivity extends AppCompatActivity {
             int pad = dpToPx(18);
             cardContent.setPadding(pad, pad, pad, pad);
 
+            // 1. Hàng Tiêu Đề + Checkbox
+            LinearLayout headerRow = new LinearLayout(this);
+            headerRow.setOrientation(LinearLayout.HORIZONTAL);
+            headerRow.setGravity(Gravity.CENTER_VERTICAL);
+
             TextView tvTitle = new TextView(this);
+            LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+            tvTitle.setLayoutParams(titleLp);
             tvTitle.setText("📌 " + (task.getTitle() != null ? task.getTitle() : "Công việc"));
             tvTitle.setTextColor(textPrimaryColor);
             tvTitle.setTextSize(16);
             tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-            cardContent.addView(tvTitle);
 
-            if (task.getTime() != null && !task.getTime().isEmpty()) {
-                TextView tvTime = new TextView(this);
-                tvTime.setText(task.getTime());
-                tvTime.setTextColor(0xFF2563EB);
-                tvTime.setTextSize(12);
-                tvTime.setPadding(0, dpToPx(4), 0, 0);
-                cardContent.addView(tvTime);
-            }
+            CheckBox cbStatus = new CheckBox(this);
+            cbStatus.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
+
+            headerRow.addView(tvTitle);
+            headerRow.addView(cbStatus);
+            cardContent.addView(headerRow);
+
+            // 2. Hàng Trạng thái (● ĐÃ HOÀN THÀNH (LÚC HH:mm) / ● CHỜ XỬ LÝ)
+            TextView tvStatusTag = new TextView(this);
+            tvStatusTag.setTextSize(11);
+            tvStatusTag.setTypeface(null, android.graphics.Typeface.BOLD);
+            tvStatusTag.setPadding(0, dpToPx(2), 0, dpToPx(4));
+            cardContent.addView(tvStatusTag);
+
+            // 3. Hàng Thời gian hẹn + Mốc hoàn thành
+            TextView tvTime = new TextView(this);
+            tvTime.setTextColor(0xFF2563EB);
+            tvTime.setTextSize(12);
+            cardContent.addView(tvTime);
+
+            String status = task.getStatus();
+            boolean isDone = "DONE".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status) || "HOÀN THÀNH".equalsIgnoreCase(status);
+            cbStatus.setChecked(isDone);
+
+            Runnable updateUiForStatus = () -> {
+                boolean done = cbStatus.isChecked();
+                String rawTime = task.getTime() != null ? task.getTime() : "Chưa hẹn giờ";
+
+                if (done) {
+                    tvTitle.setPaintFlags(tvTitle.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+                    tvTitle.setTextColor(textSecondaryColor);
+
+                    String completedTime = task.getCompletedAtTime();
+                    if (completedTime == null || completedTime.isEmpty()) {
+                        completedTime = completionPref.getString("TASK_COMPLETED_TIME_" + task.getId(), "");
+                        if (completedTime.isEmpty()) {
+                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                            completedTime = sdf.format(new java.util.Date());
+                            if (task.getId() > 0) {
+                                completionPref.edit().putString("TASK_COMPLETED_TIME_" + task.getId(), completedTime).apply();
+                            }
+                        }
+                        task.setCompletedAtTime(completedTime);
+                    }
+
+                    tvStatusTag.setText("● ĐÃ HOÀN THÀNH (LÚC " + completedTime + ")");
+                    tvStatusTag.setTextColor(Color.parseColor("#2E7D32"));
+
+                    if (!rawTime.contains("✔ Xong lúc")) {
+                        tvTime.setText(rawTime + " • ✔ Xong lúc " + completedTime);
+                    } else {
+                        tvTime.setText(rawTime);
+                    }
+                } else {
+                    tvTitle.setPaintFlags(tvTitle.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
+                    tvTitle.setTextColor(textPrimaryColor);
+
+                    tvStatusTag.setText("● CHỜ XỬ LÝ");
+                    tvStatusTag.setTextColor(Color.parseColor("#E65100"));
+
+                    String cleanTime = rawTime;
+                    if (cleanTime.contains(" • ✔ Xong lúc")) {
+                        cleanTime = cleanTime.substring(0, cleanTime.indexOf(" • ✔ Xong lúc"));
+                    }
+                    tvTime.setText(cleanTime);
+                }
+            };
+
+            updateUiForStatus.run();
+
+            cbStatus.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                task.setStatus(isChecked ? "DONE" : "PENDING");
+                if (isChecked) {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                    String nowTime = sdf.format(new java.util.Date());
+                    task.setCompletedAtTime(nowTime);
+                    if (task.getId() > 0) {
+                        completionPref.edit().putString("TASK_COMPLETED_TIME_" + task.getId(), nowTime).apply();
+                    }
+                } else {
+                    task.setCompletedAtTime(null);
+                    if (task.getId() > 0) {
+                        completionPref.edit().remove("TASK_COMPLETED_TIME_" + task.getId()).apply();
+                    }
+                }
+                updateUiForStatus.run();
+
+                if (task.getId() > 0) {
+                    RetrofitClient.invalidateCache();
+                    RetrofitClient.getApiService().updateTask(task.getId(), task).enqueue(new Callback<Task>() {
+                        @Override
+                        public void onResponse(Call<Task> call, Response<Task> response) {}
+
+                        @Override
+                        public void onFailure(Call<Task> call, Throwable t) {}
+                    });
+                }
+            });
 
             if (task.getDescription() != null && !task.getDescription().isEmpty()) {
                 TextView tvDesc = new TextView(this);
