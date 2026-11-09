@@ -77,7 +77,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             rvTimeline.setLayoutManager(new LinearLayoutManager(this));
             rvTimeline.setItemViewCacheSize(10);
             timelineAdapter = new ScheduleTimelineAdapter(displayedScheduleTasks);
-            timelineAdapter.setOnTaskStatusChangeListener(this::recalculateEfficiencyOnly);
+            timelineAdapter.setOnTaskStatusChangeListener(this::recalculateEfficiencyAndSort);
             rvTimeline.setAdapter(timelineAdapter);
 
             ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(
@@ -118,7 +118,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         if (btnReOptimize != null) {
             btnReOptimize.setOnClickListener(v -> {
                 filterAndOptimizeForDay(selectedDayNumber);
-                Toast.makeText(this, "⚡ AI đã sắp xếp tối ưu công việc cho ngày " + selectedDayNumber + "!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "✨ AI FlowAI Engine đã tự động sắp xếp công việc theo mức độ ưu tiên & đẩy các công việc chưa hoàn thành lên đầu!", Toast.LENGTH_LONG).show();
             });
         }
     }
@@ -317,11 +317,7 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
             }
         }
 
-        Collections.sort(displayedScheduleTasks, (t1, t2) -> {
-            int p1 = getPriorityLevel(t1);
-            int p2 = getPriorityLevel(t2);
-            return Integer.compare(p1, p2);
-        });
+        Collections.sort(displayedScheduleTasks, this::compareTasksByStatusAndPriority);
 
         if (timelineAdapter != null) {
             timelineAdapter.updateData(displayedScheduleTasks);
@@ -390,6 +386,24 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         return dates;
     }
 
+    private boolean isTaskCompleted(Task t) {
+        if (t == null) return false;
+        String s = t.getStatus();
+        return "DONE".equalsIgnoreCase(s) || "COMPLETED".equalsIgnoreCase(s) || "HOÀN THÀNH".equalsIgnoreCase(s);
+    }
+
+    private int compareTasksByStatusAndPriority(Task t1, Task t2) {
+        boolean isDone1 = isTaskCompleted(t1);
+        boolean isDone2 = isTaskCompleted(t2);
+
+        if (!isDone1 && isDone2) return -1;
+        if (isDone1 && !isDone2) return 1;
+
+        int p1 = getPriorityLevel(t1);
+        int p2 = getPriorityLevel(t2);
+        return Integer.compare(p1, p2);
+    }
+
     private int getPriorityLevel(Task t) {
         String combined = (t.getPriority() != null ? t.getPriority() : "") + " " + (t.getTime() != null ? t.getTime() : "");
         String p = combined.toUpperCase(Locale.ROOT);
@@ -397,6 +411,14 @@ public class AiAutoScheduleActivity extends AppCompatActivity {
         if (p.contains("ƯU 2") || p.contains("TRUNG BÌNH") || p.contains("MEDIUM")) return 2;
         if (p.contains("ƯU 3") || p.contains("THẤP") || p.contains("LOW")) return 3;
         return 2;
+    }
+
+    private void recalculateEfficiencyAndSort() {
+        Collections.sort(displayedScheduleTasks, this::compareTasksByStatusAndPriority);
+        if (timelineAdapter != null) {
+            timelineAdapter.updateData(displayedScheduleTasks);
+        }
+        recalculateEfficiencyOnly();
     }
 
     private void recalculateEfficiencyOnly() {
