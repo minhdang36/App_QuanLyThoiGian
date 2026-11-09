@@ -9,11 +9,15 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.text.InputType;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -446,6 +450,89 @@ public class PomodoroActivity extends AppCompatActivity {
         });
 
         btnResetTimer.setOnClickListener(v -> resetTimer());
+
+        View.OnClickListener editTimerClick = v -> showCustomTimerDurationDialog();
+        if (tvTimerDisplay != null) tvTimerDisplay.setOnClickListener(editTimerClick);
+        if (circularTimerView != null) circularTimerView.setOnClickListener(editTimerClick);
+    }
+
+    private void showCustomTimerDurationDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("⏱ Đặt Thời Gian Bấm Giờ (Phút)");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 30, 50, 20);
+
+        TextView tvSub = new TextView(this);
+        tvSub.setText("Chọn nhanh hoặc nhập số phút tập trung mong muốn:");
+        tvSub.setTextSize(13);
+        tvSub.setTextColor(0xFF666666);
+        layout.addView(tvSub);
+
+        android.widget.HorizontalScrollView hsv = new android.widget.HorizontalScrollView(this);
+        hsv.setPadding(0, 16, 0, 16);
+
+        LinearLayout layoutMinPresets = new LinearLayout(this);
+        layoutMinPresets.setOrientation(LinearLayout.HORIZONTAL);
+
+        int currentMinutes = (int) (timerDurationInMillis / 60000);
+        if (currentMinutes <= 0) currentMinutes = 25;
+
+        final EditText edtValue = new EditText(this);
+        edtValue.setInputType(InputType.TYPE_CLASS_NUMBER);
+        edtValue.setText(String.valueOf(currentMinutes));
+        edtValue.setTextSize(16);
+        edtValue.setHint("Nhập số phút (VD: 25)");
+
+        int[] minPresets = {15, 25, 30, 45, 60, 90, 120};
+        for (int p : minPresets) {
+            TextView btn = new TextView(this);
+            btn.setText(p + " phút");
+            btn.setTextSize(12);
+            btn.setTextColor(0xFFFFFFFF);
+            btn.setBackgroundResource(R.drawable.bg_pill_brown);
+            btn.setPadding(24, 12, 24, 12);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            lp.setMargins(0, 0, 12, 0);
+            btn.setLayoutParams(lp);
+            btn.setOnClickListener(v -> edtValue.setText(String.valueOf(p)));
+            layoutMinPresets.addView(btn);
+        }
+        hsv.addView(layoutMinPresets);
+        layout.addView(hsv);
+
+        layout.addView(edtValue);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Bắt đầu đếm", (dialog, which) -> {
+            String input = edtValue.getText().toString().trim();
+            if (!input.isEmpty()) {
+                try {
+                    int min = Integer.parseInt(input);
+                    if (min > 0) {
+                        long durationMs = min * 60 * 1000L;
+                        if (isTimerRunning) {
+                            pauseTimer();
+                        }
+                        timerDurationInMillis = durationMs;
+                        timeRemainingInMillis = durationMs;
+                        updateTimerText();
+
+                        Toast.makeText(this, "⏱ Đã thiết lập thời gian tập trung: " + min + " phút!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Vui lòng nhập số phút lớn hơn 0!", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception ignored) {}
+            }
+        });
+
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
     }
 
     private void setupAmbientSoundControls() {
