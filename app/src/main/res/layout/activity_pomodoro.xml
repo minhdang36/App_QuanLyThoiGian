@@ -199,13 +199,17 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- CIRCULAR POMODORO TIMER DIAL -->
+            <!-- CIRCULAR POMODORO TIMER DIAL WITH ANIMATED RING -->
             <FrameLayout
-                android:layout_width="240dp"
-                android:layout_height="240dp"
-                android:layout_marginTop="24dp"
-                android:background="@drawable/bg_timer_dial"
-                android:elevation="6dp">
+                android:layout_width="250dp"
+                android:layout_height="250dp"
+                android:layout_marginTop="24dp">
+
+                <!-- Vòng tròn xanh đếm lùi rút ngắn dần theo thời gian còn lại -->
+                <com.example.myapplication.ui.pomodoro.CircularTimerView
+                    android:id="@+id/circularTimerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"

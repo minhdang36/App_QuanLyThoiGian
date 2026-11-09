@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Vòng nền xám nhạt phía sau -->
+    <item android:id="@android:id/background">
+        <shape
+            android:innerRadiusRatio="2.4"
+            android:shape="ring"
+            android:thickness="7dp"
+            android:useLevel="false">
+            <solid android:color="#E2E8F0" />
+        </shape>
+    </item>
+    <!-- Vòng xanh tự động giảm dần theo thời gian còn lại -->
+    <item android:id="@android:id/progress">
+        <rotate
+            android:fromDegrees="0"
+            android:pivotX="50%"
+            android:pivotY="50%"
+            android:toDegrees="360">
+            <shape
+                android:innerRadiusRatio="2.4"
+                android:shape="ring"
+                android:thickness="7dp"
+                android:useLevel="true">
+                <solid android:color="#2563EB" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

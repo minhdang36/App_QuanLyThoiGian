@@ -50,6 +50,7 @@ public class PomodoroActivity extends AppCompatActivity {
 
     private TextView tvActiveTaskTitle, tvTotalFocusHours, tvGoalProgress;
     private ProgressBar progressTask;
+    private CircularTimerView circularTimerView;
 
     private TextView chipSound1, chipSound2, chipSound3, chipSound4, chipSound5, chipSound6;
 
@@ -108,6 +109,7 @@ public class PomodoroActivity extends AppCompatActivity {
 
         tvTimerDisplay = findViewById(R.id.tvTimerDisplay);
         tvSessionCount = findViewById(R.id.tvSessionCount);
+        circularTimerView = findViewById(R.id.circularTimerView);
         btnStartTimer = findViewById(R.id.btnStartTimer);
         btnResetTimer = findViewById(R.id.btnResetTimer);
         btnSoundToggle = findViewById(R.id.btnSoundToggle);
@@ -653,6 +655,11 @@ public class PomodoroActivity extends AppCompatActivity {
         int seconds = (int) (timeRemainingInMillis / 1000) % 60;
         String timeFormatted = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
         tvTimerDisplay.setText(timeFormatted);
+
+        if (circularTimerView != null && timerDurationInMillis > 0) {
+            float ratio = (float) ((double) timeRemainingInMillis / timerDurationInMillis);
+            circularTimerView.setProgressRatio(ratio);
+        }
     }
 
     private void setupBottomNav() {
